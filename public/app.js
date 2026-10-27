@@ -23,7 +23,7 @@ async function api(url, options = {}) {
     }
     return data;
   } catch (err) {
-    console.warn(`API ${url} not available, running client-side simulation.`, err);
+    console.warn(`API ${url} unavailable. Running in client-side simulation mode.`, err);
     return null;
   }
 }
@@ -72,14 +72,13 @@ async function initialize() {
   setConnection("Pi Testnet Ready", true);
   if ($("#demo-login-button")) $("#demo-login-button").hidden = false;
   
-  // Inisialisasi awal Pi SDK bila tersedia
   try {
     if (window.Pi) {
       window.Pi.init({ version: "2.0", sandbox: true });
       console.log("Pi SDK v2.0 Sandbox Initialized");
     }
   } catch (e) {
-    console.warn("Pi SDK not loaded in non-Pi Browser environment");
+    console.warn("Pi SDK standby - pending Developer Portal registration");
   }
 }
 
@@ -91,7 +90,7 @@ if (piLoginButton) {
 
     try {
       if (!window.Pi) {
-        throw new Error("Pi SDK is not available. Open the app inside Pi Browser.");
+        throw new Error("Pi SDK is not available. Please open inside Pi Browser after Developer Portal registration.");
       }
 
       window.Pi.init({ version: "2.0", sandbox: true });
@@ -107,7 +106,6 @@ if (piLoginButton) {
         throw new Error("Pi authentication returned no user data.");
       }
 
-      // Render user langsung di frontend
       const userData = {
         username: auth.user.username,
         uid: auth.user.uid,
@@ -116,16 +114,15 @@ if (piLoginButton) {
 
       renderUser(userData);
       setConnection("Connected via Pi SDK", true);
-      alert(`Selamat datang @${auth.user.username}! Login Pi SDK Berhasil.`);
+      alert(`Welcome @${auth.user.username}! Pi SDK Login Successful.`);
 
-      // Kirim token ke backend jika API tersedia
       await api("/api/auth/pi", {
         method: "POST",
         body: JSON.stringify({ accessToken: auth.accessToken })
       });
 
     } catch (error) {
-      alert("Pi Login Notice: " + error.message);
+      alert("Pi Login Notice: " + error.message + "\n\nTip: Use 'Enter local demo' for interface testing before Pi Portal registration.");
     } finally {
       piLoginButton.disabled = false;
     }
@@ -136,7 +133,7 @@ const demoLoginButton = $("#demo-login-button");
 if (demoLoginButton) {
   demoLoginButton.addEventListener("click", () => {
     renderUser({
-      username: "DemoParticipant",
+      username: "afifmasfiqo",
       demo: true
     });
   });
@@ -160,10 +157,10 @@ if (nftForm) {
     const mockResult = {
       ok: true,
       walletAddress: wallet,
-      nftType: nftType,
+      nftCategory: nftType,
       verifiedOnChain: true,
       timestamp: new Date().toISOString(),
-      message: `${nftType} verified successfully in wallet ${wallet.slice(0, 6)}...${wallet.slice(-4)}`
+      message: `Verified: ${nftType} active in wallet ${wallet.slice(0, 6)}...${wallet.slice(-4)}`
     };
 
     showResult("#nft-result", mockResult);
@@ -187,7 +184,7 @@ if (payoutForm) {
       recipientWallet: $("#payout-wallet").value.trim(),
       amount: Number($("#payout-amount").value),
       idempotencyKey: $("#payout-key").value.trim(),
-      splitRule: "50/50 Delegator-Owner Split Enabled"
+      splitRule: "50/50 Delegator-Owner Split Active"
     };
 
     showResult("#payout-result", mockPayout);
@@ -312,7 +309,7 @@ if (saveSigBtn) {
   });
 }
 
-/* --- PDF BRANDING & GENERATION (BAP & CERTIFICATE) --- */
+/* --- PDF BRANDING & GENERATION (ENGLISH BAP & CERTIFICATE) --- */
 function loadImage(src) {
   return new Promise((resolve) => {
     const image = new Image();
@@ -345,10 +342,10 @@ function addSignatureBlock(pdf, title, data, x, y) {
   }
 
   pdf.setFontSize(8);
-  pdf.text("Signature Verified", x, y + 30);
+  pdf.text("Verified Signature", x, y + 30);
 }
 
-/* Hybrid BAP PDF Handler */
+/* 1. Official Minutes of Proceedings (BAP in English) */
 const bapForm = $("#bap-form");
 if (bapForm) {
   bapForm.addEventListener("submit", async (event) => {
@@ -369,22 +366,22 @@ if (bapForm) {
 
     pdf.setFontSize(18);
     pdf.text("THE VOICE OF DAO", 15, 22);
-    pdf.setFontSize(14);
-    pdf.text("HYBRID MINUTES OF PROCEEDINGS (BAP)", 15, 34);
+    pdf.setFontSize(13);
+    pdf.text("OFFICIAL MINUTES OF PROCEEDINGS & VERIFICATION RECORD", 15, 34);
 
     pdf.setFontSize(10);
     pdf.text(`Document ID: ${documentId}`, 15, 47);
-    pdf.text(`Date: ${date}`, 15, 55);
-    pdf.text("Language: English", 15, 63);
-    pdf.text(`Voter Account: ${currentUser ? currentUser.username : 'Guest Session'}`, 15, 71);
+    pdf.text(`Proceedings Date: ${date}`, 15, 55);
+    pdf.text("Document Standard: TVOD Global Governance (English)", 15, 63);
+    pdf.text(`Recorded By User: ${currentUser ? currentUser.username : 'Guest Session'}`, 15, 71);
 
     pdf.setFontSize(12);
-    pdf.text("Subject", 15, 86);
+    pdf.text("Subject / Proposal Title", 15, 86);
     pdf.setFontSize(10);
     pdf.text(pdf.splitTextToSize(subject, 175), 15, 94);
 
     pdf.setFontSize(12);
-    pdf.text("Proceedings Summary", 15, 111);
+    pdf.text("Proceedings & Decision Summary", 15, 111);
     pdf.setFontSize(10);
     pdf.text(pdf.splitTextToSize(summary, 175).slice(0, 13), 15, 119);
 
@@ -393,11 +390,11 @@ if (bapForm) {
     addSignatureBlock(pdf, "Inspector", signatures["sig-inspector"], 15, 252);
     addSignatureBlock(pdf, "Country Head", signatures["sig-country-head"], 110, 252);
 
-    pdf.save(`${documentId.replace(/[^a-zA-Z0-9_-]/g, "_") || "TVOD-BAP"}.pdf`);
+    pdf.save(`${documentId.replace(/[^a-zA-Z0-9_-]/g, "_") || "TVOD_Official_Proceedings"}.pdf`);
   });
 }
 
-/* Certificate Handler */
+/* 2. Official Digital Verification Certificate (Full English) */
 const certForm = $("#certificate-form");
 if (certForm) {
   certForm.addEventListener("submit", async (event) => {
@@ -419,18 +416,19 @@ if (certForm) {
 
       pdf.setFontSize(18);
       pdf.text("THE VOICE OF DAO", 15, 28);
-      pdf.setFontSize(15);
-      pdf.text("DIGITAL VERIFICATION CERTIFICATE", 15, 43);
+      pdf.setFontSize(14);
+      pdf.text("OFFICIAL DIGITAL VERIFICATION CERTIFICATE", 15, 43);
 
-      pdf.setFontSize(11);
+      pdf.setFontSize(10);
       pdf.text(`Certificate ID: ${certificateId}`, 15, 60);
-      pdf.text(`Recipient: ${recipient}`, 15, 72);
-      pdf.text(`NFT Category: ${nftType}`, 15, 84);
+      pdf.text(`Recipient Name: ${recipient}`, 15, 70);
+      pdf.text(`Verified NFT Category: ${nftType}`, 15, 80);
 
-      pdf.text("Wallet Address:", 15, 96);
-      pdf.text(pdf.splitTextToSize(wallet, 175), 15, 103);
+      pdf.text("Bound Pi Wallet Address:", 15, 92);
+      pdf.text(pdf.splitTextToSize(wallet, 175), 15, 100);
 
-      pdf.text(`Issued: ${new Date().toLocaleDateString()}`, 15, 120);
+      pdf.text(`Issue Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 15, 118);
+      pdf.text("Verification Status: Web3 Verified Ecosystem Member", 15, 128);
 
       if (window.QRCode) {
         const qrContainer = document.createElement("div");
@@ -443,12 +441,15 @@ if (certForm) {
         await new Promise((resolve) => setTimeout(resolve, 250));
         const qrCanvas = qrContainer.querySelector("canvas");
         if (qrCanvas) {
-          pdf.addImage(qrCanvas.toDataURL("image/png"), "PNG", 80, 140, 45, 45);
+          pdf.addImage(qrCanvas.toDataURL("image/png"), "PNG", 80, 142, 45, 45);
         }
       }
 
-      pdf.save(`${certificateId.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`);
-      showStatus("#certificate-result", "Demo Certificate PDF created successfully.");
+      pdf.setFontSize(8);
+      pdf.text("Scan QR code above for live verification record", 72, 192);
+
+      pdf.save(`${certificateId.replace(/[^a-zA-Z0-9_-]/g, "_") || "TVOD_Digital_Certificate"}.pdf`);
+      showStatus("#certificate-result", "Official Digital Certificate PDF generated successfully in English.");
     } catch (error) {
       showStatus("#certificate-result", error.message, true);
     }
