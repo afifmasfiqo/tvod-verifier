@@ -765,3 +765,18 @@ textarea {
     padding-bottom: 4.5rem; /* Memberikan ruang agar konten bawah tidak tertutup menu HP */
   }
 }
+/* --- PRESERVE & ENFORCE LARGE ORBIT LOGO --- */
+.hero-orbit .orbit-core-img {
+  width: 90px !important;
+  height: 90px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 2px solid #d4af37 !important;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.4) !important;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0 !important;
+  background: #090d16;
+}
