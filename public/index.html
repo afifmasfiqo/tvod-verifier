@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,25 +9,27 @@
   <link rel="icon" href="/logo.png">
   <link rel="stylesheet" href="/styles.css">
 
-  <!-- PDF and QR libraries. Pin versions for repeatable testing. -->
+  <!-- PDF, QR, and Official Pi Network SDK libraries -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script defer src="/app.js"></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="TVOD home">
-  <img src="/logo.png" alt="TVOD Logo" class="brand-logo-img">
-  <span>
-    <strong>THE VOICE OF DAO</strong>
-    <small>WEB3 VERIFIER</small>
-  </span>
-</a>
+      <img src="/logo.png" alt="TVOD Logo" class="brand-logo-img">
+      <span>
+        <strong>THE VOICE OF DAO</strong>
+        <small>WEB3 VERIFIER</small>
+      </span>
+    </a>
     <div class="header-actions">
       <span class="environment-badge">TESTNET SIMULATION</span>
       <span id="connection-status" class="status-pill status-neutral">Connecting…</span>
     </div>
   </header>
+
   <nav class="dashboard-nav">
     <a href="#section-auth" class="nav-btn active">🔑 Account & Wallet</a>
     <a href="#section-nft" class="nav-btn">🛡️ NFT Verification</a>
@@ -37,6 +38,7 @@
     <a href="#section-cert" class="nav-btn">🎓 Certificate</a>
     <a href="#section-signatures" class="nav-btn">✍️ Signatures</a>
   </nav>
+
   <main class="page-shell">
     <section class="hero">
       <div>
@@ -54,13 +56,13 @@
       </div>
 
       <div class="hero-orbit" aria-hidden="true">
-  <span class="orbit orbit-one"></span>
-  <span class="orbit orbit-two"></span>
-  <span class="orbit-dot dot-one"></span>
-  <span class="orbit-dot dot-two"></span>
-  <span class="orbit-dot dot-three"></span>
-  <img src="/logo.png" alt="TVOD Logo" class="brand-logo-img" style="width: 90px; height: 90px; margin: 0;">
-</div>
+        <span class="orbit orbit-one"></span>
+        <span class="orbit orbit-two"></span>
+        <span class="orbit-dot dot-one"></span>
+        <span class="orbit-dot dot-two"></span>
+        <span class="orbit-dot dot-three"></span>
+        <img src="/logo.png" alt="TVOD Logo" class="brand-logo-img orbit-core-img" style="width: 90px; height: 90px; margin: 0;">
+      </div>
     </section>
 
     <section class="notice-panel" aria-label="Test environment notice">
@@ -83,7 +85,7 @@
     </div>
 
     <section class="dashboard-grid">
-      <article class="panel">
+      <article class="panel" id="section-auth">
         <div class="panel-heading">
           <span class="panel-icon">01</span>
           <div>
@@ -117,7 +119,7 @@
         </p>
       </article>
 
-      <article class="panel">
+      <article class="panel" id="section-nft">
         <div class="panel-heading">
           <span class="panel-icon">02</span>
           <div>
@@ -138,7 +140,6 @@
             <option value="Garuda NFT">Garuda NFT</option>
             <option value="Halloween NFT">Halloween NFT</option>
             <option value="PiDay NFT">PiDay NFT</option>
-      
           </select>
 
           <button class="button button-primary" type="submit">
@@ -149,7 +150,7 @@
         <pre id="nft-result" class="result-box" aria-live="polite">No verification requested.</pre>
       </article>
 
-      <article class="panel">
+      <article class="panel" id="section-payout">
         <div class="panel-heading">
           <span class="panel-icon">03</span>
           <div>
@@ -182,7 +183,7 @@
         <pre id="payout-result" class="result-box" aria-live="polite">No payout queued.</pre>
       </article>
 
-      <article class="panel">
+      <article class="panel" id="section-bap">
         <div class="panel-heading">
           <span class="panel-icon">04</span>
           <div>
@@ -213,7 +214,7 @@
         </form>
       </article>
 
-      <article class="panel">
+      <article class="panel" id="section-cert">
         <div class="panel-heading">
           <span class="panel-icon">05</span>
           <div>
@@ -240,7 +241,6 @@
             <option value="Garuda NFT">Garuda NFT</option>
             <option value="Halloween NFT">Halloween NFT</option>
             <option value="PiDay NFT">PiDay NFT</option>
-            
           </select>
 
           <button class="button button-primary" type="submit">
@@ -252,7 +252,7 @@
       </article>
     </section>
 
-    <section class="panel signatures-panel">
+    <section class="panel signatures-panel" id="section-signatures">
       <div class="panel-heading">
         <span class="panel-icon">06</span>
         <div>
