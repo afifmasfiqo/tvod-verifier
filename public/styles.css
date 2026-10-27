@@ -704,4 +704,64 @@ textarea {
     transition: none !important;
   }
   }
+  /* --- TEMA HITAM & EMAS PREMIUM + BRAND LOGO --- */
+.brand-logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid #d4af37;
+  object-fit: cover;
+  margin-right: 8px;
+}
+
+/* --- DASHBOARD NAVIGATION BAR --- */
+.dashboard-nav {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #0d0f14;
+  border-bottom: 1px solid #222630;
+  overflow-x: auto;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.nav-btn {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nav-btn:hover, .nav-btn.active {
+  color: #f3e5ab;
+  background: rgba(212, 175, 55, 0.12);
+  border-color: #3d3215;
+}
+
+/* RESPONSIVE UNTUK LAYAR HP */
+@media (max-width: 768px) {
+  .dashboard-nav {
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #222630;
+    border-bottom: none;
+    justify-content: space-around;
+    padding: 0.5rem;
+  }
   
+  .page-shell {
+    padding-bottom: 4.5rem; /* Memberikan ruang agar konten bawah tidak tertutup menu HP */
+  }
+}
