@@ -7,6 +7,10 @@ let currentSessionToken = null;
 let signatures = {};
 const signaturePads = {};
 
+function onIncompletePaymentFound(payment) {
+  console.warn("Incomplete payment found:", payment);
+}
+
 function showResult(selector, data) {
   const element = $(selector);
   if (element) element.textContent = JSON.stringify(data, null, 2);
@@ -47,72 +51,66 @@ function renderUser(user) {
   }
 }
 
+async function handlePiAuth() {
+  if (!window.Pi) {
+    throw new Error("Pi SDK is not loaded. Please open inside Pi Browser.");
+  }
+
+  await window.Pi.init({ version: "2.0" });
+
+  const auth = await window.Pi.authenticate(["username"], onIncompletePaymentFound);
+  if (!auth || !auth.accessToken) {
+    throw new Error("Pi.authenticate did not return an access token.");
+  }
+
+  const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      accessToken: auth.accessToken
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`App Studio login exchange failed (${response.status})`);
+  }
+
+  const data = await response.json();
+  currentSessionToken = data.sessionToken;
+
+  const verifiedUser = {
+    username: data.user.username,
+    uid: data.user.uid,
+    demo: false
+  };
+
+  renderUser(verifiedUser);
+  setConnection("Verified by App Studio", true);
+  return verifiedUser;
+}
+
 async function initialize() {
   setConnection("Pi Ecosystem Ready", true);
   if ($("#demo-login-button")) $("#demo-login-button").hidden = false;
 
   try {
     if (window.Pi) {
-      await window.Pi.init({ version: "2.0" });
-      console.log("Pi SDK v2.0 Initialized");
+      await handlePiAuth();
     }
   } catch (e) {
-    console.warn("Pi SDK initialization failed:", e);
+    console.warn("Auto sign-in skipped or pending user action:", e);
   }
 }
 
-/* --- STEP 1 & 2: PI SDK AUTHENTICATION & APP STUDIO TOKEN EXCHANGE --- */
 const piLoginButton = $("#pi-login-button");
 if (piLoginButton) {
   piLoginButton.addEventListener("click", async () => {
     piLoginButton.disabled = true;
-
     try {
-      if (!window.Pi) {
-        throw new Error("Pi SDK is not available. Please open inside Pi Browser.");
-      }
-
-      await window.Pi.init({ version: "2.0" });
-
-      // STEP 1: Authenticate browser session & get accessToken
-      const auth = await window.Pi.authenticate(
-        ["username"],
-        (payment) => console.warn("Incomplete payment:", payment)
-      );
-
-      if (!auth || !auth.accessToken) {
-        throw new Error("Pi authentication returned no access token.");
-      }
-
-      // STEP 2: Exchange accessToken with App Studio Backend Validation Server
-      const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          accessToken: auth.accessToken
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`App Studio validation failed (${response.status})`);
-      }
-
-      const appStudioResult = await response.json();
-      currentSessionToken = appStudioResult.sessionToken;
-
-      // STEP 3: Trust ONLY the user identity returned by App Studio backend
-      const verifiedUser = {
-        username: appStudioResult.user.username,
-        uid: appStudioResult.user.uid,
-        demo: false
-      };
-
-      renderUser(verifiedUser);
-      setConnection("Verified by App Studio", true);
-      alert(`Welcome @${verifiedUser.username}! Pi App Studio Authentication Successful.`);
-
+      const user = await handlePiAuth();
+      alert(`Welcome @${user.username}! Pi App Studio Authentication Successful.`);
     } catch (error) {
       alert("Pi Login Notice: " + error.message + "\n\nTip: Use 'Enter local demo' for interface testing.");
     } finally {
@@ -139,7 +137,6 @@ if (logoutButton) {
   });
 }
 
-/* --- MOCK NFT VERIFICATION --- */
 const nftForm = $("#nft-form");
 if (nftForm) {
   nftForm.addEventListener("submit", async (event) => {
@@ -160,7 +157,6 @@ if (nftForm) {
   });
 }
 
-/* --- MOCK PAYOUT QUEUE --- */
 if ($("#payout-key")) {
   $("#payout-key").value = (window.crypto && window.crypto.randomUUID) 
     ? crypto.randomUUID() 
@@ -189,7 +185,6 @@ if (payoutForm) {
   });
 }
 
-/* --- TOUCHSCREEN & MOUSE SIGNATURE PADS --- */
 function setupSignaturePad(canvas) {
   const ctx = canvas.getContext("2d");
   let drawing = false;
@@ -302,7 +297,6 @@ if (saveSigBtn) {
   });
 }
 
-/* --- PDF BRANDING & GENERATION --- */
 function loadImage(src) {
   return new Promise((resolve) => {
     const image = new Image();
@@ -338,7 +332,6 @@ function addSignatureBlock(pdf, title, data, x, y) {
   pdf.text("Verified Signature", x, y + 30);
 }
 
-/* Official Minutes of Proceedings (BAP) */
 const bapForm = $("#bap-form");
 if (bapForm) {
   bapForm.addEventListener("submit", async (event) => {
@@ -387,7 +380,6 @@ if (bapForm) {
   });
 }
 
-/* Official Digital Verification Certificate */
 const certForm = $("#certificate-form");
 if (certForm) {
   certForm.addEventListener("submit", async (event) => {
