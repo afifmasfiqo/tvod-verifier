@@ -11,18 +11,18 @@ const app = express();
 // 1. Pengaturan CORS (Akses Lintas Domain)
 app.use(cors({ origin: '*' }));
 
-// 2. Pengaturan Keamanan Helmet (Kunci Penanganan Blok Error Pi Browser)
+// 2. Pengaturan Keamanan Helmet (Penanganan Utama Blok Error Pi Browser)
 app.use(
   helmet({
-    frameguard: false, // Mematikan X-Frame-Options SAMEORIGIN agar dApp bisa dibuka di iframe Pi Browser
+    frameguard: false, // Mematikan X-Frame-Options SAMEORIGIN agar dApp dibuka mulus di Pi Browser
     contentSecurityPolicy: false // Kebijakan CSP dikelola melalui vercel.json
   })
 );
 
-// 3. Pembatasan Rate Limit (Keamanan Anti-Spam/DDoS)
+// 3. Pembatasan Rate Limit (Keamanan Anti-Spam / DDoS)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 menit
-  max: 100, // Maksimal 100 permintaan per IP dalam 15 menit
+  max: 100, // Maksimal 100 permintaan per IP
   message: { error: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi nanti.' }
 });
 app.use('/api/', limiter);
@@ -36,11 +36,11 @@ app.use(
     secret: process.env.SESSION_SECRET || 'tvod_secret_key_2026',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // Setel true jika menggunakan HTTPS penuh
+    cookie: { secure: false }
   })
 );
 
-// 5. Menyajikan File Statis (index.html, styles.css, app.js, logo.png)
+// 5. Menyajikan File Statis (index.html, styles.css, app.js, logo.png, stempel-tvod.png)
 app.use(express.static(path.join(__dirname, '.')));
 
 // 6. Endpoint Kesehatan Server / API Status
