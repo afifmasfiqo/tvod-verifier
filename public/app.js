@@ -571,7 +571,7 @@ async function generateOfficialMinutesPDF() {
 
   pdf.setFontSize(11);
   pdf.setFont("Helvetica", "bold");
-  pdf.text("OFFICIAL MINUTES OF PROCEEDINGS & VERIFICATION RECORD (BAP)", 15, 31);
+  pdf.text("OFFICIAL MINUTES OF PROCEEDINGS & VERIFICATION RECORD", 15, 31);
   pdf.line(15, 34, 195, 34);
 
   // Metadata
@@ -655,7 +655,7 @@ async function generateOfficialMinutesPDF() {
   pdf.text(`SHA-256 Cryptographic Proof: ${shaProof}`, 15, 245);
   pdf.text("Disclaimer: Official Minutes compiled for Pi Core Team reporting, Web3 ecosystem audit, and governance record.", 15, 250);
 
-  pdf.save(`TVOD_Official_Minutes_BAP_${activeProposal.id}.pdf`);
+  pdf.save(`TVOD_Official_Minutes_${activeProposal.id}.pdf`);
 }
 
 // ==============================================================================
