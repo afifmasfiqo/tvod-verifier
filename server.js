@@ -2,12 +2,12 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// Menyajikan file statis (index.html, app.js, styles.css, logo.png, stempel-tvod.png)
-app.use(express.static(path.join(__dirname, '.')));
+// Menyajikan file statis dari dalam folder 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Fallback mengarahkan ke index.html
+// Fallback mengarahkan ke public/index.html
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
