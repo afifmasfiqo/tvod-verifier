@@ -2,5 +2,12 @@
   "name": "tvod-verifier",
   "version": "1.0.0",
   "private": true,
-  "description": "The Voice of Dao Web3 Verifier & Voting dApp"
+  "description": "The Voice of Dao Web3 Verifier",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
 }
