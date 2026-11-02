@@ -7,7 +7,7 @@ const $ = (selector) => document.querySelector(selector);
 // 1. INITIALIZATION SUPABASE CLIENT
 // ==============================================================================
 const SUPABASE_URL = "https://tdtybxriphsdtojkrevp.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI"; // <-- TEMPELKAN ANON KEY SUPABASE DI SINI
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI"; // <-- TINGGAL KOREKSI KEY DI SINI
 
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
@@ -58,6 +58,7 @@ let currentConfidence = 3;
 let signatures = {};
 const signaturePads = {};
 let voterSigPad = null;
+let uploadedGalleryBase64Images = [];
 
 // State Durasi Waktu Voting (Default: 24 Jam dari sekarang)
 let votingEndTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -163,6 +164,28 @@ async function initialize() {
   } catch (e) {
     console.warn("Auto sign-in pending user action:", e);
   }
+}
+
+// --- LOGIKA BUKA GALERI HP / LAPTOP UNTUK FOTO ---
+function handleGalleryImagesSelect(event) {
+  const files = event.target.files;
+  uploadedGalleryBase64Images = [];
+  const countSpan = $("#galleryFilesCount");
+
+  if (!files || files.length === 0) {
+    if (countSpan) countSpan.textContent = "";
+    return;
+  }
+
+  if (countSpan) countSpan.textContent = `📷 ${files.length} foto dipilih dari Galeri.`;
+
+  Array.from(files).forEach((file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedGalleryBase64Images.push(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 // --- LOGIKA COUNTDOWN TIMER DURASI VOTING ---
@@ -475,12 +498,16 @@ function publishNewProposal(e) {
   }
   startCountdownTimer();
 
-  // 2. Olah Multi-Media Foto
-  const rawImages = $("#inputPropImages") ? $("#inputPropImages").value.trim() : "";
-  if (rawImages) {
-    activeProposal.images = rawImages.split(",").map(img => img.trim()).filter(img => img.length > 0);
+  // 2. Olah Media Foto (Utamakan dari Galeri HP, jika kosong baru cek URL input)
+  if (uploadedGalleryBase64Images.length > 0) {
+    activeProposal.images = uploadedGalleryBase64Images;
   } else {
-    activeProposal.images = ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting"];
+    const rawImages = $("#inputPropImages") ? $("#inputPropImages").value.trim() : "";
+    if (rawImages) {
+      activeProposal.images = rawImages.split(",").map(img => img.trim()).filter(img => img.length > 0);
+    } else {
+      activeProposal.images = ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting"];
+    }
   }
 
   // 3. Olah Video URL
