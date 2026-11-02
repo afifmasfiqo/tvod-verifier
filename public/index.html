@@ -15,13 +15,9 @@
 
   <!-- PDF, QR Code, CryptoJS & Official Pi Network SDK Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 
   <style>
@@ -42,7 +38,7 @@
         </div>
       </a>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <!-- Multi-Language Support -->
         <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-slate-800 border border-slate-700 text-xs rounded px-2.5 py-1 text-slate-200 outline-none">
           <option value="en">English (EN)</option>
@@ -75,7 +71,7 @@
       <a href="#section-material" class="px-3 py-1.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📄 Materi Voting</a>
       <a href="#section-voting" class="px-3 py-1.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🗳️ Fast Voting</a>
       <a href="#section-admin" id="nav-admin-link" class="hidden px-3 py-1.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition">🛡️ Admin Suite</a>
-      <a href="#section-bap" class="px-3 py-1.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📝 Hybrid BAP & Cert</a>
+      <a href="#section-bap" class="px-3 py-1.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📝 Official Minutes & Cert</a>
       <a href="#section-signatures" class="px-3 py-1.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">✍️ Digital Signatures</a>
     </div>
   </nav>
@@ -91,20 +87,23 @@
     <section id="section-auth" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
       <div class="border-b border-slate-800 pb-3 mb-4">
         <span class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 1</span>
-        <h2 class="text-xl font-bold text-slate-100" data-i18n="onboardingTitle">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
+        <h2 class="text-xl font-bold text-slate-100">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
         <p class="text-xs text-slate-400 mt-0.5">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT PiBox secara On-Chain.</p>
       </div>
 
       <!-- Pi Login Action Buttons -->
       <div class="flex flex-wrap items-center gap-3 mb-6 p-4 bg-slate-950 rounded-lg border border-slate-800">
-        <button id="pi-login-button" onclick="authenticatePiUser()" type="button" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2.5 rounded transition flex items-center gap-1.5">
+        <button id="pi-login-button" type="button" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2.5 rounded transition flex items-center gap-1.5">
           <span class="font-bold">π</span> Sign in with Pi SDK
+        </button>
+        <button id="demo-login-button" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs px-3 py-2.5 rounded transition">
+          Simulasi Demo Mode (@afifmasfiqo)
         </button>
         <span id="loginStatusText" class="text-xs text-slate-400 italic">Belum terautentikasi</span>
       </div>
 
       <!-- Onboarding Profile Form -->
-      <form id="onboardingForm" onsubmit="handleOnboarding(event)" class="space-y-4">
+      <form id="onboardingForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Pi Wallet Address (Public Key untuk Payout & Cek NFT)</label>
           <input type="text" id="walletAddress" required minlength="20" placeholder="G..." class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-amber-300 font-mono focus:border-amber-500 outline-none">
@@ -113,7 +112,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Kategori Pemilih (Voter Category)</label>
-            <select id="voterCategory" onchange="toggleCategoryFields()" class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-slate-200 outline-none">
+            <select id="voterCategory" class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-slate-200 outline-none">
               <option value="owner">Pemilih Tetap (Pemilik NFT Garuda #1 - #1000)</option>
               <option value="delegator">Delegator (NFT Halloween 1 Unit / NFT PiDay2026 3 Unit)</option>
               <option value="witness">Saksi Luar (External Witness Bypass)</option>
@@ -159,7 +158,7 @@
           </div>
           <div>
             <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Jenis NFT Delegasi</label>
-            <select id="delegatorNftType" onchange="updateDelegatorHint()" class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-slate-100">
+            <select id="delegatorNftType" class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-slate-100">
               <option value="halloween">1 Unit NFT Halloween</option>
               <option value="piday">3 Unit NFT PiDay2026</option>
             </select>
@@ -187,16 +186,21 @@
       </form>
     </section>
 
-    <!-- SECTION 2: MATERI VOTING & BUKTI OBJEK (GOOGLE FORM STYLE) -->
+    <!-- SECTION 2: MATERI VOTING & BUKTI OBJEK -->
     <section id="section-material" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
       <div class="border-b border-slate-800 pb-3 mb-4">
-        <div class="flex items-center justify-between gap-2 mb-1">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
           <span id="displayPropCategory" class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2.5 py-0.5 rounded font-mono uppercase">
             🏷️ Kategori: Verifikasi Objek / Kasus
           </span>
-          <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono">
-            ● ACTIVE PROPOSAL
-          </span>
+          <div class="flex items-center gap-2">
+            <span id="countdownDisplay" class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold">
+              ⏳ Durasi Voting: Loading...
+            </span>
+            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono">
+              ● ACTIVE PROPOSAL
+            </span>
+          </div>
         </div>
         <h2 id="displayPropTitle" class="text-xl font-extrabold text-slate-100">
           Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD
@@ -213,23 +217,15 @@
         </div>
       </div>
 
-      <!-- Link Media Sosial & dApp -->
+      <!-- Link Media Sosial & dApp Explorer -->
       <div class="mb-5">
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">🔗 Tautan Media Sosial & Objek Bukti</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <a id="linkFacebook" href="https://facebook.com" target="_blank" class="flex items-center gap-3 p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg transition">
-            <div class="p-2 bg-blue-600/20 text-blue-400 rounded">🌐</div>
-            <div>
-              <p class="font-semibold text-slate-200">Post / Reel Facebook Objek</p>
-              <p class="text-[10px] text-slate-400">Buka tautan bukti eksternal</p>
-            </div>
+        <div id="socialLinksContainer" class="flex flex-wrap gap-2 text-xs">
+          <a id="linkFacebook" href="https://facebook.com" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg transition">
+            <span class="text-blue-400">📘</span> Facebook
           </a>
-          <a id="linkPiApp" href="https://minepi.com" target="_blank" class="flex items-center gap-3 p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg transition">
-            <div class="p-2 bg-purple-600/20 text-purple-400 rounded">⚡</div>
-            <div>
-              <p class="font-semibold text-slate-200">Pi Network dApp Explorer</p>
-              <p class="text-[10px] text-slate-400">Verifikasi langsung di Pi Browser</p>
-            </div>
+          <a id="linkPiApp" href="https://minepi.com" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg transition">
+            <span class="text-purple-400">⚡</span> Pi dApp Explorer
           </a>
         </div>
       </div>
@@ -237,14 +233,17 @@
       <!-- Galeri Media (Foto & Video Objek) -->
       <div>
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📸 Galeri Bukti Foto & Video Objek</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-center">
-            <span class="text-[10px] font-semibold text-slate-400 block mb-1">Bukti Foto / Tangkapan Layar:</span>
-            <img id="displayMediaImage" src="https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting" alt="Bukti Foto Objek" class="w-full h-44 object-cover rounded border border-slate-800">
+        <div class="space-y-4">
+          <div id="mediaGalleryContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-center">
+              <span class="text-[10px] font-semibold text-slate-400 block mb-1">Bukti Foto Utama:</span>
+              <img id="displayMediaImage" src="https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting" alt="Bukti Foto Objek" class="w-full h-44 object-cover rounded border border-slate-800">
+            </div>
           </div>
+          
           <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center">
             <span class="text-[10px] font-semibold text-slate-400 self-start mb-1">Bukti Rekaman Video:</span>
-            <div id="videoContainer" class="w-full h-44 bg-slate-900 rounded flex items-center justify-center overflow-hidden">
+            <div id="videoContainer" class="w-full h-48 bg-slate-900 rounded flex items-center justify-center overflow-hidden">
               <video id="displayMediaVideo" controls class="w-full h-full object-cover hidden">
                 <source src="" type="video/mp4">
               </video>
@@ -264,7 +263,7 @@
         <p class="text-xs text-slate-400 mt-0.5">Sistem memverifikasi keberadaan NFT di wallet secara On-Chain sebelum menyimpan suara Anda.</p>
       </div>
 
-      <form id="votingForm" onsubmit="handleCastVote(event)" class="space-y-5">
+      <form id="votingForm" class="space-y-5">
         <!-- Vote Value -->
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">1. Arah Pilihan Suara Anda</label>
@@ -321,7 +320,7 @@
     </section>
 
     <!-- SECTION 4: ADMIN & DEVELOPER GOVERNANCE SUITE -->
-    <section id="section-admin" class="hidden bg-slate-900 border border-amber-500/40 rounded-xl p-6 shadow-2xl space-y-4">
+    <section id="section-admin" class="hidden bg-slate-900 border border-amber-500/40 rounded-xl p-6 shadow-2xl space-y-6">
       <div class="border-b border-amber-500/30 pb-3 flex justify-between items-center">
         <h2 class="text-base font-bold text-amber-400 flex items-center gap-2">
           🛡️ Admin & Developer Governance Suite
@@ -335,8 +334,8 @@
           <h3 class="font-bold text-slate-300 uppercase mb-2">Code of Ethics Ban & Reinstatement</h3>
           <input type="text" id="targetUser" placeholder="Username Pi Target (@user)" class="w-full bg-slate-900 border border-slate-800 rounded p-2 mb-2 text-xs">
           <div class="flex gap-2">
-            <button onclick="toggleUserBan(true)" class="flex-1 bg-red-600 hover:bg-red-700 font-bold py-1.5 rounded text-white">Ban / Revoke</button>
-            <button onclick="toggleUserBan(false)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-1.5 rounded text-white">Reinstate</button>
+            <button type="button" onclick="toggleUserBan(true)" class="flex-1 bg-red-600 hover:bg-red-700 font-bold py-1.5 rounded text-white">Ban / Revoke</button>
+            <button type="button" onclick="toggleUserBan(false)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-1.5 rounded text-white">Reinstate</button>
           </div>
         </div>
 
@@ -345,61 +344,109 @@
           <h3 class="font-bold text-slate-300 uppercase mb-2">Atur Rate Insentif Pi / Suara</h3>
           <div class="flex gap-2">
             <input type="number" id="payoutRate" step="0.1" min="0.8" max="100" value="1.0" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs font-mono">
-            <button onclick="savePayoutRate()" class="bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded">Simpan</button>
+            <button type="button" onclick="savePayoutRate()" class="bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded">Simpan</button>
           </div>
         </div>
 
         <!-- Asset Manager -->
         <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 md:col-span-2">
           <h3 class="font-bold text-slate-300 uppercase mb-2">Brand Asset Manager (Logo & Cap Stempel Digital)</h3>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-slate-400 mb-1">Upload Logo Header (PNG)</label>
-              <input type="file" accept="image/*" onchange="uploadAsset(event, 'logo')" class="text-slate-400 text-[10px]">
+              <input type="file" accept="image/*" onchange="uploadAsset(event, 'logo')" class="text-slate-400 text-[10px] w-full">
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Upload Cap Stempel Transparan (PNG)</label>
-              <input type="file" accept="image/*" onchange="uploadAsset(event, 'stamp')" class="text-slate-400 text-[10px]">
+              <input type="file" accept="image/*" onchange="uploadAsset(event, 'stamp')" class="text-slate-400 text-[10px] w-full">
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Publish Suite -->
-      <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
-        <h3 class="font-bold text-amber-400 uppercase mb-3">📝 Publish Suite Proposal Baru</h3>
-        <form onsubmit="publishNewProposal(event)" class="space-y-3 text-xs">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input type="text" id="inputPropTitle" required placeholder="Judul Proposal / Objek Voting" class="bg-slate-900 border border-slate-800 rounded p-2">
-            <select id="inputPropCategory" class="bg-slate-900 border border-slate-800 rounded p-2">
-              <option value="Verifikasi Objek / Kasus">Verifikasi Objek / Kasus</option>
-              <option value="Pengesahan Proposal Regional">Pengesahan Proposal Regional</option>
-              <option value="Pelanggaran Kode Etik">Pelanggaran Kode Etik</option>
-            </select>
+      <!-- PUBLISH SUITE PROPOSAL BARU (FULL FEATURED FORM) -->
+      <div class="bg-slate-950 p-5 rounded-lg border border-amber-500/30 space-y-4">
+        <div class="border-b border-slate-800 pb-2">
+          <h3 class="font-bold text-amber-400 uppercase text-sm">📝 Publish Suite Proposal Baru</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, galeri media, dan tautan media sosial multi-platform.</p>
+        </div>
+
+        <form onsubmit="publishNewProposal(event)" class="space-y-4 text-xs">
+          <!-- Judul, Kategori & Durasi -->
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Judul Proposal / Objek Voting</label>
+            <input type="text" id="inputPropTitle" required placeholder="Contoh: Vote Vietnamese Community" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
           </div>
-          <textarea id="inputPropDesc" rows="2" required placeholder="Deskripsi materi voting..." class="w-full bg-slate-900 border border-slate-800 rounded p-2"></textarea>
-          <div class="grid grid-cols-2 gap-3">
-            <input type="url" id="inputSocialFb" placeholder="URL Facebook" class="bg-slate-900 border border-slate-800 rounded p-2">
-            <input type="url" id="inputSocialPi" placeholder="URL Pi dApp Explorer" class="bg-slate-900 border border-slate-800 rounded p-2">
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Kategori Objek</label>
+              <select id="inputPropCategory" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+                <option value="Verifikasi Objek / Kasus">Verifikasi Objek / Kasus</option>
+                <option value="Pengesahan Proposal Regional">Pengesahan Proposal Regional</option>
+                <option value="Pelanggaran Kode Etik">Pelanggaran Kode Etik</option>
+                <option value="Pengajuan Hibah / Reward">Pengajuan Hibah / Reward</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Durasi Voting (Dalam Jam)</label>
+              <input type="number" id="inputPropDuration" value="24" min="0.1" step="0.5" required placeholder="Contoh: 24" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100 font-mono">
+            </div>
           </div>
-          <button type="submit" class="w-full bg-amber-500 text-slate-950 font-bold py-2 rounded">Terbitkan Proposal ke Pemilih</button>
+
+          <!-- Latar Belakang & Deskripsi -->
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Latar Belakang & Deskripsi Objek Voting</label>
+            <textarea id="inputPropDesc" rows="3" required placeholder="Jelaskan detail proyek / objek verifikasi secara lengkap..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100"></textarea>
+          </div>
+
+          <!-- GALERI MEDIA & BUKTI FOTO / VIDEO -->
+          <div class="border-t border-slate-800 pt-3">
+            <label class="block text-amber-300 font-bold mb-2">📷 GALERI MEDIA & BUKTI FOTO / VIDEO</label>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-1">URL Foto Bukti (Pisahkan beberapa URL foto menggunakan tanda koma)</label>
+                <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg, https://domain.com/foto2.jpg" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-1">URL Video Bukti (Support link YouTube Embed / Link Direct MP4 Video)</label>
+                <input type="url" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+              </div>
+            </div>
+          </div>
+
+          <!-- TAUTAN MEDIA SOSIAL MULTI-PLATFORM -->
+          <div class="border-t border-slate-800 pt-3">
+            <label class="block text-amber-300 font-bold mb-2">🌐 TAUTAN MEDIA SOSIAL & PROFIL OBJEK</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input type="url" id="inputSocialFb" placeholder="URL Facebook (Post / Reels / Page)" class="bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
+              <input type="url" id="inputSocialX" placeholder="URL X / Twitter" class="bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
+              <input type="url" id="inputSocialYt" placeholder="URL YouTube Channel / Video" class="bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
+              <input type="url" id="inputSocialDiscord" placeholder="URL Discord Server / Telegram" class="bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
+              <input type="url" id="inputSocialPi" placeholder="URL Pi dApp / Explorer Browser" class="sm:col-span-2 bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
+            </div>
+          </div>
+
+          <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg mt-2">
+            🚀 Terbitkan Proposal & Mulai Timer Voting
+          </button>
         </form>
       </div>
     </section>
 
-    <!-- SECTION 5: HYBRID BAP PDF & DIGITAL CERTIFICATE -->
+    <!-- SECTION 5: HYBRID OFFICIAL MINUTES & DIGITAL CERTIFICATE -->
     <section id="section-bap" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
       <div class="border-b border-slate-800 pb-3">
-        <h2 class="text-xl font-bold text-slate-100">Generator Dokumen Resmi BAP PDF & Sertifikat</h2>
-        <p class="text-xs text-slate-400 mt-0.5">Menghasilkan dokumen Berita Acara Persidangan (English) dan Sertifikat Verifikasi SHA-256.</p>
+        <h2 class="text-xl font-bold text-slate-100">Generator Dokumen Resmi PDF & Sertifikat</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Menghasilkan dokumen Official Minutes (English) untuk Pi Core Team dan Sertifikat Verifikasi SHA-256 untuk Pengaju Objek Voting.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold p-4 rounded-lg text-xs transition flex flex-col items-center gap-2">
+        <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold p-4 rounded-lg text-xs transition flex flex-col items-center gap-2">
           <span class="text-2xl">📄</span>
-          <span>Download Official Minutes BAP PDF (English)</span>
+          <span>Download Official Minutes PDF (English)</span>
         </button>
-        <button onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold p-4 rounded-lg text-xs transition flex flex-col items-center gap-2">
+        <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold p-4 rounded-lg text-xs transition flex flex-col items-center gap-2">
           <span class="text-2xl">🎓</span>
           <span>Download TVOD Digital Verification Certificate</span>
         </button>
@@ -409,30 +456,30 @@
     <!-- SECTION 6: TOUCHSCREEN SIGNATURES (4 OFFICIAL SIGNERS) -->
     <section id="section-signatures" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
       <div class="border-b border-slate-800 pb-3">
-        <h2 class="text-xl font-bold text-slate-100">Tanda Tangan digital 4 Pejabat TVOD</h2>
-        <p class="text-xs text-slate-400 mt-0.5">Tanda tangan dari Chairman, Witness, Inspector, dan Country Head untuk disematkan di BAP PDF.</p>
+        <h2 class="text-xl font-bold text-slate-100">Tanda Tangan Digital 4 Pejabat TVOD</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Tanda tangan dari Chairman, Witness, Inspector, dan Country Head untuk disematkan di Official Minutes PDF.</p>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-semibold text-amber-400 mb-1">1. Chairman (@afifmasfiqo #911)</label>
           <canvas id="sig-chairman" class="signature-pad w-full h-28"></canvas>
-          <button onclick="clearOfficerSig('sig-chairman')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
+          <button type="button" onclick="clearOfficerSig('sig-chairman')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
         </div>
         <div>
           <label class="block text-xs font-semibold text-amber-400 mb-1">2. Witness (@insya)</label>
           <canvas id="sig-witness" class="signature-pad w-full h-28"></canvas>
-          <button onclick="clearOfficerSig('sig-witness')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
+          <button type="button" onclick="clearOfficerSig('sig-witness')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
         </div>
         <div>
           <label class="block text-xs font-semibold text-amber-400 mb-1">3. Inspector (@Nalaktak #999)</label>
           <canvas id="sig-inspector" class="signature-pad w-full h-28"></canvas>
-          <button onclick="clearOfficerSig('sig-inspector')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
+          <button type="button" onclick="clearOfficerSig('sig-inspector')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
         </div>
         <div>
           <label class="block text-xs font-semibold text-amber-400 mb-1">4. Country Head (@Rasj81)</label>
           <canvas id="sig-country-head" class="signature-pad w-full h-28"></canvas>
-          <button onclick="clearOfficerSig('sig-country-head')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
+          <button type="button" onclick="clearOfficerSig('sig-country-head')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
         </div>
       </div>
     </section>
@@ -441,237 +488,11 @@
 
   <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
     <p>THE VOICE OF DAO (TVOD) · Web3 Verification & Voting Infrastructure</p>
-    <p class="text-[10px] text-slate-600 mt-1">Konten ini dibuat untuk tujuan simulasi permainan digital & edukasi komunitas.</p>
+    <p class="text-[10px] text-slate-600 mt-1">Konten ini dibuat semata-mata untuk tujuan hiburan, berbagi panduan simulasi permainan digital, serta edukasi komunitas.</p>
   </footer>
 
-  <!-- INTEGRATED TVOD CORE LOGIC SCRIPT -->
-  <script>
-    // State Global
-    let activeUser = { username: "", walletAddress: "", category: "owner", role: "Member", garudaId: null };
-    let currentConfidence = 3;
-    let voterSigPad, sigPads = {};
-    const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak"];
+  <!-- LOAD EXTERNAL APP LOGIC SCRIPT -->
+  <script src="/app.js"></script>
 
-    window.addEventListener("DOMContentLoaded", () => {
-      // Init Pi SDK jika ada
-      if (window.Pi) {
-        try { Pi.init({ version: "2.0", sandbox: true }); } catch(e){}
-      }
-
-      // Init Voter Signature Pad
-      const voterCanvas = document.getElementById("voterSignatureCanvas");
-      voterSigPad = new SignaturePad(voterCanvas, { backgroundColor: 'rgb(2, 6, 23)', penColor: 'rgb(245, 158, 11)' });
-
-      // Init Officer Signature Pads
-      ['sig-chairman', 'sig-witness', 'sig-inspector', 'sig-country-head'].forEach(id => {
-        const c = document.getElementById(id);
-        if (c) sigPads[id] = new SignaturePad(c, { backgroundColor: 'rgb(2, 6, 23)', penColor: 'rgb(59, 130, 246)' });
-      });
-
-      toggleCategoryFields();
-    });
-
-    // Otentikasi Pi SDK
-    function authenticatePiUser() {
-      if (!window.Pi) {
-        alert("Pi SDK tidak terdeteksi. Gunakan Pi Browser.");
-        return;
-      }
-      Pi.authenticate(['username', 'payments'], onIncompletePayment)
-        .then(auth => {
-          activeUser.username = auth.user.username;
-          document.getElementById("userBadge").classList.remove("hidden");
-          document.getElementById("displayUsername").innerText = "@" + auth.user.username;
-          document.getElementById("loginStatusText").innerText = "Terautentikasi sebagai @" + auth.user.username;
-
-          // Cek Akses Admin
-          if (AUTHORIZED_ADMINS.includes(auth.user.username)) {
-            document.getElementById("section-admin").classList.remove("hidden");
-            document.getElementById("nav-admin-link").classList.remove("hidden");
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          alert("Gagal terhubung dengan Pi SDK.");
-        });
-    }
-
-    function onIncompletePayment(payment) { console.log("Incomplete Payment:", payment); }
-
-    // Toggle Kategori Pemilih
-    function toggleCategoryFields() {
-      const cat = document.getElementById("voterCategory").value;
-      document.getElementById("ownerFields").classList.toggle("hidden", cat !== "owner");
-      document.getElementById("delegatorFields").classList.toggle("hidden", cat !== "delegator");
-    }
-
-    function updateDelegatorHint() {
-      const type = document.getElementById("delegatorNftType").value;
-      document.getElementById("delegatorHint").innerText = type === "halloween" 
-        ? "Wajib memasukkan tepat 1 Hash NFT Halloween." 
-        : "Wajib memasukkan tepat 3 Hash NFT PiDay2026 (pisahkan dengan koma).";
-    }
-
-    // Onboarding Handler & Pembatasan Founder
-    function handleOnboarding(e) {
-      e.preventDefault();
-      const cat = document.getElementById("voterCategory").value;
-      const role = document.getElementById("userRole").value;
-      const wallet = document.getElementById("walletAddress").value.trim();
-
-      if (cat === "owner") {
-        const gId = parseInt(document.getElementById("garudaId").value || "0");
-        const gHash = document.getElementById("garudaHash").value.trim();
-
-        if (!gId || gId < 1 || gId > 1000) return alert("Garuda ID harus berupa angka #1 sampai #1000.");
-        if (!gHash) return alert("Hash NFT Garuda wajib diisi.");
-        if (role === "Founder" && gId !== 999) return alert("SECURITY REJECTION: Peran Founder HANYA VALID untuk Garuda ID #999.");
-
-        activeUser.garudaId = gId;
-        activeUser.garudaHash = gHash;
-      } else if (cat === "delegator") {
-        const owner = document.getElementById("ownerUsername").value.trim();
-        const type = document.getElementById("delegatorNftType").value;
-        const rawHashes = document.getElementById("delegatorHashes").value.trim();
-        const hashList = rawHashes.split(",").map(h => h.trim()).filter(h => h.length > 0);
-
-        if (!owner) return alert("Username pemilik Garuda wajib diisi.");
-        if (type === "halloween" && hashList.length !== 1) return alert("NFT Halloween membutuhkan tepat 1 Hash.");
-        if (type === "piday" && hashList.length !== 3) return alert("NFT PiDay2026 membutuhkan tepat 3 Hash.");
-
-        activeUser.ownerUsername = owner;
-        activeUser.delegatedNftType = type;
-        activeUser.delegatedHashes = hashList;
-      }
-
-      activeUser.walletAddress = wallet;
-      activeUser.category = cat;
-      activeUser.role = role;
-
-      document.getElementById("displayGaruda").innerText = activeUser.garudaId ? `#${activeUser.garudaId}` : "DELEGATE";
-      alert("✅ Data Registrasi Berhasil Disimpan!");
-    }
-
-    // Confidence Setter
-    function setConfidence(val) {
-      currentConfidence = val;
-      document.querySelectorAll(".conf-btn").forEach((btn, idx) => {
-        if (idx + 1 === val) {
-          btn.classList.add("bg-amber-500", "text-slate-950", "font-bold");
-        } else {
-          btn.classList.remove("bg-amber-500", "text-slate-950", "font-bold");
-        }
-      });
-    }
-
-    function clearVoterSignature() { voterSigPad.clear(); }
-    function clearOfficerSig(id) { if (sigPads[id]) sigPads[id].clear(); }
-
-    // Verifikasi On-Chain Realtime
-    async function verifyOnChainNftOwnership() {
-      if (activeUser.category === "witness") return true;
-      if (activeUser.category === "owner") return !!(activeUser.walletAddress && activeUser.garudaHash);
-      if (activeUser.category === "delegator") return activeUser.delegatedHashes && activeUser.delegatedHashes.length > 0;
-      return false;
-    }
-
-    // Fast Voting Submission
-    async function handleCastVote(e) {
-      e.preventDefault();
-      const btn = document.getElementById("btnSubmitVote");
-      btn.innerText = "Memeriksa NFT di Wallet On-Chain...";
-      btn.disabled = true;
-
-      const isValid = await verifyOnChainNftOwnership();
-      if (!isValid) {
-        btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-        btn.disabled = false;
-        alert("⛔ AKSES VOTING DITOLAK: NFT terdaftar tidak ditemukan di wallet Anda.");
-        return;
-      }
-
-      if (voterSigPad.isEmpty()) {
-        btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-        btn.disabled = false;
-        alert("Harap bubuhkan tanda tangan digital Anda terlebih dahulu.");
-        return;
-      }
-
-      const voteVal = parseInt(document.querySelector('input[name="voteValue"]:checked').value);
-      let roleWeight = activeUser.role === "Founder" ? 2.0 : (activeUser.role === "Group Leader" ? 1.0 : 0.5);
-      const score = voteVal * currentConfidence * roleWeight;
-
-      const rawPayload = `${activeUser.username}|${activeUser.walletAddress}|${voteVal}|${currentConfidence}|${roleWeight}|${new Date().toISOString()}`;
-      const voteHash = CryptoJS.SHA256(rawPayload).toString();
-
-      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-      btn.disabled = false;
-
-      alert(`✅ SUARA TERKONFIRMASI!\nSkor Terbobot: ${score}\nHash SHA-256: ${voteHash.substring(0,24)}...`);
-    }
-
-    // BAP PDF Generator
-    function generateOfficialMinutesPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(16);
-      doc.text("THE VOICE OF DAO (TVOD)", 105, 20, { align: "center" });
-
-      doc.setFontSize(10);
-      doc.setFont("Helvetica", "normal");
-      doc.text("OFFICIAL MINUTES OF PROCEEDINGS (BAP)", 105, 27, { align: "center" });
-      doc.line(20, 31, 190, 31);
-
-      doc.text("Document ID: TVOD-BAP-2026-001", 20, 40);
-      doc.text(`Proposer: ${activeUser.username || 'afifmasfiqo'}`, 20, 46);
-      doc.text("Verdict: PASSED (AGREE)", 20, 52);
-
-      doc.text("OFFICIAL APPROVAL SIGNATURES:", 20, 75);
-      doc.text("Chairman (#911)", 20, 90);
-      doc.text("Witness (@insya)", 65, 90);
-      doc.text("Inspector (#999)", 110, 90);
-      doc.text("Country Head", 155, 90);
-
-      const hash = CryptoJS.SHA256("TVOD-PROOF-BAP").toString();
-      doc.setFontSize(7);
-      doc.text(`SHA-256 Proof: ${hash}`, 20, 130);
-
-      doc.save("TVOD_Official_Minutes_BAP.pdf");
-    }
-
-    function generateCertificatePDF() {
-      alert("Certificate Generator dipicu dengan kode SHA-256.");
-    }
-
-    // Multi-Language
-    function changeLanguage(lang) {
-      if (lang === 'ar') document.body.classList.add('rtl');
-      else document.body.classList.remove('rtl');
-    }
-
-    function toggleUserBan(isBan) {
-      const user = document.getElementById("targetUser").value;
-      if (!user) return alert("Masukkan username target.");
-      alert(`User ${user} berhasil di-${isBan ? 'BAN' : 'REINSTATE'}.`);
-    }
-
-    function savePayoutRate() {
-      alert("Rate pendaftaran berhasil diperbarui.");
-    }
-
-    function uploadAsset(e, type) {
-      const file = e.target.files[0];
-      if (file && type === 'logo') document.getElementById("appLogo").src = URL.createObjectURL(file);
-    }
-
-    function publishNewProposal(e) {
-      e.preventDefault();
-      document.getElementById("displayPropTitle").innerText = document.getElementById("inputPropTitle").value;
-      document.getElementById("displayPropDescription").innerText = document.getElementById("inputPropDesc").value;
-      alert("Proposal baru berhasil diterbitkan!");
-    }
-  </script>
 </body>
 </html>
