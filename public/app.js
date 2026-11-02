@@ -53,6 +53,54 @@ async function saveProposalToSupabase(proposalData) {
   }
 }
 
+// Helper Ambil Profil Voter dari Supabase (Auto Load Tanpa Login Ulang)
+async function fetchVoterProfileFromSupabase(username) {
+  if (!supabaseClient || !username) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('voters')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    if (error) {
+      console.log("Profil voter belum ada di Supabase:", error.message);
+      return;
+    }
+
+    if (data) {
+      activeUser.walletAddress = data.wallet_address || "";
+      activeUser.category = data.category || "owner";
+      activeUser.role = data.role || "Member";
+      activeUser.chapter = data.chapter || "GLOBAL";
+      activeUser.garudaId = data.garuda_id;
+      activeUser.garudaHash = data.garuda_hash;
+      activeUser.ownerUsername = data.owner_username;
+      activeUser.delegatedNftType = data.delegated_nft_type;
+      activeUser.delegatedHashes = data.delegated_hashes || [];
+
+      if ($("#walletAddress")) $("#walletAddress").value = data.wallet_address || "";
+      if ($("#voterCategory")) {
+        $("#voterCategory").value = data.category;
+        toggleCategoryFields();
+      }
+      if ($("#communityChapter")) $("#communityChapter").value = data.chapter;
+      if ($("#userRole")) $("#userRole").value = data.role;
+      if ($("#garudaId")) $("#garudaId").value = data.garuda_id || "";
+      if ($("#garudaHash")) $("#garudaHash").value = data.garuda_hash || "";
+
+      const displayGaruda = $("#displayGaruda");
+      if (displayGaruda) {
+        displayGaruda.textContent = data.garuda_id ? `#${data.garuda_id}` : `DELEGATE (${data.category.toUpperCase()})`;
+      }
+
+      console.log("✅ Profil voter berhasil dimuat otomatis dari Supabase.");
+    }
+  } catch (err) {
+    console.error("Fetch Profile Error:", err);
+  }
+}
+
 // Helper Ambil Proposal Aktif Terbaru Dari Supabase
 async function fetchActiveProposalFromSupabase() {
   if (!supabaseClient) return;
@@ -116,7 +164,6 @@ let activeUser = {
 let currentConfidence = 3;
 let signatures = {};
 const signaturePads = {};
-let voterSigPad = null;
 let uploadedGalleryBase64Images = [];
 
 // State Durasi Waktu Voting (Default: 24 Jam dari sekarang)
@@ -178,15 +225,6 @@ function loadAndColorizeStamp(src, goldColor = "#F59E0B") {
 async function initialize() {
   setConnection("● Ecosystem Ready", true);
 
-  // Setup Voter Signature Pad
-  const voterCanvas = $("#voterSignatureCanvas");
-  if (voterCanvas && window.SignaturePad) {
-    voterSigPad = new window.SignaturePad(voterCanvas, {
-      backgroundColor: "rgb(2, 6, 23)",
-      penColor: "rgb(245, 158, 11)"
-    });
-  }
-
   // Setup Officer Signature Pads (4 Pejabat TVOD)
   ["sig-chairman", "sig-witness", "sig-inspector", "sig-country-head"].forEach((id) => {
     const canvas = $(`#${id}`);
@@ -228,7 +266,7 @@ async function initialize() {
   }
 }
 
-// --- LOGIKA BUKA GALERI HP / LAPTOP UNTUK FOTO (ASYNCHRONOUS PROMISE) ---
+// --- LOGIKA BUKA GALERI HP / LAPTOP UNTUK FOTO ---
 async function handleGalleryImagesSelect(event) {
   const files = event.target.files;
   uploadedGalleryBase64Images = [];
@@ -322,6 +360,9 @@ function renderUser(user) {
     const isAdmin = AUTHORIZED_ADMINS.includes(user.username);
     if (adminSection) adminSection.classList.toggle("hidden", !isAdmin);
     if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
+
+    // OTOMATIS AMBIL PROFIL VOTER TERSIMPAN DARI SUPABASE
+    fetchVoterProfileFromSupabase(user.username);
   } else {
     if (userBadge) {
       userBadge.classList.add("hidden");
@@ -593,7 +634,6 @@ async function publishNewProposal(e) {
     pi: $("#inputSocialPi") ? $("#inputSocialPi").value.trim() : ""
   };
 
-  // Langsung perbarui tampilan antarmuka
   renderProposalMaterials();
 
   // Otomatis simpan proposal ke tabel Supabase
@@ -645,15 +685,11 @@ function setConfidence(val) {
   });
 }
 
-function clearVoterSignature() {
-  if (voterSigPad) voterSigPad.clear();
-}
-
 function clearOfficerSig(id) {
   if (signaturePads[id]) signaturePads[id].clear();
 }
 
-// --- FAST VOTING SUBMISSION ---
+// --- FAST VOTING SUBMISSION (TANPA TANDA TANGAN) ---
 async function handleCastVote(e) {
   e.preventDefault();
 
@@ -680,15 +716,6 @@ async function handleCastVote(e) {
     const banReason = $("#banReason");
     if (banBanner) banBanner.classList.remove("hidden");
     if (banReason) banReason.innerText = "Akses Voting Ditolak: NFT terdaftar tidak ditemukan di wallet Anda.";
-    return;
-  }
-
-  if (!voterSigPad || voterSigPad.isEmpty()) {
-    if (btn) {
-      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-      btn.disabled = false;
-    }
-    alert("Harap bubuhkan tanda tangan digital Anda terlebih dahulu.");
     return;
   }
 
@@ -726,7 +753,7 @@ async function handleCastVote(e) {
     role_weight: roleWeight,
     weighted_score: individualScore,
     vote_hash: voteHash,
-    voter_signature_base64: voterSigPad.toDataURL("image/png")
+    voter_signature_base64: null
   });
 
   if (btn) {
