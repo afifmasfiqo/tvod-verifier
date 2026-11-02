@@ -10,7 +10,7 @@
   <link rel="icon" href="/logo.png">
   <link rel="stylesheet" href="/styles.css">
 
-  <!-- Tailwind CSS CDN (Utility Styling) -->
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- PDF, QR Code, CryptoJS & Official Pi Network SDK Libraries -->
@@ -19,8 +19,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-<!-- Supabase JS Client SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     .rtl { direction: rtl; }
     canvas.signature-pad { touch-action: none; background-color: #020617; border: 1px solid #334155; border-radius: 0.5rem; }
@@ -79,7 +81,7 @@
 
   <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
-    <!-- Ethics Violation / Ban Banner -->
+    <!-- Ethics Violation Banner -->
     <div id="banBanner" class="hidden bg-red-950/90 border border-red-600 text-red-200 p-4 rounded-xl text-center font-medium text-sm shadow-xl">
       ⚠️ <span id="banReason">Akses akun Anda dibatasi karena Pelanggaran Kode Etik. Proses voting ditolak.</span>
     </div>
@@ -221,26 +223,14 @@
       <!-- Link Media Sosial & dApp Explorer -->
       <div class="mb-5">
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">🔗 Tautan Media Sosial & Objek Bukti</h3>
-        <div id="socialLinksContainer" class="flex flex-wrap gap-2 text-xs">
-          <a id="linkFacebook" href="https://facebook.com" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg transition">
-            <span class="text-blue-400">📘</span> Facebook
-          </a>
-          <a id="linkPiApp" href="https://minepi.com" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg transition">
-            <span class="text-purple-400">⚡</span> Pi dApp Explorer
-          </a>
-        </div>
+        <div id="socialLinksContainer" class="flex flex-wrap gap-2 text-xs"></div>
       </div>
 
       <!-- Galeri Media (Foto & Video Objek) -->
       <div>
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📸 Galeri Bukti Foto & Video Objek</h3>
         <div class="space-y-4">
-          <div id="mediaGalleryContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-center">
-              <span class="text-[10px] font-semibold text-slate-400 block mb-1">Bukti Foto Utama:</span>
-              <img id="displayMediaImage" src="https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting" alt="Bukti Foto Objek" class="w-full h-44 object-cover rounded border border-slate-800">
-            </div>
-          </div>
+          <div id="mediaGalleryContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
           
           <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center">
             <span class="text-[10px] font-semibold text-slate-400 self-start mb-1">Bukti Rekaman Video:</span>
@@ -365,7 +355,7 @@
         </div>
       </div>
 
-      <!-- PUBLISH SUITE PROPOSAL BARU (FULL FEATURED FORM) -->
+      <!-- PUBLISH SUITE PROPOSAL BARU -->
       <div class="bg-slate-950 p-5 rounded-lg border border-amber-500/30 space-y-4">
         <div class="border-b border-slate-800 pb-2">
           <h3 class="font-bold text-amber-400 uppercase text-sm">📝 Publish Suite Proposal Baru</h3>
@@ -404,13 +394,23 @@
           <!-- GALERI MEDIA & BUKTI FOTO / VIDEO -->
           <div class="border-t border-slate-800 pt-3">
             <label class="block text-amber-300 font-bold mb-2">📷 GALERI MEDIA & BUKTI FOTO / VIDEO</label>
-            <div class="space-y-2">
+            <div class="space-y-3">
+              <!-- OPSI 1: UPLOAD LANGSUNG DARI GALERI -->
               <div>
-                <label class="block text-slate-400 text-[10px] mb-1">URL Foto Bukti (Pisahkan beberapa URL foto menggunakan tanda koma)</label>
+                <label class="block text-slate-300 text-[11px] font-semibold mb-1">📱 Opsi 1: Upload Langsung dari Galeri HP / Laptop (Bisa Pilih Banyak Foto)</label>
+                <input type="file" id="inputPropFileImages" accept="image/*" multiple onchange="handleGalleryImagesSelect(event)" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-300 text-xs cursor-pointer">
+                <span id="galleryFilesCount" class="text-[10px] text-amber-400 font-mono mt-1 block"></span>
+              </div>
+
+              <!-- OPSI 2: LINK URL EXTERNAL -->
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-1">Opsi 2: Atau Masukkan Link/URL Foto Eksternal (Pisahkan koma jika beberapa)</label>
                 <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg, https://domain.com/foto2.jpg" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
               </div>
+
+              <!-- LINK VIDEO BUKTI -->
               <div>
-                <label class="block text-slate-400 text-[10px] mb-1">URL Video Bukti (Support link YouTube Embed / Link Direct MP4 Video)</label>
+                <label class="block text-slate-400 text-[10px] mb-1">URL Video Bukti (Support YouTube Embed / Link MP4 Direct)</label>
                 <input type="url" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
               </div>
             </div>
