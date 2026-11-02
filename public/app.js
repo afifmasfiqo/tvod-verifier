@@ -3,6 +3,42 @@
 // Helper Query Selector
 const $ = (selector) => document.querySelector(selector);
 
+// ==============================================================================
+// 1. INITIALIZATION SUPABASE CLIENT
+// ==============================================================================
+const SUPABASE_URL = "https://tdtybxriphsdtojkrevp.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI"; // <-- TEMPELKAN ANON KEY SUPABASE DI SINI
+
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+// Helper Simpan Profil Voter Ke Supabase
+async function saveVoterToSupabase(voterData) {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('voters')
+      .upsert([voterData], { onConflict: 'username' });
+    if (error) console.error("Gagal menyimpan data voter ke Supabase:", error);
+    else console.log("✅ Data voter tersimpan di Supabase:", data);
+  } catch (err) {
+    console.error("Supabase Voter Error:", err);
+  }
+}
+
+// Helper Simpan Rekaman Suara Voting Ke Supabase
+async function saveVoteToSupabase(voteData) {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('votes')
+      .insert([voteData]);
+    if (error) console.error("Gagal menyimpan suara ke Supabase:", error);
+    else console.log("✅ Suara voting tersimpan di Supabase:", data);
+  } catch (err) {
+    console.error("Supabase Vote Error:", err);
+  }
+}
+
 // System Global State
 let currentUser = null;
 let currentSessionToken = null;
@@ -182,8 +218,10 @@ function renderUser(user) {
 
   if (user) {
     activeUser.username = user.username;
-    if (userBadge) userBadge.classList.remove("hidden");
-    if (userBadge) userBadge.classList.add("flex");
+    if (userBadge) {
+      userBadge.classList.remove("hidden");
+      userBadge.classList.add("flex");
+    }
     if (displayUsername) displayUsername.textContent = "@" + user.username;
     if (loginStatusText) loginStatusText.textContent = `Terautentikasi: @${user.username} ${user.demo ? "(DEMO)" : ""}`;
 
@@ -191,8 +229,10 @@ function renderUser(user) {
     if (adminSection) adminSection.classList.toggle("hidden", !isAdmin);
     if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
   } else {
-    if (userBadge) userBadge.classList.add("hidden");
-    if (userBadge) userBadge.classList.remove("flex");
+    if (userBadge) {
+      userBadge.classList.add("hidden");
+      userBadge.classList.remove("flex");
+    }
     if (loginStatusText) loginStatusText.textContent = "Belum terautentikasi";
     if (adminSection) adminSection.classList.add("hidden");
     if (adminNavLink) adminNavLink.classList.add("hidden");
@@ -331,7 +371,21 @@ function handleOnboarding(e) {
     displayGaruda.textContent = activeUser.garudaId ? `#${activeUser.garudaId}` : `DELEGATE (${category.toUpperCase()})`;
   }
 
-  alert(`✅ Registrasi Berhasil!\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}`);
+  // OTOMATIS SIMPAN PROFIL VOTER KE DATABASE SUPABASE
+  saveVoterToSupabase({
+    username: activeUser.username || `voter_${Date.now()}`,
+    wallet_address: activeUser.walletAddress,
+    category: activeUser.category,
+    chapter: activeUser.chapter,
+    role: activeUser.role,
+    garuda_id: activeUser.garudaId,
+    garuda_hash: activeUser.garudaHash,
+    owner_username: activeUser.ownerUsername,
+    delegated_nft_type: activeUser.delegatedNftType,
+    delegated_hashes: activeUser.delegatedHashes
+  });
+
+  alert(`✅ Registrasi Berhasil!\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}\nData tersimpan ke Supabase Database.`);
 }
 
 // --- PROPOSAL MATERIAL MANAGER & PUBLISH SUITE ---
@@ -413,7 +467,6 @@ function publishNewProposal(e) {
   activeProposal.durationHours = durationHrs;
   votingEndTime = new Date(Date.now() + durationHrs * 60 * 60 * 1000);
 
-  // Enable kembali tombol voting jika sebelumnya habis
   const btnSubmit = $("#btnSubmitVote");
   if (btnSubmit) {
     btnSubmit.disabled = false;
@@ -547,12 +600,25 @@ async function handleCastVote(e) {
     voteHash = window.CryptoJS.SHA256(rawPayload).toString();
   }
 
+  // OTOMATIS SIMPAN REKAMAN SUARA VOTING KE DATABASE SUPABASE
+  saveVoteToSupabase({
+    proposal_id: activeProposal.id,
+    username: activeUser.username || "Anonymous",
+    wallet_address: activeUser.walletAddress,
+    vote_direction: voteVal,
+    confidence: currentConfidence,
+    role_weight: roleWeight,
+    weighted_score: individualScore,
+    vote_hash: voteHash,
+    voter_signature_base64: voterSigPad.toDataURL("image/png")
+  });
+
   if (btn) {
     btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
     btn.disabled = false;
   }
 
-  alert(`✅ SUARA TERKONFIRMASI & HASH TERSIMPANI!\n\nSkor Terbobot: ${individualScore}\nHash SHA-256: ${voteHash.substring(0, 24)}...`);
+  alert(`✅ SUARA TERKONFIRMASI & HASH TERSIMPAN!\n\nSkor Terbobot: ${individualScore}\nHash SHA-256: ${voteHash.substring(0, 24)}...\nData tersimpan ke Supabase Database.`);
 }
 
 // --- ADMIN / ETHICS ACTIONS ---
@@ -617,7 +683,7 @@ async function addOfficialStamp(pdf, x, y, width = 48, height = 48) {
 }
 
 // ==============================================================================
-// 1. GENERATE OFFICIAL MINUTES PDF (FOR PI CORE TEAM REPORTING)
+// GENERATE OFFICIAL MINUTES PDF (FOR PI CORE TEAM REPORTING)
 // ==============================================================================
 async function generateOfficialMinutesPDF() {
   if (!window.jspdf?.jsPDF) {
@@ -726,7 +792,7 @@ async function generateOfficialMinutesPDF() {
 }
 
 // ==============================================================================
-// 2. GENERATE DIGITAL VERIFICATION CERTIFICATE (FOR VOTING OBJECT / PROPOSER)
+// GENERATE DIGITAL VERIFICATION CERTIFICATE (FOR VOTING OBJECT / PROPOSER)
 // ==============================================================================
 async function generateCertificatePDF() {
   if (!window.jspdf?.jsPDF) {
