@@ -7,7 +7,7 @@ const $ = (selector) => document.querySelector(selector);
 // 1. INITIALIZATION SUPABASE CLIENT
 // ==============================================================================
 const SUPABASE_URL = "https://tdtybxriphsdtojkrevp.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI"; // <-- TINGGAL KOREKSI KEY DI SINI
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI"; // <-- TEMPELKAN ANON KEY SUPABASE DI SINI
 
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
@@ -39,6 +39,65 @@ async function saveVoteToSupabase(voteData) {
   }
 }
 
+// Helper Simpan Proposal Baru Ke Supabase
+async function saveProposalToSupabase(proposalData) {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('proposals')
+      .upsert([proposalData], { onConflict: 'id' });
+    if (error) console.error("Gagal menyimpan proposal ke Supabase:", error);
+    else console.log("✅ Proposal tersimpan di Supabase:", data);
+  } catch (err) {
+    console.error("Supabase Proposal Error:", err);
+  }
+}
+
+// Helper Ambil Proposal Aktif Terbaru Dari Supabase
+async function fetchActiveProposalFromSupabase() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('proposals')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error("Gagal mengambil proposal dari Supabase:", error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const p = data[0];
+      activeProposal = {
+        id: p.id,
+        title: p.title,
+        category: p.category,
+        description: p.description,
+        proposerEntity: p.proposer_entity || "ICP2E & TVOD Development Team",
+        proposerUsername: p.proposer_username || "afifmasfiqo",
+        author: `@${p.proposer_username || 'afifmasfiqo'} (Chairman)`,
+        date: new Date(p.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
+        durationHours: p.duration_hours || 24,
+        images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"],
+        videoUrl: p.video_url || "",
+        socialLinks: p.social_links || {},
+        totalVotes: p.total_votes || 0,
+        netScore: p.net_score || 0
+      };
+
+      if (p.voting_end_time) {
+        votingEndTime = new Date(p.voting_end_time);
+      }
+      renderProposalMaterials();
+      startCountdownTimer();
+    }
+  } catch (err) {
+    console.error("Fetch Proposal Error:", err);
+  }
+}
+
 // System Global State
 let currentUser = null;
 let currentSessionToken = null;
@@ -66,7 +125,7 @@ let countdownInterval = null;
 
 const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak"];
 
-// Active Proposal State (Materi & Objek Voting)
+// Active Proposal State (Materi & Objek Voting Default)
 let activeProposal = {
   id: "TVOD-PROP-2026-001",
   title: "Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD",
@@ -156,6 +215,9 @@ async function initialize() {
   renderProposalMaterials();
   startCountdownTimer();
 
+  // Load proposal aktif terbaru dari Supabase Database
+  await fetchActiveProposalFromSupabase();
+
   // Auto Pi Auth Check
   try {
     if (window.Pi) {
@@ -166,8 +228,8 @@ async function initialize() {
   }
 }
 
-// --- LOGIKA BUKA GALERI HP / LAPTOP UNTUK FOTO ---
-function handleGalleryImagesSelect(event) {
+// --- LOGIKA BUKA GALERI HP / LAPTOP UNTUK FOTO (ASYNCHRONOUS PROMISE) ---
+async function handleGalleryImagesSelect(event) {
   const files = event.target.files;
   uploadedGalleryBase64Images = [];
   const countSpan = $("#galleryFilesCount");
@@ -177,15 +239,24 @@ function handleGalleryImagesSelect(event) {
     return;
   }
 
-  if (countSpan) countSpan.textContent = `📷 ${files.length} foto dipilih dari Galeri.`;
+  if (countSpan) countSpan.textContent = `⏳ Membaca ${files.length} foto dari Galeri...`;
 
-  Array.from(files).forEach((file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedGalleryBase64Images.push(e.target.result);
-    };
-    reader.readAsDataURL(file);
+  const promises = Array.from(files).map((file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
   });
+
+  try {
+    uploadedGalleryBase64Images = await Promise.all(promises);
+    if (countSpan) countSpan.textContent = `📷 ${uploadedGalleryBase64Images.length} foto siap diterbitkan dari Galeri.`;
+  } catch (err) {
+    console.error("Gagal membaca berkas galeri:", err);
+    if (countSpan) countSpan.textContent = "❌ Gagal memuat beberapa foto.";
+  }
 }
 
 // --- LOGIKA COUNTDOWN TIMER DURASI VOTING ---
@@ -477,7 +548,7 @@ function renderProposalMaterials() {
   }
 }
 
-function publishNewProposal(e) {
+async function publishNewProposal(e) {
   e.preventDefault();
 
   activeProposal.title = $("#inputPropTitle").value.trim() || "Proposal Tanpa Judul";
@@ -522,8 +593,26 @@ function publishNewProposal(e) {
     pi: $("#inputSocialPi") ? $("#inputSocialPi").value.trim() : ""
   };
 
+  // Langsung perbarui tampilan antarmuka
   renderProposalMaterials();
-  alert(`✅ Proposal Baru Berhasil Diterbitkan!\nDurasi Voting diatur: ${durationHrs} Jam dari sekarang.`);
+
+  // Otomatis simpan proposal ke tabel Supabase
+  await saveProposalToSupabase({
+    id: activeProposal.id,
+    title: activeProposal.title,
+    category: activeProposal.category,
+    description: activeProposal.description,
+    proposer_entity: activeProposal.proposerEntity,
+    proposer_username: activeUser.username || activeProposal.proposerUsername,
+    duration_hours: activeProposal.durationHours,
+    voting_end_time: votingEndTime.toISOString(),
+    social_links: activeProposal.socialLinks,
+    images: activeProposal.images,
+    video_url: activeProposal.videoUrl,
+    status: 'ACTIVE'
+  });
+
+  alert(`✅ Proposal Baru Berhasil Diterbitkan & Tersimpan di Database Supabase!\nDurasi Voting: ${durationHrs} Jam dari sekarang.`);
 }
 
 // --- ON-CHAIN REALTIME NFT VERIFICATION ---
