@@ -11,6 +11,7 @@ let activeUser = {
   walletAddress: "",
   category: "owner",
   role: "Member",
+  chapter: "GLOBAL",
   garudaId: null,
   garudaHash: null,
   ownerUsername: null,
@@ -38,10 +39,18 @@ let activeProposal = {
   author: "@afifmasfiqo (Chairman)",
   date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
   description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.\nHarap periksa materi audio-visual, tautan bukti di media sosial, dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.",
-  linkFb: "https://facebook.com",
-  linkPi: "https://minepi.com",
-  imageUrl: "https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting",
+  durationHours: 24,
+  images: [
+    "https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"
+  ],
   videoUrl: "",
+  socialLinks: {
+    fb: "https://facebook.com",
+    x: "https://x.com",
+    yt: "https://youtube.com",
+    discord: "https://discord.gg",
+    pi: "https://minepi.com"
+  },
   totalVotes: 42,
   netScore: 18.5
 };
@@ -93,6 +102,19 @@ async function initialize() {
     }
   });
 
+  // Setup Dynamic Form Toggles & Event Listeners
+  const voterCatEl = $("#voterCategory");
+  if (voterCatEl) voterCatEl.addEventListener("change", toggleCategoryFields);
+
+  const delegatorTypeEl = $("#delegatorNftType");
+  if (delegatorTypeEl) delegatorTypeEl.addEventListener("change", updateDelegatorHint);
+
+  const onboardingFormEl = $("#onboardingForm");
+  if (onboardingFormEl) onboardingFormEl.addEventListener("submit", handleOnboarding);
+
+  const votingFormEl = $("#votingForm");
+  if (votingFormEl) votingFormEl.addEventListener("submit", handleCastVote);
+
   toggleCategoryFields();
   renderProposalMaterials();
   startCountdownTimer();
@@ -122,7 +144,7 @@ function startCountdownTimer() {
       clearInterval(countdownInterval);
       if (display) {
         display.textContent = "⚠️ VOTING TELAH BERAKHIR";
-        display.className = "text-xs font-mono font-bold text-red-500 animate-pulse";
+        display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse";
       }
       if (btn) {
         btn.disabled = true;
@@ -137,29 +159,9 @@ function startCountdownTimer() {
     const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
     if (display) {
-      display.textContent = `${hours}j ${minutes < 10 ? '0' : ''}${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`;
+      display.textContent = `⏳ sisa waktu: ${hours}j ${minutes < 10 ? '0' : ''}${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`;
     }
   }, 1000);
-}
-
-function saveVotingDuration() {
-  const durationInput = $("#inputVotingDuration");
-  if (!durationInput || !durationInput.value) return alert("Masukkan angka durasi jam.");
-
-  const hours = parseFloat(durationInput.value);
-  if (isNaN(hours) || hours <= 0) return alert("Durasi waktu harus lebih besar dari 0 jam.");
-
-  votingEndTime = new Date(Date.now() + hours * 60 * 60 * 1000);
-  
-  const btn = $("#btnSubmitVote");
-  if (btn) {
-    btn.disabled = false;
-    btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-    btn.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg";
-  }
-
-  startCountdownTimer();
-  alert(`✅ Durasi voting berhasil diperbarui menjadi ${hours} Jam dari sekarang.`);
 }
 
 // --- UI STATUS HELPERS ---
@@ -181,6 +183,7 @@ function renderUser(user) {
   if (user) {
     activeUser.username = user.username;
     if (userBadge) userBadge.classList.remove("hidden");
+    if (userBadge) userBadge.classList.add("flex");
     if (displayUsername) displayUsername.textContent = "@" + user.username;
     if (loginStatusText) loginStatusText.textContent = `Terautentikasi: @${user.username} ${user.demo ? "(DEMO)" : ""}`;
 
@@ -189,6 +192,7 @@ function renderUser(user) {
     if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
   } else {
     if (userBadge) userBadge.classList.add("hidden");
+    if (userBadge) userBadge.classList.remove("flex");
     if (loginStatusText) loginStatusText.textContent = "Belum terautentikasi";
     if (adminSection) adminSection.classList.add("hidden");
     if (adminNavLink) adminNavLink.classList.add("hidden");
@@ -265,79 +269,72 @@ function updateDelegatorHint() {
   }
 }
 
-const voterCategorySelect = $("#voterCategory");
-if (voterCategorySelect) voterCategorySelect.addEventListener("change", toggleCategoryFields);
+function handleOnboarding(e) {
+  e.preventDefault();
 
-const delegatorNftTypeSelect = $("#delegatorNftType");
-if (delegatorNftTypeSelect) delegatorNftTypeSelect.addEventListener("change", updateDelegatorHint);
+  const category = $("#voterCategory").value;
+  const role = $("#userRole").value;
+  const wallet = $("#walletAddress").value.trim();
+  const chapter = $("#communityChapter") ? $("#communityChapter").value : "GLOBAL";
 
-const onboardingForm = $("#onboardingForm");
-if (onboardingForm) {
-  onboardingForm.addEventListener("submit", (e) => {
-    e.preventDefault();
+  if (category === "owner") {
+    const gId = parseInt($("#garudaId").value || "0");
+    const gHash = $("#garudaHash").value.trim();
 
-    const category = $("#voterCategory").value;
-    const role = $("#userRole").value;
-    const wallet = $("#walletAddress").value.trim();
-
-    if (category === "owner") {
-      const gId = parseInt($("#garudaId").value || "0");
-      const gHash = $("#garudaHash").value.trim();
-
-      if (!gId || gId < 1 || gId > 1000) {
-        alert("Pendaftaran Ditolak: Garuda ID harus berupa angka antara #1 sampai #1000.");
-        return;
-      }
-      if (!gHash) {
-        alert("Pendaftaran Ditolak: Hash / Token ID NFT Garuda wajib diisi.");
-        return;
-      }
-
-      if (role === "Founder" && gId !== 999) {
-        alert("SECURITY REJECTION: Peran Founder HANYA VALID untuk pemilik Garuda ID #999.");
-        return;
-      }
-
-      activeUser.garudaId = gId;
-      activeUser.garudaHash = gHash;
-    } else if (category === "delegator") {
-      const ownerUsername = $("#ownerUsername").value.trim();
-      const nftType = $("#delegatorNftType").value;
-      const rawHashes = $("#delegatorHashes").value.trim();
-      const hashList = rawHashes.split(",").map((h) => h.trim()).filter((h) => h.length > 0);
-
-      if (!ownerUsername) {
-        alert("Pendaftaran Ditolak: Username pemilik asli Garuda wajib diisi.");
-        return;
-      }
-      if (nftType === "halloween" && hashList.length !== 1) {
-        alert("Pendaftaran Ditolak: NFT Halloween membutuhkan tepat 1 Hash NFT.");
-        return;
-      }
-      if (nftType === "piday" && hashList.length !== 3) {
-        alert("Pendaftaran Ditolak: NFT PiDay2026 membutuhkan tepat 3 Hash NFT (dipisahkan koma).");
-        return;
-      }
-
-      activeUser.ownerUsername = ownerUsername;
-      activeUser.delegatedNftType = nftType;
-      activeUser.delegatedHashes = hashList;
+    if (!gId || gId < 1 || gId > 1000) {
+      alert("Pendaftaran Ditolak: Garuda ID harus berupa angka antara #1 sampai #1000.");
+      return;
+    }
+    if (!gHash) {
+      alert("Pendaftaran Ditolak: Hash / Token ID NFT Garuda wajib diisi.");
+      return;
     }
 
-    activeUser.walletAddress = wallet;
-    activeUser.category = category;
-    activeUser.role = role;
-
-    const displayGaruda = $("#displayGaruda");
-    if (displayGaruda) {
-      displayGaruda.textContent = activeUser.garudaId ? `#${activeUser.garudaId}` : `DELEGATE (${category.toUpperCase()})`;
+    if (role === "Founder" && gId !== 999) {
+      alert("SECURITY REJECTION: Peran Founder HANYA VALID untuk pemilik Garuda ID #999.");
+      return;
     }
 
-    alert(`✅ Registrasi Berhasil!\nStatus: ${category.toUpperCase()}\nRole: ${role}`);
-  });
+    activeUser.garudaId = gId;
+    activeUser.garudaHash = gHash;
+  } else if (category === "delegator") {
+    const ownerUsername = $("#ownerUsername").value.trim();
+    const nftType = $("#delegatorNftType").value;
+    const rawHashes = $("#delegatorHashes").value.trim();
+    const hashList = rawHashes.split(",").map((h) => h.trim()).filter((h) => h.length > 0);
+
+    if (!ownerUsername) {
+      alert("Pendaftaran Ditolak: Username pemilik asli Garuda wajib diisi.");
+      return;
+    }
+    if (nftType === "halloween" && hashList.length !== 1) {
+      alert("Pendaftaran Ditolak: NFT Halloween membutuhkan tepat 1 Hash NFT.");
+      return;
+    }
+    if (nftType === "piday" && hashList.length !== 3) {
+      alert("Pendaftaran Ditolak: NFT PiDay2026 membutuhkan tepat 3 Hash NFT (dipisahkan koma).");
+      return;
+    }
+
+    activeUser.ownerUsername = ownerUsername;
+    activeUser.delegatedNftType = nftType;
+    activeUser.delegatedHashes = hashList;
+  }
+
+  activeUser.walletAddress = wallet;
+  activeUser.category = category;
+  activeUser.role = role;
+  activeUser.chapter = chapter;
+
+  const displayGaruda = $("#displayGaruda");
+  if (displayGaruda) {
+    displayGaruda.textContent = activeUser.garudaId ? `#${activeUser.garudaId}` : `DELEGATE (${category.toUpperCase()})`;
+  }
+
+  alert(`✅ Registrasi Berhasil!\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}`);
 }
 
-// --- PROPOSAL MATERIAL MANAGER ---
+// --- PROPOSAL MATERIAL MANAGER & PUBLISH SUITE ---
 function renderProposalMaterials() {
   if ($("#displayPropTitle")) $("#displayPropTitle").textContent = activeProposal.title;
   if ($("#displayPropCategory")) $("#displayPropCategory").textContent = "🏷️ Kategori: " + activeProposal.category;
@@ -345,20 +342,47 @@ function renderProposalMaterials() {
   if ($("#displayPropAuthor")) $("#displayPropAuthor").textContent = activeProposal.author;
   if ($("#displayPropDate")) $("#displayPropDate").textContent = activeProposal.date;
 
-  if ($("#linkFacebook")) $("#linkFacebook").href = activeProposal.linkFb || "#";
-  if ($("#linkPiApp")) $("#linkPiApp").href = activeProposal.linkPi || "#";
+  // Render Tautan Media Sosial Multi-Platform
+  const linksContainer = $("#socialLinksContainer");
+  if (linksContainer && activeProposal.socialLinks) {
+    const s = activeProposal.socialLinks;
+    linksContainer.innerHTML = `
+      ${s.fb ? `<a href="${s.fb}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-200 transition"><span class="text-blue-400">📘</span> Facebook</a>` : ''}
+      ${s.x ? `<a href="${s.x}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-200 transition"><span class="text-slate-100">🖤</span> X (Twitter)</a>` : ''}
+      ${s.yt ? `<a href="${s.yt}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-200 transition"><span class="text-red-500">🔴</span> YouTube</a>` : ''}
+      ${s.discord ? `<a href="${s.discord}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-200 transition"><span class="text-indigo-400">💬</span> Discord / Telegram</a>` : ''}
+      ${s.pi ? `<a href="${s.pi}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-amber-500/40 rounded-lg text-amber-300 transition"><span class="text-purple-400">⚡</span> Pi dApp Explorer</a>` : ''}
+    `;
+  }
 
-  if ($("#displayMediaImage")) $("#displayMediaImage").src = activeProposal.imageUrl;
+  // Render Galeri Multi-Foto
+  const galleryContainer = $("#mediaGalleryContainer");
+  if (galleryContainer && activeProposal.images) {
+    galleryContainer.innerHTML = activeProposal.images.map((imgUrl, idx) => `
+      <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-center">
+        <span class="text-[10px] font-semibold text-slate-400 block mb-1">Bukti Foto #${idx + 1}:</span>
+        <img src="${imgUrl}" alt="Bukti Foto #${idx + 1}" class="w-full h-44 object-cover rounded border border-slate-800">
+      </div>
+    `).join("");
+  }
 
+  // Render Video (Embed YouTube atau Native Direct MP4)
   const videoElem = $("#displayMediaVideo");
   const iframeElem = $("#displayMediaIframe");
   const placeholder = $("#videoPlaceholder");
 
   if (activeProposal.videoUrl) {
     if (placeholder) placeholder.classList.add("hidden");
+
     if (activeProposal.videoUrl.includes("youtube.com") || activeProposal.videoUrl.includes("youtu.be")) {
+      let embedUrl = activeProposal.videoUrl;
+      if (embedUrl.includes("watch?v=")) {
+        embedUrl = embedUrl.replace("watch?v=", "embed/");
+      } else if (embedUrl.includes("youtu.be/")) {
+        embedUrl = embedUrl.replace("youtu.be/", "www.youtube.com/embed/");
+      }
       if (iframeElem) {
-        iframeElem.src = activeProposal.videoUrl;
+        iframeElem.src = embedUrl;
         iframeElem.classList.remove("hidden");
       }
       if (videoElem) videoElem.classList.add("hidden");
@@ -369,19 +393,57 @@ function renderProposalMaterials() {
       }
       if (iframeElem) iframeElem.classList.add("hidden");
     }
+  } else {
+    if (placeholder) placeholder.classList.remove("hidden");
+    if (iframeElem) iframeElem.classList.add("hidden");
+    if (videoElem) videoElem.classList.add("hidden");
   }
 }
 
 function publishNewProposal(e) {
   e.preventDefault();
-  activeProposal.title = $("#inputPropTitle").value;
+
+  activeProposal.title = $("#inputPropTitle").value.trim() || "Proposal Tanpa Judul";
   activeProposal.category = $("#inputPropCategory").value;
-  activeProposal.description = $("#inputPropDesc").value;
-  activeProposal.linkFb = $("#inputSocialFb").value || "#";
-  activeProposal.linkPi = $("#inputSocialPi").value || "#";
+  activeProposal.description = $("#inputPropDesc").value.trim();
+
+  // 1. Atur Durasi Waktu Voting & Reset Countdown Timer
+  const durationInput = $("#inputPropDuration");
+  const durationHrs = durationInput ? parseFloat(durationInput.value) || 24 : 24;
+  activeProposal.durationHours = durationHrs;
+  votingEndTime = new Date(Date.now() + durationHrs * 60 * 60 * 1000);
+
+  // Enable kembali tombol voting jika sebelumnya habis
+  const btnSubmit = $("#btnSubmitVote");
+  if (btnSubmit) {
+    btnSubmit.disabled = false;
+    btnSubmit.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+    btnSubmit.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg";
+  }
+  startCountdownTimer();
+
+  // 2. Olah Multi-Media Foto
+  const rawImages = $("#inputPropImages") ? $("#inputPropImages").value.trim() : "";
+  if (rawImages) {
+    activeProposal.images = rawImages.split(",").map(img => img.trim()).filter(img => img.length > 0);
+  } else {
+    activeProposal.images = ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting"];
+  }
+
+  // 3. Olah Video URL
+  activeProposal.videoUrl = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
+
+  // 4. Olah Multi-Link Media Sosial
+  activeProposal.socialLinks = {
+    fb: $("#inputSocialFb") ? $("#inputSocialFb").value.trim() : "",
+    x: $("#inputSocialX") ? $("#inputSocialX").value.trim() : "",
+    yt: $("#inputSocialYt") ? $("#inputSocialYt").value.trim() : "",
+    discord: $("#inputSocialDiscord") ? $("#inputSocialDiscord").value.trim() : "",
+    pi: $("#inputSocialPi") ? $("#inputSocialPi").value.trim() : ""
+  };
 
   renderProposalMaterials();
-  alert("✅ Proposal Materi Voting berhasil diterbitkan ke seluruh Pemilih!");
+  alert(`✅ Proposal Baru Berhasil Diterbitkan!\nDurasi Voting diatur: ${durationHrs} Jam dari sekarang.`);
 }
 
 // --- ON-CHAIN REALTIME NFT VERIFICATION ---
@@ -423,77 +485,74 @@ function clearOfficerSig(id) {
 }
 
 // --- FAST VOTING SUBMISSION ---
-const votingForm = $("#votingForm");
-if (votingForm) {
-  votingForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+async function handleCastVote(e) {
+  e.preventDefault();
 
-    if (new Date().getTime() > votingEndTime.getTime()) {
-      alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir.");
-      return;
-    }
+  if (new Date().getTime() > votingEndTime.getTime()) {
+    alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir.");
+    return;
+  }
 
-    const btn = $("#btnSubmitVote");
-    if (btn) {
-      btn.innerText = "Memeriksa NFT di Wallet On-Chain...";
-      btn.disabled = true;
-    }
+  const btn = $("#btnSubmitVote");
+  if (btn) {
+    btn.innerText = "Memeriksa NFT di Wallet On-Chain...";
+    btn.disabled = true;
+  }
 
-    const isNftValid = await verifyOnChainNftOwnership();
-    if (!isNftValid) {
-      if (btn) {
-        btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-        btn.disabled = false;
-      }
-      alert("⛔ AKSES VOTING DITOLAK!\n\nSistem gagal mengonfirmasi kepemilikan NFT di wallet Pi Anda.\nNFT terdaftar (Garuda / Halloween / PiDay2026) tidak terdeteksi secara On-Chain.");
-
-      const banBanner = $("#banBanner");
-      const banReason = $("#banReason");
-      if (banBanner) banBanner.classList.remove("hidden");
-      if (banReason) banReason.innerText = "Akses Voting Ditolak: NFT terdaftar tidak ditemukan di wallet Anda.";
-      return;
-    }
-
-    if (!voterSigPad || voterSigPad.isEmpty()) {
-      if (btn) {
-        btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-        btn.disabled = false;
-      }
-      alert("Harap bubuhkan tanda tangan digital Anda terlebih dahulu.");
-      return;
-    }
-
-    const selectedValue = document.querySelector('input[name="voteValue"]:checked');
-    if (!selectedValue) {
-      if (btn) {
-        btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-        btn.disabled = false;
-      }
-      alert("Pilih arah suara Anda (Agree / Neutral / Disagree).");
-      return;
-    }
-
-    const voteVal = parseInt(selectedValue.value);
-    let roleWeight = 0.5;
-    if (activeUser.role === "Group Leader") roleWeight = 1.0;
-    if (activeUser.role === "Founder") roleWeight = 2.0;
-
-    const individualScore = voteVal * currentConfidence * roleWeight;
-    const timestamp = new Date().toISOString();
-    const rawPayload = `${activeUser.username || "Anonymous"}|${activeUser.walletAddress}|${voteVal}|${currentConfidence}|${roleWeight}|${timestamp}`;
-    
-    let voteHash = "HASH_GENERATED";
-    if (window.CryptoJS) {
-      voteHash = window.CryptoJS.SHA256(rawPayload).toString();
-    }
-
+  const isNftValid = await verifyOnChainNftOwnership();
+  if (!isNftValid) {
     if (btn) {
       btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
       btn.disabled = false;
     }
+    alert("⛔ AKSES VOTING DITOLAK!\n\nSistem gagal mengonfirmasi kepemilikan NFT di wallet Pi Anda.\nNFT terdaftar (Garuda / Halloween / PiDay2026) tidak terdeteksi secara On-Chain.");
 
-    alert(`✅ SUARA TERKONFIRMASI & HASH TERSIMPANI!\n\nSkor Terbobot: ${individualScore}\nHash SHA-256: ${voteHash.substring(0, 24)}...`);
-  });
+    const banBanner = $("#banBanner");
+    const banReason = $("#banReason");
+    if (banBanner) banBanner.classList.remove("hidden");
+    if (banReason) banReason.innerText = "Akses Voting Ditolak: NFT terdaftar tidak ditemukan di wallet Anda.";
+    return;
+  }
+
+  if (!voterSigPad || voterSigPad.isEmpty()) {
+    if (btn) {
+      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+      btn.disabled = false;
+    }
+    alert("Harap bubuhkan tanda tangan digital Anda terlebih dahulu.");
+    return;
+  }
+
+  const selectedValue = document.querySelector('input[name="voteValue"]:checked');
+  if (!selectedValue) {
+    if (btn) {
+      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+      btn.disabled = false;
+    }
+    alert("Pilih arah suara Anda (Agree / Neutral / Disagree).");
+    return;
+  }
+
+  const voteVal = parseInt(selectedValue.value);
+  let roleWeight = 0.5;
+  if (activeUser.role === "Group Leader") roleWeight = 1.0;
+  if (activeUser.role === "Founder") roleWeight = 2.0;
+
+  const individualScore = voteVal * currentConfidence * roleWeight;
+  const timestamp = new Date().toISOString();
+  const rawPayload = `${activeUser.username || "Anonymous"}|${activeUser.walletAddress}|${voteVal}|${currentConfidence}|${roleWeight}|${timestamp}`;
+
+  let voteHash = "HASH_GENERATED";
+  if (window.CryptoJS) {
+    voteHash = window.CryptoJS.SHA256(rawPayload).toString();
+  }
+
+  if (btn) {
+    btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+    btn.disabled = false;
+  }
+
+  alert(`✅ SUARA TERKONFIRMASI & HASH TERSIMPANI!\n\nSkor Terbobot: ${individualScore}\nHash SHA-256: ${voteHash.substring(0, 24)}...`);
 }
 
 // --- ADMIN / ETHICS ACTIONS ---
@@ -514,6 +573,14 @@ function uploadAsset(e, type) {
     const logoEl = $("#appLogo");
     if (logoEl) logoEl.src = URL.createObjectURL(file);
     alert("Logo header berhasil diperbarui.");
+  }
+}
+
+function changeLanguage(lang) {
+  if (lang === "ar") {
+    document.body.classList.add("rtl");
+  } else {
+    document.body.classList.remove("rtl");
   }
 }
 
@@ -550,7 +617,7 @@ async function addOfficialStamp(pdf, x, y, width = 48, height = 48) {
 }
 
 // ==============================================================================
-// 1. GENERATE OFFICIAL MINUTES (BAP PDF FOR PI CORE TEAM REPORTING)
+// 1. GENERATE OFFICIAL MINUTES PDF (FOR PI CORE TEAM REPORTING)
 // ==============================================================================
 async function generateOfficialMinutesPDF() {
   if (!window.jspdf?.jsPDF) {
@@ -574,7 +641,7 @@ async function generateOfficialMinutesPDF() {
   pdf.text("OFFICIAL MINUTES OF PROCEEDINGS & VERIFICATION RECORD", 15, 31);
   pdf.line(15, 34, 195, 34);
 
-  // Metadata
+  // Metadata Dokumen
   pdf.setFontSize(8);
   pdf.setFont("Helvetica", "bold");
   pdf.text(`Document ID: ${activeProposal.id}`, 15, 41);
@@ -648,7 +715,7 @@ async function generateOfficialMinutesPDF() {
   // SHA-256 PROOF & FOOTER
   let shaProof = "TVOD-PROOF-SHA256";
   if (window.CryptoJS) {
-    shaProof = window.CryptoJS.SHA256(`TVOD-BAP-${Date.now()}`).toString();
+    shaProof = window.CryptoJS.SHA256(`TVOD-MINUTES-${Date.now()}`).toString();
   }
   pdf.setFontSize(7);
   pdf.setFont("Courier", "normal");
