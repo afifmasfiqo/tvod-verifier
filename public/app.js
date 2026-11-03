@@ -3,7 +3,10 @@
 // Helper Query Selector
 const $ = (selector) => document.querySelector(selector);
 
-// Helper Memastikan URL Berawalan HTTPS & Bersih dari Spasi Tersembunyi
+// PUBLIC KEY WALLET APP TVOD (KAS OPERASIONAL)
+const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
+
+// Helper Memastikan URL Berawalan HTTPS
 function ensureHttps(url) {
   if (!url) return "";
   let cleanUrl = url.trim();
@@ -50,7 +53,7 @@ async function saveVoteToSupabase(voteData) {
   }
 }
 
-// Helper Simpan Proposal Baru Ke Supabase (Dengan Handling Visual Alert Error)
+// Helper Simpan Proposal Baru Ke Supabase
 async function saveProposalToSupabase(proposalData) {
   if (!supabaseClient) return false;
   try {
@@ -72,7 +75,7 @@ async function saveProposalToSupabase(proposalData) {
   }
 }
 
-// Helper Ambil Profil Voter dari Supabase (Auto Load Tanpa Login Ulang)
+// Helper Ambil Profil Voter dari Supabase
 async function fetchVoterProfileFromSupabase(username) {
   if (!supabaseClient || !username) return;
   try {
@@ -149,7 +152,6 @@ async function fetchActiveProposalFromSupabase() {
         durationHours: p.duration_hours || 24,
         images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"],
         videoUrl: p.video_url || "",
-        socialLinks: p.social_links || {},
         totalVotes: p.total_votes || 0,
         netScore: p.net_score || 0
       };
@@ -167,7 +169,6 @@ async function fetchActiveProposalFromSupabase() {
 
 // System Global State
 let currentUser = null;
-let currentSessionToken = null;
 let activeUser = {
   username: "",
   walletAddress: "",
@@ -181,17 +182,14 @@ let activeUser = {
   delegatedHashes: []
 };
 let currentConfidence = 3;
-let signatures = {};
 const signaturePads = {};
 let uploadedGalleryBase64Images = [];
 
-// State Durasi Waktu Voting (Default: 24 Jam dari sekarang)
 let votingEndTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
 let countdownInterval = null;
 
 const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak"];
 
-// Active Proposal State (Materi & Objek Voting Default)
 let activeProposal = {
   id: "TVOD-PROP-2026-001",
   title: "Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD",
@@ -200,24 +198,41 @@ let activeProposal = {
   category: "Verifikasi Objek / Kasus",
   author: "@afifmasfiqo (Chairman)",
   date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
-  description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.\nHarap periksa materi audio-visual, tautan bukti di media sosial, dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.",
+  description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.\nHarap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.",
   durationHours: 24,
   images: [
     "https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"
   ],
   videoUrl: "",
-  socialLinks: {
-    fb: "https://facebook.com",
-    x: "https://x.com",
-    yt: "https://youtube.com",
-    discord: "https://discord.gg",
-    pi: "https://minepi.com"
-  },
   totalVotes: 42,
   netScore: 18.5
 };
 
-// --- COLORIZER STEMPEL: MENGUBAH STEMPEL BIRU MENJADI EMAS (#F59E0B) ---
+// --- FUNGSI CEK SALDO WALLET APP TVOD VIA PI HORIZON NODE ---
+async function checkAppWalletBalance() {
+  const display = $("#appWalletDisplay");
+  const addrText = $("#appWalletAddrText");
+
+  if (display) display.textContent = "⏳ Memeriksa Horizon API...";
+
+  try {
+    const res = await fetch(`https://api.testnet.minepi.com/accounts/${TVOD_APP_WALLET}`);
+    if (!res.ok) throw new Error("Wallet belum aktif / 0 Balance");
+
+    const data = await res.json();
+    const nativeBalance = data.balances.find(b => b.asset_type === 'native');
+    const balanceVal = nativeBalance ? parseFloat(nativeBalance.balance).toFixed(2) : "0.00";
+
+    if (display) display.textContent = `⚡ ${balanceVal} Testnet Pi`;
+    if (addrText) addrText.textContent = `Wallet Kas App: ${TVOD_APP_WALLET.substring(0, 8)}...${TVOD_APP_WALLET.substring(TVOD_APP_WALLET.length - 6)}`;
+  } catch (err) {
+    console.warn("Horizon API Fetch Error:", err);
+    if (display) display.textContent = "⚡ 100.00 Testnet Pi (Simulasi)";
+    if (addrText) addrText.textContent = `Wallet Kas App: ${TVOD_APP_WALLET.substring(0, 8)}...${TVOD_APP_WALLET.substring(TVOD_APP_WALLET.length - 6)}`;
+  }
+}
+
+// --- COLORIZER STEMPEL EMAS ---
 function loadAndColorizeStamp(src, goldColor = "#F59E0B") {
   return new Promise((resolve) => {
     const img = new Image();
@@ -244,7 +259,6 @@ function loadAndColorizeStamp(src, goldColor = "#F59E0B") {
 async function initialize() {
   setConnection("● Ecosystem Ready", true);
 
-  // Setup Officer Signature Pads (4 Pejabat TVOD)
   ["sig-chairman", "sig-witness", "sig-inspector", "sig-country-head"].forEach((id) => {
     const canvas = $(`#${id}`);
     if (canvas && window.SignaturePad) {
@@ -255,7 +269,6 @@ async function initialize() {
     }
   });
 
-  // Setup Dynamic Form Toggles & Event Listeners
   const voterCatEl = $("#voterCategory");
   if (voterCatEl) voterCatEl.addEventListener("change", toggleCategoryFields);
 
@@ -268,14 +281,18 @@ async function initialize() {
   const votingFormEl = $("#votingForm");
   if (votingFormEl) votingFormEl.addEventListener("submit", handleCastVote);
 
+  const publishFormEl = $("#publishProposalForm");
+  if (publishFormEl) publishFormEl.addEventListener("submit", publishNewProposal);
+
+  const fileInputEl = $("#inputPropFileImages");
+  if (fileInputEl) fileInputEl.addEventListener("change", handleGalleryImagesSelect);
+
   toggleCategoryFields();
   renderProposalMaterials();
   startCountdownTimer();
 
-  // Load proposal aktif terbaru dari Supabase Database
   await fetchActiveProposalFromSupabase();
 
-  // Auto Pi Auth Check
   try {
     if (window.Pi) {
       await handlePiAuth();
@@ -309,7 +326,6 @@ function compressAndResizeImage(file, maxWidth = 800, quality = 0.7) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Compress image to JPEG format
         resolve(canvas.toDataURL("image/jpeg", quality));
       };
       img.onerror = (err) => reject(err);
@@ -318,7 +334,6 @@ function compressAndResizeImage(file, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// --- LOGIKA BUKA GALERI HP / LAPTOP UNTUK FOTO DENGAN KOMPRESI OTOMATIS ---
 async function handleGalleryImagesSelect(event) {
   const files = event.target.files;
   uploadedGalleryBase64Images = [];
@@ -341,7 +356,6 @@ async function handleGalleryImagesSelect(event) {
   }
 }
 
-// --- LOGIKA COUNTDOWN TIMER DURASI VOTING ---
 function startCountdownTimer() {
   if (countdownInterval) clearInterval(countdownInterval);
 
@@ -376,7 +390,6 @@ function startCountdownTimer() {
   }, 1000);
 }
 
-// --- UI STATUS HELPERS ---
 function setConnection(message, good = false) {
   const element = $("#connection-status");
   if (!element) return;
@@ -405,8 +418,8 @@ function renderUser(user) {
     if (adminSection) adminSection.classList.toggle("hidden", !isAdmin);
     if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
 
-    // OTOMATIS AMBIL PROFIL VOTER TERSIMPAN DARI SUPABASE
     fetchVoterProfileFromSupabase(user.username);
+    checkAppWalletBalance();
   } else {
     if (userBadge) {
       userBadge.classList.add("hidden");
@@ -468,7 +481,6 @@ if (demoLoginBtn) {
   });
 }
 
-// --- ONBOARDING & CATEGORY TOGGLES ---
 function toggleCategoryFields() {
   const cat = $("#voterCategory") ? $("#voterCategory").value : "owner";
   const ownerFields = $("#ownerFields");
@@ -550,7 +562,6 @@ function handleOnboarding(e) {
     displayGaruda.textContent = activeUser.garudaId ? `#${activeUser.garudaId}` : `DELEGATE (${category.toUpperCase()})`;
   }
 
-  // OTOMATIS SIMPAN PROFIL VOTER KE DATABASE SUPABASE
   saveVoterToSupabase({
     username: activeUser.username || `voter_${Date.now()}`,
     wallet_address: activeUser.walletAddress,
@@ -564,10 +575,10 @@ function handleOnboarding(e) {
     delegated_hashes: activeUser.delegatedHashes
   });
 
+  checkAppWalletBalance();
   alert(`✅ Registrasi Berhasil!\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}\nData tersimpan ke Supabase Database.`);
 }
 
-// --- PROPOSAL MATERIAL MANAGER & PUBLISH SUITE ---
 function renderProposalMaterials() {
   if ($("#displayPropTitle")) $("#displayPropTitle").textContent = activeProposal.title;
   if ($("#displayPropCategory")) $("#displayPropCategory").textContent = "🏷️ Kategori: " + activeProposal.category;
@@ -575,26 +586,6 @@ function renderProposalMaterials() {
   if ($("#displayPropAuthor")) $("#displayPropAuthor").textContent = activeProposal.author;
   if ($("#displayPropDate")) $("#displayPropDate").textContent = activeProposal.date;
 
-  // Render Tautan Media Sosial Multi-Platform (Format HTTPS Presisi)
-  const linksContainer = $("#socialLinksContainer");
-  if (linksContainer && activeProposal.socialLinks) {
-    const s = activeProposal.socialLinks;
-    const fb = ensureHttps(s.fb);
-    const x = ensureHttps(s.x);
-    const yt = ensureHttps(s.yt);
-    const discord = ensureHttps(s.discord);
-    const pi = ensureHttps(s.pi);
-
-    linksContainer.innerHTML = `
-      ${fb ? `<a href="${fb}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 font-semibold rounded-lg text-xs transition"><span class="text-base">📘</span> Facebook Objek</a>` : ''}
-      ${x ? `<a href="${x}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 font-semibold rounded-lg text-xs transition"><span class="text-base">🖤</span> X / Twitter</a>` : ''}
-      ${yt ? `<a href="${yt}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/50 text-red-300 font-semibold rounded-lg text-xs transition"><span class="text-base">🔴</span> YouTube</a>` : ''}
-      ${discord ? `<a href="${discord}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/50 text-indigo-300 font-semibold rounded-lg text-xs transition"><span class="text-base">💬</span> Discord / Telegram</a>` : ''}
-      ${pi ? `<a href="${pi}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/50 text-amber-300 font-semibold rounded-lg text-xs transition"><span class="text-base">⚡</span> Pi Explorer</a>` : ''}
-    `;
-  }
-
-  // Render Galeri Multi-Foto
   const galleryContainer = $("#mediaGalleryContainer");
   if (galleryContainer && activeProposal.images) {
     galleryContainer.innerHTML = activeProposal.images.map((imgUrl, idx) => `
@@ -605,7 +596,6 @@ function renderProposalMaterials() {
     `).join("");
   }
 
-  // Render Video (Embed YouTube atau Native Direct MP4)
   const videoElem = $("#displayMediaVideo");
   const iframeElem = $("#displayMediaIframe");
   const placeholder = $("#videoPlaceholder");
@@ -639,17 +629,14 @@ function renderProposalMaterials() {
   }
 }
 
-// --- LOGIKA TERBITKAN PROPOSAL BARU (ID UNIK & KOMPRESI FOTO) ---
 async function publishNewProposal(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
 
-  // 1. Buat ID Unik Berbasis Timestamp
   activeProposal.id = "TVOD-PROP-" + Date.now();
   activeProposal.title = $("#inputPropTitle").value.trim() || "Proposal Tanpa Judul";
   activeProposal.category = $("#inputPropCategory").value;
   activeProposal.description = $("#inputPropDesc").value.trim();
 
-  // 2. Durasi Voting & Reset Timer
   const durationInput = $("#inputPropDuration");
   const durationHrs = durationInput ? parseFloat(durationInput.value) || 24 : 24;
   activeProposal.durationHours = durationHrs;
@@ -663,7 +650,6 @@ async function publishNewProposal(e) {
   }
   startCountdownTimer();
 
-  // 3. Olah Media Foto (Foto Galeri Terkompresi / URL Eksternal)
   if (uploadedGalleryBase64Images.length > 0) {
     activeProposal.images = uploadedGalleryBase64Images;
   } else {
@@ -675,19 +661,10 @@ async function publishNewProposal(e) {
     }
   }
 
-  // 4. Video URL & Tautan Media Sosial
   activeProposal.videoUrl = $("#inputPropVideo") ? ensureHttps($("#inputPropVideo").value.trim()) : "";
-  activeProposal.socialLinks = {
-    fb: $("#inputSocialFb") ? ensureHttps($("#inputSocialFb").value.trim()) : "",
-    x: $("#inputSocialX") ? ensureHttps($("#inputSocialX").value.trim()) : "",
-    yt: $("#inputSocialYt") ? ensureHttps($("#inputSocialYt").value.trim()) : "",
-    discord: $("#inputSocialDiscord") ? ensureHttps($("#inputSocialDiscord").value.trim()) : "",
-    pi: $("#inputSocialPi") ? ensureHttps($("#inputSocialPi").value.trim()) : ""
-  };
 
   renderProposalMaterials();
 
-  // 5. Simpan Ke Supabase Database
   const isSaved = await saveProposalToSupabase({
     id: activeProposal.id,
     title: activeProposal.title,
@@ -697,18 +674,16 @@ async function publishNewProposal(e) {
     proposer_username: activeUser.username || activeProposal.proposerUsername,
     duration_hours: activeProposal.durationHours,
     voting_end_time: votingEndTime.toISOString(),
-    social_links: activeProposal.socialLinks,
     images: activeProposal.images,
     video_url: activeProposal.videoUrl,
     status: 'ACTIVE'
   });
 
   if (isSaved) {
-    alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan & Tersimpan di Database Supabase!\nDurasi Voting: ${durationHrs} Jam dari sekarang.`);
+    alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan & Tersimpan di Database Supabase!\nDurasi Voting: ${durationHrs} Jam.`);
   }
 }
 
-// --- ON-CHAIN REALTIME NFT VERIFICATION ---
 async function verifyOnChainNftOwnership() {
   if (activeUser.category === "witness") return true;
 
@@ -742,7 +717,6 @@ function clearOfficerSig(id) {
   if (signaturePads[id]) signaturePads[id].clear();
 }
 
-// --- FAST VOTING SUBMISSION & PAYOUT PAYLOAD ---
 async function handleCastVote(e) {
   e.preventDefault();
 
@@ -796,7 +770,6 @@ async function handleCastVote(e) {
     voteHash = window.CryptoJS.SHA256(rawPayload).toString();
   }
 
-  // 1. OTOMATIS SIMPAN REKAMAN SUARA VOTING KE DATABASE SUPABASE
   await saveVoteToSupabase({
     proposal_id: activeProposal.id,
     username: activeUser.username || "Anonymous",
@@ -809,13 +782,11 @@ async function handleCastVote(e) {
     voter_signature_base64: null
   });
 
-  // 2. OTOMATIS MEMANGGIL BACKEND PAYOUT API (DENGAN LOGIKA 50% / 0,5 DELEGATOR)
   if (btn) btn.innerText = "Menghitung & Mengirim Insentif Pi...";
 
   const payoutRateEl = $("#payoutRate");
   const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
 
-  // Pemilih Tetap (owner) = 100%, Delegator = 50% (0.5x dari rate dasar)
   let rewardAmount = baseReward;
   if (activeUser.category === "delegator") {
     rewardAmount = baseReward * 0.5;
@@ -851,7 +822,6 @@ async function handleCastVote(e) {
   }
 }
 
-// --- ADMIN / ETHICS ACTIONS ---
 function toggleUserBan(isBan) {
   const target = $("#targetUser") ? $("#targetUser").value.trim() : "";
   if (!target) return alert("Masukkan Username Pi Target.");
@@ -880,7 +850,6 @@ function changeLanguage(lang) {
   }
 }
 
-// --- HELPER UNTUK PDF BRANDING & STEMPEL EMAS ---
 function loadImage(src) {
   return new Promise((resolve) => {
     const image = new Image();
@@ -912,9 +881,6 @@ async function addOfficialStamp(pdf, x, y, width = 48, height = 48) {
   }
 }
 
-// ==============================================================================
-// GENERATE OFFICIAL MINUTES PDF (FOR PI CORE TEAM REPORTING)
-// ==============================================================================
 async function generateOfficialMinutesPDF() {
   if (!window.jspdf?.jsPDF) {
     alert("Pustaka PDF tidak tersedia.");
@@ -924,7 +890,6 @@ async function generateOfficialMinutesPDF() {
   const pdf = new window.jspdf.jsPDF();
   await addBranding(pdf);
 
-  // Header TVOD
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(15);
   pdf.text("THE VOICE OF DAO (TVOD)", 15, 18);
@@ -937,13 +902,11 @@ async function generateOfficialMinutesPDF() {
   pdf.text("OFFICIAL MINUTES OF PROCEEDINGS & VERIFICATION RECORD", 15, 31);
   pdf.line(15, 34, 195, 34);
 
-  // Metadata Dokumen
   pdf.setFontSize(8);
   pdf.setFont("Helvetica", "bold");
   pdf.text(`Document ID: ${activeProposal.id}`, 15, 41);
   pdf.text("Security Classification: CONFIDENTIAL / ON-CHAIN VERIFIED", 115, 41);
 
-  // PREAMBLE
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(9);
   pdf.text("PREAMBLE & CONVENING STATEMENT", 15, 50);
@@ -952,7 +915,6 @@ async function generateOfficialMinutesPDF() {
   const preambleText = `On this day, ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, the governance body and verified voters of The Voice of DAO (TVOD) officially convened via the Pi Browser Web3 Infrastructure to review, audit, and execute a cryptographic weighted vote upon the formal proposal submitted under Reference ${activeProposal.id}. The proceedings were conducted in full compliance with TVOD Governance Rules, utilizing real-time PiBox Smart Contract wallet verification and immutable SHA-256 proof logging.`;
   pdf.text(pdf.splitTextToSize(preambleText, 180), 15, 55);
 
-  // SECTION I: METADATA
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(9);
   pdf.text("SECTION I: PROPOSAL & CASE METADATA", 15, 75);
@@ -965,7 +927,6 @@ async function generateOfficialMinutesPDF() {
   pdf.text(`• Community Chapter    : ${activeUser.chapter || "GLOBAL"}`, 15, 101);
   pdf.text(`• Voting Expiry Date   : ${votingEndTime.toLocaleString('en-US')}`, 15, 106);
 
-  // SECTION II: SCORING & VERDICT
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(9);
   pdf.text("SECTION II: MATHEMATICAL SCORING & VERDICT BREAKDOWN", 15, 116);
@@ -978,7 +939,6 @@ async function generateOfficialMinutesPDF() {
   pdf.setFont("Helvetica", "bold");
   pdf.text(`• FINAL GOVERNANCE VERDICT  : PASSED (AGREE)`, 15, 144);
 
-  // SECTION III: SIGNATURE BLOCKS & GOLD STAMP
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(9);
   pdf.text("SECTION III: OFFICIAL AUTHORIZATION & SIGNATURES", 15, 156);
@@ -1005,10 +965,8 @@ async function generateOfficialMinutesPDF() {
     }
   });
 
-  // MENEMPELKAN STEMPEL EMAS RESMI TVOD DI ATAS SIGNATURE BLOCK
   await addOfficialStamp(pdf, 135, 175, 48, 48);
 
-  // SHA-256 PROOF & FOOTER
   let shaProof = "TVOD-PROOF-SHA256";
   if (window.CryptoJS) {
     shaProof = window.CryptoJS.SHA256(`TVOD-MINUTES-${Date.now()}`).toString();
@@ -1021,9 +979,6 @@ async function generateOfficialMinutesPDF() {
   pdf.save(`TVOD_Official_Minutes_${activeProposal.id}.pdf`);
 }
 
-// ==============================================================================
-// GENERATE DIGITAL VERIFICATION CERTIFICATE (FOR VOTING OBJECT / PROPOSER)
-// ==============================================================================
 async function generateCertificatePDF() {
   if (!window.jspdf?.jsPDF) {
     alert("Pustaka PDF tidak tersedia.");
@@ -1033,7 +988,6 @@ async function generateCertificatePDF() {
   const pdf = new window.jspdf.jsPDF();
   await addBranding(pdf);
 
-  // Header Sertifikat
   pdf.setFontSize(18);
   pdf.setFont("Helvetica", "bold");
   pdf.text("THE VOICE OF DAO", 15, 25);
@@ -1044,7 +998,6 @@ async function generateCertificatePDF() {
   pdf.text("Pi Network Web3 Ecosystem Governance", 15, 38);
   pdf.line(15, 42, 195, 42);
 
-  // Pernyataan Sertifikasi Objek
   pdf.setFontSize(10);
   pdf.setFont("Helvetica", "bold");
   pdf.text("THIS IS TO OFFICIALLY CERTIFY THAT THE VOTING OBJECT / PROPOSAL:", 15, 52);
@@ -1062,7 +1015,6 @@ async function generateCertificatePDF() {
 
   pdf.line(15, 95, 195, 95);
 
-  // Status Hasil Governance & Verdict
   pdf.setFontSize(10);
   pdf.setFont("Helvetica", "bold");
   pdf.text("GOVERNANCE AUDIT VERDICT:", 15, 105);
@@ -1076,10 +1028,8 @@ async function generateCertificatePDF() {
   pdf.text(`Total Verified On-Chain Votes: ${activeProposal.totalVotes} Ballots`, 15, 130);
   pdf.text(`Verification Protocol        : PiBox Smart Contract Real-Time Wallet Verification`, 15, 136);
 
-  // MENEMPELKAN STEMPEL EMAS RESMI TVOD DI SISI KANAN
   await addOfficialStamp(pdf, 135, 100, 52, 52);
 
-  // QR Code Live Verification
   if (window.QRCode) {
     const qrDiv = document.createElement("div");
     new window.QRCode(qrDiv, { text: `https://tvod-verifier.vercel.app/verify/${activeProposal.id}`, width: 120, height: 120 });
@@ -1092,7 +1042,6 @@ async function generateCertificatePDF() {
     }
   }
 
-  // SHA-256 Proof & Signature Header
   let certHash = "CERT-HASH-PROVED";
   if (window.CryptoJS) {
     certHash = window.CryptoJS.SHA256(`CERT-${activeProposal.id}-${Date.now()}`).toString();
@@ -1113,7 +1062,19 @@ async function generateCertificatePDF() {
   pdf.save(`TVOD_Digital_Verification_Certificate_${activeProposal.id}.pdf`);
 }
 
-// Execute Initialize when DOM is Ready
+// BIND FUNGSI KE WINDOW SCOPE GLOBAL
+window.publishNewProposal = publishNewProposal;
+window.handleGalleryImagesSelect = handleGalleryImagesSelect;
+window.checkAppWalletBalance = checkAppWalletBalance;
+window.setConfidence = setConfidence;
+window.clearOfficerSig = clearOfficerSig;
+window.toggleUserBan = toggleUserBan;
+window.savePayoutRate = savePayoutRate;
+window.uploadAsset = uploadAsset;
+window.changeLanguage = changeLanguage;
+window.generateOfficialMinutesPDF = generateOfficialMinutesPDF;
+window.generateCertificatePDF = generateCertificatePDF;
+
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initialize);
 } else {
