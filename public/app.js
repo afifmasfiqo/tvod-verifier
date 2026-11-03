@@ -3,6 +3,17 @@
 // Helper Query Selector
 const $ = (selector) => document.querySelector(selector);
 
+// Helper Memastikan URL Berawalan HTTPS (Mencegah Link Rusak saat Diklik)
+function ensureHttps(url) {
+  if (!url) return "";
+  let cleanUrl = url.trim();
+  if (cleanUrl.length === 0) return "";
+  if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+    return "https://" + cleanUrl;
+  }
+  return cleanUrl;
+}
+
 // ==============================================================================
 // 1. INITIALIZATION SUPABASE CLIENT
 // ==============================================================================
@@ -531,16 +542,22 @@ function renderProposalMaterials() {
   if ($("#displayPropAuthor")) $("#displayPropAuthor").textContent = activeProposal.author;
   if ($("#displayPropDate")) $("#displayPropDate").textContent = activeProposal.date;
 
-  // Render Tautan Media Sosial Multi-Platform
+  // Render Tautan Media Sosial Multi-Platform (Dengan Auto-Formatting HTTPS)
   const linksContainer = $("#socialLinksContainer");
   if (linksContainer && activeProposal.socialLinks) {
     const s = activeProposal.socialLinks;
+    const fb = ensureHttps(s.fb);
+    const x = ensureHttps(s.x);
+    const yt = ensureHttps(s.yt);
+    const discord = ensureHttps(s.discord);
+    const pi = ensureHttps(s.pi);
+
     linksContainer.innerHTML = `
-      ${s.fb ? `<a href="${s.fb}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-200 transition"><span class="text-blue-400">📘</span> Facebook</a>` : ''}
-      ${s.x ? `<a href="${s.x}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-200 transition"><span class="text-slate-100">🖤</span> X (Twitter)</a>` : ''}
-      ${s.yt ? `<a href="${s.yt}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-200 transition"><span class="text-red-500">🔴</span> YouTube</a>` : ''}
-      ${s.discord ? `<a href="${s.discord}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-200 transition"><span class="text-indigo-400">💬</span> Discord / Telegram</a>` : ''}
-      ${s.pi ? `<a href="${s.pi}" target="_blank" class="flex items-center gap-2 p-2.5 bg-slate-950 hover:bg-slate-800 border border-amber-500/40 rounded-lg text-amber-300 transition"><span class="text-purple-400">⚡</span> Pi dApp Explorer</a>` : ''}
+      ${fb ? `<a href="${fb}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 font-semibold rounded-lg text-xs transition"><span class="text-base">📘</span> Buka Link Facebook</a>` : ''}
+      ${x ? `<a href="${x}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 font-semibold rounded-lg text-xs transition"><span class="text-base">🖤</span> Buka Link X / Twitter</a>` : ''}
+      ${yt ? `<a href="${yt}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/50 text-red-300 font-semibold rounded-lg text-xs transition"><span class="text-base">🔴</span> Buka Link YouTube</a>` : ''}
+      ${discord ? `<a href="${discord}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/50 text-indigo-300 font-semibold rounded-lg text-xs transition"><span class="text-base">💬</span> Buka Discord / Telegram</a>` : ''}
+      ${pi ? `<a href="${pi}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/50 text-amber-300 font-semibold rounded-lg text-xs transition"><span class="text-base">⚡</span> Buka Pi Explorer</a>` : ''}
     `;
   }
 
@@ -616,22 +633,22 @@ async function publishNewProposal(e) {
   } else {
     const rawImages = $("#inputPropImages") ? $("#inputPropImages").value.trim() : "";
     if (rawImages) {
-      activeProposal.images = rawImages.split(",").map(img => img.trim()).filter(img => img.length > 0);
+      activeProposal.images = rawImages.split(",").map(img => ensureHttps(img.trim())).filter(img => img.length > 0);
     } else {
       activeProposal.images = ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting"];
     }
   }
 
   // 3. Olah Video URL
-  activeProposal.videoUrl = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
+  activeProposal.videoUrl = $("#inputPropVideo") ? ensureHttps($("#inputPropVideo").value.trim()) : "";
 
   // 4. Olah Multi-Link Media Sosial
   activeProposal.socialLinks = {
-    fb: $("#inputSocialFb") ? $("#inputSocialFb").value.trim() : "",
-    x: $("#inputSocialX") ? $("#inputSocialX").value.trim() : "",
-    yt: $("#inputSocialYt") ? $("#inputSocialYt").value.trim() : "",
-    discord: $("#inputSocialDiscord") ? $("#inputSocialDiscord").value.trim() : "",
-    pi: $("#inputSocialPi") ? $("#inputSocialPi").value.trim() : ""
+    fb: $("#inputSocialFb") ? ensureHttps($("#inputSocialFb").value.trim()) : "",
+    x: $("#inputSocialX") ? ensureHttps($("#inputSocialX").value.trim()) : "",
+    yt: $("#inputSocialYt") ? ensureHttps($("#inputSocialYt").value.trim()) : "",
+    discord: $("#inputSocialDiscord") ? ensureHttps($("#inputSocialDiscord").value.trim()) : "",
+    pi: $("#inputSocialPi") ? ensureHttps($("#inputSocialPi").value.trim()) : ""
   };
 
   renderProposalMaterials();
