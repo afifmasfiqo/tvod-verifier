@@ -18,7 +18,7 @@ function ensureHttps(url) {
 // 1. INITIALIZATION SUPABASE CLIENT
 // ==============================================================================
 const SUPABASE_URL = "https://tdtybxriphsdtojkrevp.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI"; // <-- TEMPELKAN ANON KEY SUPABASE DI SINI
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
 
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
@@ -706,7 +706,7 @@ function clearOfficerSig(id) {
   if (signaturePads[id]) signaturePads[id].clear();
 }
 
-// --- FAST VOTING SUBMISSION (TANPA TANDA TANGAN) ---
+// --- FAST VOTING SUBMISSION & PAYOUT PAYLOAD ---
 async function handleCastVote(e) {
   e.preventDefault();
 
@@ -760,8 +760,8 @@ async function handleCastVote(e) {
     voteHash = window.CryptoJS.SHA256(rawPayload).toString();
   }
 
-  // OTOMATIS SIMPAN REKAMAN SUARA VOTING KE DATABASE SUPABASE
-  saveVoteToSupabase({
+  // 1. OTOMATIS SIMPAN REKAMAN SUARA VOTING KE DATABASE SUPABASE
+  await saveVoteToSupabase({
     proposal_id: activeProposal.id,
     username: activeUser.username || "Anonymous",
     wallet_address: activeUser.walletAddress,
@@ -773,12 +773,46 @@ async function handleCastVote(e) {
     voter_signature_base64: null
   });
 
+  // 2. OTOMATIS MEMANGGIL BACKEND PAYOUT API (DENGAN LOGIKA 50% / 0,5 DELEGATOR)
+  if (btn) btn.innerText = "Menghitung & Mengirim Insentif Pi...";
+
+  const payoutRateEl = $("#payoutRate");
+  const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
+
+  // Pemilih Tetap (owner) = 100%, Delegator = 50% (0.5x dari rate dasar)
+  let rewardAmount = baseReward;
+  if (activeUser.category === "delegator") {
+    rewardAmount = baseReward * 0.5;
+  }
+
+  try {
+    const payoutRes = await fetch('/api/payout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        walletAddress: activeUser.walletAddress,
+        amount: rewardAmount,
+        username: activeUser.username,
+        voteHash: voteHash
+      })
+    });
+
+    const payoutData = await payoutRes.json();
+
+    if (payoutData.success) {
+      alert(`✅ SUARA TERKONFIRMASI & INSENTIF DIKIRIM!\n\nKategori Pemilih: ${activeUser.category.toUpperCase()}\nSkor Terbobot: ${individualScore}\nHash SHA-256: ${voteHash.substring(0, 16)}...\nInsentif: ${rewardAmount} Pi dikirim ke Wallet ${activeUser.walletAddress}`);
+    } else {
+      alert(`✅ Suara tersimpan di database Supabase.\n\n⚠️ Catatan Payout (${rewardAmount} Pi): ${payoutData.message}`);
+    }
+  } catch (payErr) {
+    console.error("Gagal klaim payout:", payErr);
+    alert(`✅ Suara tersimpan di Supabase. Insentif sebesar ${rewardAmount} Pi akan dikreditkan saat server siap.`);
+  }
+
   if (btn) {
     btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
     btn.disabled = false;
   }
-
-  alert(`✅ SUARA TERKONFIRMASI & HASH TERSIMPAN!\n\nSkor Terbobot: ${individualScore}\nHash SHA-256: ${voteHash.substring(0, 24)}...\nData tersimpan ke Supabase Database.`);
 }
 
 // --- ADMIN / ETHICS ACTIONS ---
