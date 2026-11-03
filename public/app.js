@@ -3,13 +3,13 @@
 // Helper Query Selector
 const $ = (selector) => document.querySelector(selector);
 
-// Helper Memastikan URL Berawalan HTTPS (Mencegah Link Rusak saat Diklik)
+// Helper Memastikan URL Berawalan HTTPS & Bersih dari Spasi Tersembunyi
 function ensureHttps(url) {
   if (!url) return "";
   let cleanUrl = url.trim();
   if (cleanUrl.length === 0) return "";
   if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
-    return "https://" + cleanUrl;
+    cleanUrl = "https://" + cleanUrl;
   }
   return cleanUrl;
 }
@@ -50,17 +50,25 @@ async function saveVoteToSupabase(voteData) {
   }
 }
 
-// Helper Simpan Proposal Baru Ke Supabase
+// Helper Simpan Proposal Baru Ke Supabase (Dengan Handling Visual Alert Error)
 async function saveProposalToSupabase(proposalData) {
-  if (!supabaseClient) return;
+  if (!supabaseClient) return false;
   try {
     const { data, error } = await supabaseClient
       .from('proposals')
       .upsert([proposalData], { onConflict: 'id' });
-    if (error) console.error("Gagal menyimpan proposal ke Supabase:", error);
-    else console.log("✅ Proposal tersimpan di Supabase:", data);
+    if (error) {
+      console.error("Gagal menyimpan proposal ke Supabase:", error);
+      alert("❌ Supabase Error: " + error.message);
+      return false;
+    } else {
+      console.log("✅ Proposal tersimpan di Supabase:", data);
+      return true;
+    }
   } catch (err) {
     console.error("Supabase Proposal Error:", err);
+    alert("❌ Error: Gagal terhubung ke database Supabase.");
+    return false;
   }
 }
 
@@ -277,7 +285,40 @@ async function initialize() {
   }
 }
 
-// --- LOGIKA BUKA GALERI HP / LAPTOP UNTUK FOTO ---
+// --- FUNGSI KOMPRESI & RESIZE FOTO GALERI HP ---
+function compressAndResizeImage(file, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress image to JPEG format
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
+
+// --- LOGIKA BUKA GALERI HP / LAPTOP UNTUK FOTO DENGAN KOMPRESI OTOMATIS ---
 async function handleGalleryImagesSelect(event) {
   const files = event.target.files;
   uploadedGalleryBase64Images = [];
@@ -288,22 +329,14 @@ async function handleGalleryImagesSelect(event) {
     return;
   }
 
-  if (countSpan) countSpan.textContent = `⏳ Membaca ${files.length} foto dari Galeri...`;
-
-  const promises = Array.from(files).map((file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(file);
-    });
-  });
+  if (countSpan) countSpan.textContent = `⏳ Mengompres ${files.length} foto dari Galeri...`;
 
   try {
+    const promises = Array.from(files).map((file) => compressAndResizeImage(file, 800, 0.7));
     uploadedGalleryBase64Images = await Promise.all(promises);
-    if (countSpan) countSpan.textContent = `📷 ${uploadedGalleryBase64Images.length} foto siap diterbitkan dari Galeri.`;
+    if (countSpan) countSpan.textContent = `📷 ${uploadedGalleryBase64Images.length} foto berhasil dikompresi & siap diterbitkan.`;
   } catch (err) {
-    console.error("Gagal membaca berkas galeri:", err);
+    console.error("Gagal mengolah foto galeri:", err);
     if (countSpan) countSpan.textContent = "❌ Gagal memuat beberapa foto.";
   }
 }
@@ -542,7 +575,7 @@ function renderProposalMaterials() {
   if ($("#displayPropAuthor")) $("#displayPropAuthor").textContent = activeProposal.author;
   if ($("#displayPropDate")) $("#displayPropDate").textContent = activeProposal.date;
 
-  // Render Tautan Media Sosial Multi-Platform (Dengan Auto-Formatting HTTPS)
+  // Render Tautan Media Sosial Multi-Platform (Format HTTPS Presisi)
   const linksContainer = $("#socialLinksContainer");
   if (linksContainer && activeProposal.socialLinks) {
     const s = activeProposal.socialLinks;
@@ -553,11 +586,11 @@ function renderProposalMaterials() {
     const pi = ensureHttps(s.pi);
 
     linksContainer.innerHTML = `
-      ${fb ? `<a href="${fb}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 font-semibold rounded-lg text-xs transition"><span class="text-base">📘</span> Buka Link Facebook</a>` : ''}
-      ${x ? `<a href="${x}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 font-semibold rounded-lg text-xs transition"><span class="text-base">🖤</span> Buka Link X / Twitter</a>` : ''}
-      ${yt ? `<a href="${yt}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/50 text-red-300 font-semibold rounded-lg text-xs transition"><span class="text-base">🔴</span> Buka Link YouTube</a>` : ''}
-      ${discord ? `<a href="${discord}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/50 text-indigo-300 font-semibold rounded-lg text-xs transition"><span class="text-base">💬</span> Buka Discord / Telegram</a>` : ''}
-      ${pi ? `<a href="${pi}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/50 text-amber-300 font-semibold rounded-lg text-xs transition"><span class="text-base">⚡</span> Buka Pi Explorer</a>` : ''}
+      ${fb ? `<a href="${fb}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 font-semibold rounded-lg text-xs transition"><span class="text-base">📘</span> Facebook Objek</a>` : ''}
+      ${x ? `<a href="${x}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 font-semibold rounded-lg text-xs transition"><span class="text-base">🖤</span> X / Twitter</a>` : ''}
+      ${yt ? `<a href="${yt}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/50 text-red-300 font-semibold rounded-lg text-xs transition"><span class="text-base">🔴</span> YouTube</a>` : ''}
+      ${discord ? `<a href="${discord}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/50 text-indigo-300 font-semibold rounded-lg text-xs transition"><span class="text-base">💬</span> Discord / Telegram</a>` : ''}
+      ${pi ? `<a href="${pi}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/50 text-amber-300 font-semibold rounded-lg text-xs transition"><span class="text-base">⚡</span> Pi Explorer</a>` : ''}
     `;
   }
 
@@ -606,14 +639,17 @@ function renderProposalMaterials() {
   }
 }
 
+// --- LOGIKA TERBITKAN PROPOSAL BARU (ID UNIK & KOMPRESI FOTO) ---
 async function publishNewProposal(e) {
   e.preventDefault();
 
+  // 1. Buat ID Unik Berbasis Timestamp
+  activeProposal.id = "TVOD-PROP-" + Date.now();
   activeProposal.title = $("#inputPropTitle").value.trim() || "Proposal Tanpa Judul";
   activeProposal.category = $("#inputPropCategory").value;
   activeProposal.description = $("#inputPropDesc").value.trim();
 
-  // 1. Atur Durasi Waktu Voting & Reset Countdown Timer
+  // 2. Durasi Voting & Reset Timer
   const durationInput = $("#inputPropDuration");
   const durationHrs = durationInput ? parseFloat(durationInput.value) || 24 : 24;
   activeProposal.durationHours = durationHrs;
@@ -627,7 +663,7 @@ async function publishNewProposal(e) {
   }
   startCountdownTimer();
 
-  // 2. Olah Media Foto (Utamakan dari Galeri HP, jika kosong baru cek URL input)
+  // 3. Olah Media Foto (Foto Galeri Terkompresi / URL Eksternal)
   if (uploadedGalleryBase64Images.length > 0) {
     activeProposal.images = uploadedGalleryBase64Images;
   } else {
@@ -639,10 +675,8 @@ async function publishNewProposal(e) {
     }
   }
 
-  // 3. Olah Video URL
+  // 4. Video URL & Tautan Media Sosial
   activeProposal.videoUrl = $("#inputPropVideo") ? ensureHttps($("#inputPropVideo").value.trim()) : "";
-
-  // 4. Olah Multi-Link Media Sosial
   activeProposal.socialLinks = {
     fb: $("#inputSocialFb") ? ensureHttps($("#inputSocialFb").value.trim()) : "",
     x: $("#inputSocialX") ? ensureHttps($("#inputSocialX").value.trim()) : "",
@@ -653,8 +687,8 @@ async function publishNewProposal(e) {
 
   renderProposalMaterials();
 
-  // Otomatis simpan proposal ke tabel Supabase
-  await saveProposalToSupabase({
+  // 5. Simpan Ke Supabase Database
+  const isSaved = await saveProposalToSupabase({
     id: activeProposal.id,
     title: activeProposal.title,
     category: activeProposal.category,
@@ -669,7 +703,9 @@ async function publishNewProposal(e) {
     status: 'ACTIVE'
   });
 
-  alert(`✅ Proposal Baru Berhasil Diterbitkan & Tersimpan di Database Supabase!\nDurasi Voting: ${durationHrs} Jam dari sekarang.`);
+  if (isSaved) {
+    alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan & Tersimpan di Database Supabase!\nDurasi Voting: ${durationHrs} Jam dari sekarang.`);
+  }
 }
 
 // --- ON-CHAIN REALTIME NFT VERIFICATION ---
