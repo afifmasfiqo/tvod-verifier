@@ -42,7 +42,6 @@
       </a>
 
       <div class="flex items-center gap-3 flex-wrap">
-        <!-- Multi-Language Support -->
         <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-slate-800 border border-slate-700 text-xs rounded px-2.5 py-1 text-slate-200 outline-none">
           <option value="en">English (EN)</option>
           <option value="id">Indonesian (ID)</option>
@@ -58,7 +57,6 @@
           ● Connected
         </span>
 
-        <!-- Authenticated User Badge -->
         <div id="userBadge" class="hidden items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700 text-xs">
           <span id="displayUsername" class="font-semibold text-amber-400">@user</span>
           <span id="displayGaruda" class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono text-[10px]">#000</span>
@@ -94,7 +92,6 @@
         <p class="text-xs text-slate-400 mt-0.5">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT PiBox secara On-Chain.</p>
       </div>
 
-      <!-- Pi Login Action Buttons -->
       <div class="flex flex-wrap items-center gap-3 mb-6 p-4 bg-slate-950 rounded-lg border border-slate-800">
         <button id="pi-login-button" type="button" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2.5 rounded transition flex items-center gap-1.5">
           <span class="font-bold">π</span> Sign in with Pi SDK
@@ -105,7 +102,6 @@
         <span id="loginStatusText" class="text-xs text-slate-400 italic">Belum terautentikasi</span>
       </div>
 
-      <!-- Onboarding Profile Form -->
       <form id="onboardingForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Pi Wallet Address (Public Key untuk Payout & Cek NFT)</label>
@@ -141,7 +137,6 @@
           </div>
         </div>
 
-        <!-- Conditional Fields: Pemilih Tetap (Garuda) -->
         <div id="ownerFields" class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-800 pt-3">
           <div>
             <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Garuda ID (#1 sampai #1000)</label>
@@ -153,7 +148,6 @@
           </div>
         </div>
 
-        <!-- Conditional Fields: Delegator -->
         <div id="delegatorFields" class="hidden grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-800 pt-3">
           <div>
             <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Username Pemilik Asli Garuda</label>
@@ -173,7 +167,6 @@
           </div>
         </div>
 
-        <!-- Role Selection -->
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Peran Tata Kelola (Governance Role)</label>
           <select id="userRole" class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-slate-200">
@@ -211,22 +204,14 @@
         <p class="text-[11px] text-slate-400 font-mono mt-1">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400">@afifmasfiqo (Chairman)</span> | Tanggal: <span id="displayPropDate">30 Okt 2026</span></p>
       </div>
 
-      <!-- Deskripsi Proposal -->
       <div class="mb-5">
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📄 Latar Belakang & Deskripsi Objek</h3>
         <div id="displayPropDescription" class="bg-slate-950 border border-slate-800 rounded-lg p-4 text-xs text-slate-300 leading-relaxed whitespace-pre-line">
           Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.
-          Harap periksa materi audio-visual, tautan bukti di media sosial, dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.
+          Harap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.
         </div>
       </div>
 
-      <!-- Link Media Sosial & dApp Explorer -->
-      <div class="mb-5">
-        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">🔗 Tautan Media Sosial & Objek Bukti</h3>
-        <div id="socialLinksContainer" class="flex flex-wrap gap-2 text-xs"></div>
-      </div>
-
-      <!-- Galeri Media (Foto & Video Objek) -->
       <div>
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📸 Galeri Bukti Foto & Video Objek</h3>
         <div class="space-y-4">
@@ -255,7 +240,6 @@
       </div>
 
       <form id="votingForm" class="space-y-5">
-        <!-- Vote Value -->
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">1. Arah Pilihan Suara Anda</label>
           <div class="grid grid-cols-3 gap-3 text-xs">
@@ -280,7 +264,6 @@
           </div>
         </div>
 
-        <!-- Confidence Rating -->
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">2. Tingkat Keyakinan / Confidence (Skala 1 - 5)</label>
           <div class="grid grid-cols-5 gap-2">
@@ -307,8 +290,19 @@
         <span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-mono">RESTRICTED ACCESS</span>
       </div>
 
+      <!-- MODUL SALDO WALLET APP TVOD -->
+      <div class="bg-slate-950 p-4 rounded-lg border border-amber-500/30 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="font-bold text-amber-400 uppercase text-xs">💰 Saldo Wallet App TVOD (Kas Payout)</h3>
+          <p id="appWalletDisplay" class="text-lg font-mono font-bold text-slate-100 mt-0.5">Loading Saldo...</p>
+          <span id="appWalletAddrText" class="text-[10px] font-mono text-slate-400 truncate max-w-xs block">GBBIFANY...3TDQ3WL</span>
+        </div>
+        <button type="button" onclick="checkAppWalletBalance()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-2 rounded text-xs transition">
+          🔄 Cek Saldo Wallet
+        </button>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-        <!-- Ethics Ban / Reinstatement Control -->
         <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
           <h3 class="font-bold text-slate-300 uppercase mb-2">Code of Ethics Ban & Reinstatement</h3>
           <input type="text" id="targetUser" placeholder="Username Pi Target (@user)" class="w-full bg-slate-900 border border-slate-800 rounded p-2 mb-2 text-xs">
@@ -318,7 +312,6 @@
           </div>
         </div>
 
-        <!-- Reward Rate Setting -->
         <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
           <h3 class="font-bold text-slate-300 uppercase mb-2">Atur Rate Insentif Pi / Suara</h3>
           <div class="flex gap-2">
@@ -327,7 +320,6 @@
           </div>
         </div>
 
-        <!-- Asset Manager -->
         <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 md:col-span-2">
           <h3 class="font-bold text-slate-300 uppercase mb-2">Brand Asset Manager (Logo & Cap Stempel Digital)</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -347,14 +339,13 @@
       <div class="bg-slate-950 p-5 rounded-lg border border-amber-500/30 space-y-4">
         <div class="border-b border-slate-800 pb-2">
           <h3 class="font-bold text-amber-400 uppercase text-sm">📝 Publish Suite Proposal Baru</h3>
-          <p class="text-[11px] text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, galeri media, dan tautan media sosial multi-platform.</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, dan lampirkan bukti galeri foto/video.</p>
         </div>
 
-        <form onsubmit="publishNewProposal(event)" class="space-y-4 text-xs">
-          <!-- Judul, Kategori & Durasi -->
+        <form id="publishProposalForm" class="space-y-4 text-xs">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Judul Proposal / Objek Voting</label>
-            <input type="text" id="inputPropTitle" required placeholder="Contoh: Vote Vietnamese Community" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+            <input type="text" id="inputPropTitle" required placeholder="Contoh: Ratifikasi Hasil Verifikasi DAO" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -373,46 +364,29 @@
             </div>
           </div>
 
-          <!-- Latar Belakang & Deskripsi -->
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Latar Belakang & Deskripsi Objek Voting</label>
+            <label class="block text-slate-300 font-semibold mb-1">Latar Belakang & Deskripsi Objek Voting (Bisa sertakan link jika ada)</label>
             <textarea id="inputPropDesc" rows="3" required placeholder="Jelaskan detail proyek / objek verifikasi secara lengkap..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100"></textarea>
           </div>
 
-          <!-- GALERI MEDIA & BUKTI FOTO / VIDEO -->
           <div class="border-t border-slate-800 pt-3">
             <label class="block text-amber-300 font-bold mb-2">📷 GALERI MEDIA & BUKTI FOTO / VIDEO</label>
             <div class="space-y-3">
-              <!-- OPSI 1: UPLOAD LANGSUNG DARI GALERI -->
               <div>
                 <label class="block text-slate-300 text-[11px] font-semibold mb-1">📱 Opsi 1: Upload Langsung dari Galeri HP / Laptop (Bisa Pilih Banyak Foto)</label>
-                <input type="file" id="inputPropFileImages" accept="image/*" multiple onchange="handleGalleryImagesSelect(event)" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-300 text-xs cursor-pointer">
+                <input type="file" id="inputPropFileImages" accept="image/*" multiple class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-300 text-xs cursor-pointer">
                 <span id="galleryFilesCount" class="text-[10px] text-amber-400 font-mono mt-1 block"></span>
               </div>
 
-              <!-- OPSI 2: LINK URL EXTERNAL -->
               <div>
                 <label class="block text-slate-400 text-[10px] mb-1">Opsi 2: Atau Masukkan Link/URL Foto Eksternal (Pisahkan koma jika beberapa)</label>
                 <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg, https://domain.com/foto2.jpg" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
               </div>
 
-              <!-- LINK VIDEO BUKTI -->
               <div>
                 <label class="block text-slate-400 text-[10px] mb-1">URL Video Bukti (Support YouTube Embed / Link MP4 Direct)</label>
                 <input type="url" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
               </div>
-            </div>
-          </div>
-
-          <!-- TAUTAN MEDIA SOSIAL MULTI-PLATFORM -->
-          <div class="border-t border-slate-800 pt-3">
-            <label class="block text-amber-300 font-bold mb-2">🌐 TAUTAN MEDIA SOSIAL & PROFIL OBJEK</label>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <input type="url" id="inputSocialFb" placeholder="URL Facebook (Post / Reels / Page)" class="bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
-              <input type="url" id="inputSocialX" placeholder="URL X / Twitter" class="bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
-              <input type="url" id="inputSocialYt" placeholder="URL YouTube Channel / Video" class="bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
-              <input type="url" id="inputSocialDiscord" placeholder="URL Discord Server / Telegram" class="bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
-              <input type="url" id="inputSocialPi" placeholder="URL Pi dApp / Explorer Browser" class="sm:col-span-2 bg-slate-900 border border-slate-800 rounded p-2 text-slate-100">
             </div>
           </div>
 
@@ -442,7 +416,7 @@
       </div>
     </section>
 
-    <!-- SECTION 6: TOUCHSCREEN SIGNATURES (4 OFFICIAL SIGNERS) -->
+    <!-- SECTION 6: TOUCHSCREEN SIGNATURES -->
     <section id="section-signatures" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
       <div class="border-b border-slate-800 pb-3">
         <h2 class="text-xl font-bold text-slate-100">Tanda Tangan Digital 4 Pejabat TVOD</h2>
