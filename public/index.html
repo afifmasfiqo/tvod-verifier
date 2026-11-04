@@ -335,11 +335,11 @@
         </div>
       </div>
 
-      <!-- PUBLISH SUITE PROPOSAL BARU (DENGAN PEMANGGILAN ONCLICK DIRECT) -->
+      <!-- PUBLISH SUITE & CONTROLLER PROPOSAL BARU -->
       <div class="bg-slate-950 p-5 rounded-lg border border-amber-500/30 space-y-4">
         <div class="border-b border-slate-800 pb-2">
           <h3 class="font-bold text-amber-400 uppercase text-sm">📝 Publish Suite Proposal Baru</h3>
-          <p class="text-[11px] text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, dan lampirkan bukti galeri foto/video.</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, atau batalkan proposal yang sedang berjalan.</p>
         </div>
 
         <div class="space-y-4 text-xs">
@@ -390,9 +390,14 @@
             </div>
           </div>
 
-          <button type="button" onclick="publishNewProposal(event)" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg mt-2 cursor-pointer">
-            🚀 Terbitkan Proposal & Mulai Timer Voting
-          </button>
+          <div class="flex flex-col sm:flex-row gap-3 mt-2">
+            <button type="button" onclick="publishNewProposal(event)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg cursor-pointer">
+              🚀 Terbitkan Proposal & Mulai Timer Voting
+            </button>
+            <button type="button" onclick="cancelActiveProposal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg text-xs transition shadow-lg cursor-pointer">
+              ⛔ Batalkan / Tutup Proposal Aktif
+            </button>
+          </div>
         </div>
       </div>
     </section>
