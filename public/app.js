@@ -153,14 +153,30 @@ async function fetchActiveProposalFromSupabase() {
         images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"],
         videoUrl: p.video_url || "",
         totalVotes: p.total_votes || 0,
-        netScore: p.net_score || 0
+        netScore: p.net_score || 0,
+        status: p.status || 'ACTIVE'
       };
 
       if (p.voting_end_time) {
         votingEndTime = new Date(p.voting_end_time);
       }
       renderProposalMaterials();
-      startCountdownTimer();
+
+      if (p.status === 'CANCELLED') {
+        const display = $("#countdownDisplay");
+        if (display) {
+          display.textContent = "⚠️ PROPOSAL DIBATALKAN / DITUTUP";
+          display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse";
+        }
+        const btn = $("#btnSubmitVote");
+        if (btn) {
+          btn.disabled = true;
+          btn.innerText = "⛔ Proposal Dibatalkan / Ditutup Admin";
+          btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
+        }
+      } else {
+        startCountdownTimer();
+      }
     }
   } catch (err) {
     console.error("Fetch Proposal Error:", err);
@@ -205,7 +221,8 @@ let activeProposal = {
   ],
   videoUrl: "",
   totalVotes: 42,
-  netScore: 18.5
+  netScore: 18.5,
+  status: "ACTIVE"
 };
 
 // --- FUNGSI CEK SALDO WALLET APP TVOD VIA PI HORIZON NODE ---
@@ -652,6 +669,7 @@ async function publishNewProposal(e) {
   activeProposal.durationHours = durationHrs;
   activeProposal.author = `@${activeUser.username || 'afifmasfiqo'} (Chairman)`;
   activeProposal.date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  activeProposal.status = "ACTIVE";
 
   votingEndTime = new Date(Date.now() + durationHrs * 60 * 60 * 1000);
 
@@ -702,6 +720,51 @@ async function publishNewProposal(e) {
   }
 }
 
+// --- FUNGSI BATALKAN / TUTUP PROPOSAL AKTIF OLEH ADMIN ---
+async function cancelActiveProposal() {
+  if (!confirm(`Apakah Anda yakin ingin membatalkan/menutup proposal "${activeProposal.title}" secara paksa?`)) {
+    return;
+  }
+
+  // 1. HENTIKAN TIMER & SET WAKTU EXPIRED
+  if (countdownInterval) clearInterval(countdownInterval);
+  votingEndTime = new Date(0);
+
+  // 2. UBAH STATUS PROPOSAL LOKAL
+  activeProposal.status = 'CANCELLED';
+
+  // 3. UBAH TAMPILAN UI
+  const display = $("#countdownDisplay");
+  if (display) {
+    display.textContent = "⚠️ PROPOSAL DIBATALKAN / DITUTUP";
+    display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse";
+  }
+
+  const btn = $("#btnSubmitVote");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "⛔ Proposal Dibatalkan / Ditutup Admin";
+    btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
+  }
+
+  // 4. PERBARUI STATUS DI DATABASE SUPABASE
+  if (supabaseClient && activeProposal.id) {
+    try {
+      const { error } = await supabaseClient
+        .from('proposals')
+        .update({ status: 'CANCELLED' })
+        .eq('id', activeProposal.id);
+
+      if (error) console.error("Gagal update status proposal di Supabase:", error);
+      else console.log("✅ Status proposal diperbarui menjadi CANCELLED di Supabase.");
+    } catch (err) {
+      console.error("Supabase Cancel Proposal Error:", err);
+    }
+  }
+
+  alert(`⛔ Proposal (${activeProposal.id}) telah berhasil dibatalkan dan masa voting ditutup.`);
+}
+
 async function verifyOnChainNftOwnership() {
   if (activeUser.category === "witness") return true;
 
@@ -749,12 +812,12 @@ async function handleCastVote(e) {
   }
 
   // 2. CEK MASA VOTING PROPOSAL
-  if (new Date().getTime() > votingEndTime.getTime()) {
+  if (activeProposal.status === 'CANCELLED' || new Date().getTime() > votingEndTime.getTime()) {
     if (btn) {
-      btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis)";
+      btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis / Dibatalkan)";
       btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
     }
-    alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir.");
+    alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin.");
     return;
   }
 
@@ -1129,6 +1192,7 @@ async function generateCertificatePDF() {
 
 // EKSPOR GLOBAL KE SCOPE WINDOW
 window.publishNewProposal = publishNewProposal;
+window.cancelActiveProposal = cancelActiveProposal;
 window.handleGalleryImagesSelect = handleGalleryImagesSelect;
 window.checkAppWalletBalance = checkAppWalletBalance;
 window.setConfidence = setConfidence;
