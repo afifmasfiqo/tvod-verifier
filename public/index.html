@@ -105,7 +105,7 @@
       <form id="onboardingForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Pi Wallet Address (Public Key untuk Payout & Cek NFT)</label>
-          <input type="text" id="walletAddress" required minlength="20" placeholder="G..." class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-amber-300 font-mono focus:border-amber-500 outline-none">
+          <input type="text" id="walletAddress" placeholder="G..." class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-amber-300 font-mono focus:border-amber-500 outline-none">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -120,7 +120,7 @@
 
           <div>
             <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Wilayah Komunitas (Chapter)</label>
-            <select id="communityChapter" required class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-slate-200 outline-none">
+            <select id="communityChapter" class="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-xs text-slate-200 outline-none">
               <option value="ICP2E JAKARTA">ICP2E JAKARTA</option>
               <option value="ICP2E SOLO">ICP2E SOLO</option>
               <option value="ICP2E BANTEN">ICP2E BANTEN</option>
@@ -335,17 +335,17 @@
         </div>
       </div>
 
-      <!-- PUBLISH SUITE PROPOSAL BARU -->
+      <!-- PUBLISH SUITE PROPOSAL BARU (DENGAN PEMANGGILAN ONCLICK DIRECT) -->
       <div class="bg-slate-950 p-5 rounded-lg border border-amber-500/30 space-y-4">
         <div class="border-b border-slate-800 pb-2">
           <h3 class="font-bold text-amber-400 uppercase text-sm">📝 Publish Suite Proposal Baru</h3>
           <p class="text-[11px] text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, dan lampirkan bukti galeri foto/video.</p>
         </div>
 
-        <form id="publishProposalForm" class="space-y-4 text-xs">
+        <div class="space-y-4 text-xs">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Judul Proposal / Objek Voting</label>
-            <input type="text" id="inputPropTitle" required placeholder="Contoh: Ratifikasi Hasil Verifikasi DAO" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+            <input type="text" id="inputPropTitle" placeholder="Contoh: Ratifikasi Hasil Verifikasi DAO" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -360,13 +360,13 @@
             </div>
             <div>
               <label class="block text-slate-300 font-semibold mb-1">Durasi Voting (Dalam Jam)</label>
-              <input type="number" id="inputPropDuration" value="24" min="0.1" step="0.5" required placeholder="Contoh: 24" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100 font-mono">
+              <input type="number" id="inputPropDuration" value="24" min="0.1" step="0.5" placeholder="Contoh: 24" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100 font-mono">
             </div>
           </div>
 
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Latar Belakang & Deskripsi Objek Voting (Bisa sertakan link jika ada)</label>
-            <textarea id="inputPropDesc" rows="3" required placeholder="Jelaskan detail proyek / objek verifikasi secara lengkap..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100"></textarea>
+            <textarea id="inputPropDesc" rows="3" placeholder="Jelaskan detail proyek / objek verifikasi secara lengkap..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100"></textarea>
           </div>
 
           <div class="border-t border-slate-800 pt-3">
@@ -385,15 +385,15 @@
 
               <div>
                 <label class="block text-slate-400 text-[10px] mb-1">URL Video Bukti (Support YouTube Embed / Link MP4 Direct)</label>
-                <input type="url" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+                <input type="text" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
               </div>
             </div>
           </div>
 
-          <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg mt-2">
+          <button type="button" onclick="publishNewProposal(event)" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg mt-2 cursor-pointer">
             🚀 Terbitkan Proposal & Mulai Timer Voting
           </button>
-        </form>
+        </div>
       </div>
     </section>
 
