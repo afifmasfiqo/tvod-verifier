@@ -281,9 +281,6 @@ async function initialize() {
   const votingFormEl = $("#votingForm");
   if (votingFormEl) votingFormEl.addEventListener("submit", handleCastVote);
 
-  const publishFormEl = $("#publishProposalForm");
-  if (publishFormEl) publishFormEl.addEventListener("submit", publishNewProposal);
-
   const fileInputEl = $("#inputPropFileImages");
   if (fileInputEl) fileInputEl.addEventListener("change", handleGalleryImagesSelect);
 
@@ -629,17 +626,33 @@ function renderProposalMaterials() {
   }
 }
 
+// --- FUNGSI UTAMA PENERBITAN PROPOSAL (DENGAN HANDLER DIRECT) ---
 async function publishNewProposal(e) {
-  if (e) e.preventDefault();
+  if (e && e.preventDefault) e.preventDefault();
 
-  activeProposal.id = "TVOD-PROP-" + Date.now();
-  activeProposal.title = $("#inputPropTitle").value.trim() || "Proposal Tanpa Judul";
-  activeProposal.category = $("#inputPropCategory").value;
-  activeProposal.description = $("#inputPropDesc").value.trim();
-
+  const title = $("#inputPropTitle") ? $("#inputPropTitle").value.trim() : "";
+  const category = $("#inputPropCategory") ? $("#inputPropCategory").value : "Verifikasi Objek / Kasus";
   const durationInput = $("#inputPropDuration");
   const durationHrs = durationInput ? parseFloat(durationInput.value) || 24 : 24;
+  const description = $("#inputPropDesc") ? $("#inputPropDesc").value.trim() : "";
+
+  if (!title) {
+    alert("⚠️ Judul Proposal wajib diisi!");
+    return;
+  }
+  if (!description) {
+    alert("⚠️ Deskripsi Proposal wajib diisi!");
+    return;
+  }
+
+  activeProposal.id = "TVOD-PROP-" + Date.now();
+  activeProposal.title = title;
+  activeProposal.category = category;
+  activeProposal.description = description;
   activeProposal.durationHours = durationHrs;
+  activeProposal.author = `@${activeUser.username || 'afifmasfiqo'} (Chairman)`;
+  activeProposal.date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
   votingEndTime = new Date(Date.now() + durationHrs * 60 * 60 * 1000);
 
   const btnSubmit = $("#btnSubmitVote");
@@ -650,7 +663,7 @@ async function publishNewProposal(e) {
   }
   startCountdownTimer();
 
-  if (uploadedGalleryBase64Images.length > 0) {
+  if (uploadedGalleryBase64Images && uploadedGalleryBase64Images.length > 0) {
     activeProposal.images = uploadedGalleryBase64Images;
   } else {
     const rawImages = $("#inputPropImages") ? $("#inputPropImages").value.trim() : "";
@@ -661,17 +674,20 @@ async function publishNewProposal(e) {
     }
   }
 
-  activeProposal.videoUrl = $("#inputPropVideo") ? ensureHttps($("#inputPropVideo").value.trim()) : "";
+  const rawVideo = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
+  activeProposal.videoUrl = rawVideo ? ensureHttps(rawVideo) : "";
 
+  // LANGSUNG RENDERING KE TAMPILAN MATERI VOTING
   renderProposalMaterials();
 
+  // SIMPAN KE SUPABASE DATABASE
   const isSaved = await saveProposalToSupabase({
     id: activeProposal.id,
     title: activeProposal.title,
     category: activeProposal.category,
     description: activeProposal.description,
-    proposer_entity: activeProposal.proposerEntity,
-    proposer_username: activeUser.username || activeProposal.proposerUsername,
+    proposer_entity: activeProposal.proposerEntity || "ICP2E & TVOD Development Team",
+    proposer_username: activeUser.username || activeProposal.proposerUsername || "afifmasfiqo",
     duration_hours: activeProposal.durationHours,
     voting_end_time: votingEndTime.toISOString(),
     images: activeProposal.images,
@@ -681,6 +697,8 @@ async function publishNewProposal(e) {
 
   if (isSaved) {
     alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan & Tersimpan di Database Supabase!\nDurasi Voting: ${durationHrs} Jam.`);
+  } else {
+    alert(`✅ Proposal Baru Berhasil Ditampilkan di dApp!\nID: ${activeProposal.id}\nDurasi Voting: ${durationHrs} Jam.`);
   }
 }
 
@@ -1062,7 +1080,7 @@ async function generateCertificatePDF() {
   pdf.save(`TVOD_Digital_Verification_Certificate_${activeProposal.id}.pdf`);
 }
 
-// BIND FUNGSI KE WINDOW SCOPE GLOBAL
+// EKSPOR GLOBAL KE SCOPE WINDOW
 window.publishNewProposal = publishNewProposal;
 window.handleGalleryImagesSelect = handleGalleryImagesSelect;
 window.checkAppWalletBalance = checkAppWalletBalance;
