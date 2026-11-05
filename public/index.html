@@ -10,10 +10,9 @@
   <link rel="icon" href="/logo.png">
   <link rel="stylesheet" href="/styles.css">
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Script Pustaka dengan Fallback Multi-CDN (Mencegah Pemblokiran di Pi Browser WebView) -->
+  <!-- Script Pustaka dengan Fallback Multi-CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
   <script>
     if (!window.jspdf) {
@@ -340,47 +339,6 @@
             <button type="button" onclick="savePayoutRate()" class="bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded">Simpan</button>
           </div>
         </div>
-
-        <div class="bg-slate-950 p-4 rounded-lg border border-amber-500/30 md:col-span-2">
-          <h3 class="font-bold text-amber-400 uppercase text-xs mb-2">👤 Admin User Management & Override Status</h3>
-          <p class="text-[11px] text-slate-400 mb-3">Cari username voter untuk mengubah Kategori (Owner/Delegator), Hak Payout, atau Peran secara manual.</p>
-          
-          <div class="flex gap-2 mb-3">
-            <input type="text" id="searchAdminUsername" placeholder="Masukkan Username Pi (@username)" class="flex-1 bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-100">
-            <button type="button" onclick="searchVoterForAdminEdit()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded text-xs transition">
-              🔍 Cari Voter
-            </button>
-          </div>
-
-          <div id="adminVoterEditForm" class="hidden border-t border-slate-800 pt-3 space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label class="block text-slate-400 text-[10px] mb-1">Kategori Voter</label>
-                <select id="editAdminCategory" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-100">
-                  <option value="owner">Pemilih Tetap (Owner - 100% Payout)</option>
-                  <option value="delegator">Delegator (50% Split Payout)</option>
-                  <option value="witness">Saksi Luar (Witness Bypass)</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-slate-400 text-[10px] mb-1">Role Governance</label>
-                <select id="editAdminRole" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-100">
-                  <option value="Member">Member (Bobot 0.5)</option>
-                  <option value="Group Leader">Group Leader (Bobot 1.0)</option>
-                  <option value="Founder">Founder (Bobot 2.0)</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-slate-400 text-[10px] mb-1">Username Pemilik Asli (Jika Delegator)</label>
-                <input type="text" id="editAdminOwnerUsername" placeholder="@username_pemilik" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-100">
-              </div>
-            </div>
-
-            <button type="button" onclick="saveVoterStatusByAdmin()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-xs transition">
-              💾 Simpan Perubahan Status Voter
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- PUBLISH SUITE PROPOSAL BARU -->
@@ -502,6 +460,21 @@
     </section>
 
   </main>
+
+  <!-- MODAL FALLBACK UNDUH PDF KHUSUS PI BROWSER WEBVIEW -->
+  <div id="pdfDownloadModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-xl p-6 max-w-md w-full shadow-2xl space-y-4 text-center">
+      <div class="text-4xl">📄</div>
+      <h3 class="text-base font-bold text-amber-400" id="pdfModalTitle">Dokumen PDF Siap</h3>
+      <p class="text-xs text-slate-300">Dokumen PDF resmi telah berhasil digenerate oleh sistem TVOD.</p>
+      <a id="pdfModalDownloadBtn" href="#" target="_blank" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg">
+        👉 BUKA / UNDUH DOKUMEN PDF
+      </a>
+      <button type="button" onclick="closePdfModal()" class="text-xs text-slate-400 hover:text-slate-200 underline mt-2">
+        Tutup
+      </button>
+    </div>
+  </div>
 
   <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
     <p>THE VOICE OF DAO (TVOD) · Web3 Verification & Voting Infrastructure</p>
