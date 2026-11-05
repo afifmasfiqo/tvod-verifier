@@ -1,20 +1,21 @@
 // api/payout.js - Vercel Serverless Function TVOD Payout Engine
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://tdtybxriphsdtojkrevp.supabase.co";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
 
 async function logPayoutToSupabase(logData) {
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/payout_logs`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/payout_logs`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify(logData)
     });
+    if (!res.ok) console.error("Log Payout HTTP Error:", await res.text());
   } catch (err) {
     console.error("❌ Gagal mencatat log payout ke Supabase:", err);
   }
@@ -22,16 +23,17 @@ async function logPayoutToSupabase(logData) {
 
 async function insertPayoutQueue(queueData) {
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/payout_queue`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/payout_queue`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify(queueData)
     });
+    if (!res.ok) console.error("Insert Payout Queue HTTP Error:", await res.text());
   } catch (err) {
     console.error("❌ Gagal mencatat antrean ke payout_queue:", err);
   }
@@ -41,8 +43,8 @@ async function fetchVoterProfile(username) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/voters?username=eq.${encodeURIComponent(username)}&select=*`, {
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
       }
     });
     if (!res.ok) return null;
@@ -59,8 +61,8 @@ async function savePendingReward(rewardData) {
     await fetch(`${SUPABASE_URL}/rest/v1/pending_rewards`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
@@ -97,7 +99,6 @@ export default async function handler(req, res) {
   const cleanUsername = (username || 'Anonymous').replace('@', '');
   const baseAmount = parseFloat(amount) || 1.0;
   const currentProposalId = proposalId || "TVOD-PROP-ACTIVE";
-  const PI_API_KEY = process.env.PI_API_KEY;
 
   try {
     const voter = await fetchVoterProfile(cleanUsername);
@@ -121,7 +122,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. HITUNG PORSI PAYOUT
+    // 2. HITUNG PORSI PAYOUT (OWNER = 100%, DELEGATOR = 50% SPLIT)
     let delegatorAmount = baseAmount;
     let ownerAmount = 0;
     let targetOwnerUsername = null;
@@ -132,7 +133,9 @@ export default async function handler(req, res) {
       targetOwnerUsername = voter && voter.owner_username ? voter.owner_username.replace('@', '') : null;
     }
 
-    // 3. MASUKKAN KE PAYOUT QUEUE
+    const txId = `TVOD-TX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    // 3. MASUKKAN KE PAYOUT QUEUE SUDAH TERPROSES
     await insertPayoutQueue({
       proposal_id: currentProposalId,
       vote_hash: voteHash || '',
@@ -140,67 +143,26 @@ export default async function handler(req, res) {
       wallet_address: walletAddress,
       amount: delegatorAmount,
       payout_role: category === 'delegator' ? 'DELEGATOR_SHARE_50' : 'OWNER_FULL_100',
-      status: PI_API_KEY ? 'QUEUED' : 'SIMULATED'
+      status: 'QUEUED',
+      tx_id: txId
     });
 
-    let paymentId = `SIMULATED-${Date.now()}`;
-    let isLive = false;
-
-    if (PI_API_KEY) {
-      const piResponse = await fetch('https://api.minepi.com/v2/payments', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Key ${PI_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          payment: {
-            amount: delegatorAmount,
-            memo: `Insentif Voting TVOD (${category.toUpperCase()}) - Hash: ${(voteHash || '').substring(0, 8)}`,
-            metadata: { voteHash, username: cleanUsername, category, proposalId: currentProposalId },
-            uid: cleanUsername || walletAddress
-          }
-        })
-      });
-
-      const piData = await piResponse.json();
-
-      if (!piResponse.ok) {
-        await logPayoutToSupabase({
-          username: cleanUsername,
-          wallet_address: walletAddress,
-          amount: delegatorAmount,
-          vote_hash: voteHash || '',
-          status: 'FAILED',
-          payment_id: null
-        });
-
-        return res.status(piResponse.status).json({
-          success: false,
-          message: piData.message || 'Gagal memproses pembayaran melalui Pi Platform API.',
-          error: piData
-        });
-      }
-
-      paymentId = piData.identifier || piData.id || `TX-${Date.now()}`;
-      isLive = true;
-    }
-
+    // 4. CATAT PADA PAYOUT LOGS
     await logPayoutToSupabase({
       username: cleanUsername,
       wallet_address: walletAddress,
       amount: delegatorAmount,
       vote_hash: voteHash || '',
-      status: isLive ? 'SUCCESS' : 'SIMULATED',
-      payment_id: paymentId
+      status: 'QUEUED',
+      payment_id: txId
     });
 
-    // 4. JIKA DELEGATOR: ALOKASI 50% ROYALTIES KE PEMILIK GARUDA
+    // 5. JIKA DELEGATOR: ALOKASI 50% ROYALTIES KE PEMILIK GARUDA
     if (category === 'delegator' && targetOwnerUsername) {
       const ownerProfile = await fetchVoterProfile(targetOwnerUsername);
 
       if (ownerProfile && ownerProfile.wallet_address) {
-        let ownerTxId = `SIMULATED-ROYALTY-${Date.now()}`;
+        const ownerTxId = `TVOD-ROYALTY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
         await insertPayoutQueue({
           proposal_id: currentProposalId,
@@ -209,41 +171,16 @@ export default async function handler(req, res) {
           wallet_address: ownerProfile.wallet_address,
           amount: ownerAmount,
           payout_role: 'GARUDA_OWNER_ROYALTY_50',
-          status: PI_API_KEY ? 'QUEUED' : 'SIMULATED'
+          status: 'QUEUED',
+          tx_id: ownerTxId
         });
-
-        if (PI_API_KEY) {
-          try {
-            const piOwnerRes = await fetch('https://api.minepi.com/v2/payments', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Key ${PI_API_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                payment: {
-                  amount: ownerAmount,
-                  memo: `Royalti Garuda 50% TVOD dari Delegator @${cleanUsername}`,
-                  metadata: { voteHash, delegator: cleanUsername, proposalId: currentProposalId },
-                  uid: targetOwnerUsername
-                }
-              })
-            });
-            const piOwnerData = await piOwnerRes.json();
-            if (piOwnerRes.ok) {
-              ownerTxId = piOwnerData.identifier || piOwnerData.id || ownerTxId;
-            }
-          } catch (e) {
-            console.error("Owner Payout Error:", e);
-          }
-        }
 
         await logPayoutToSupabase({
           username: targetOwnerUsername,
           wallet_address: ownerProfile.wallet_address,
           amount: ownerAmount,
           vote_hash: voteHash || '',
-          status: PI_API_KEY ? 'SUCCESS_ROYALTY' : 'SIMULATED_ROYALTY',
+          status: 'QUEUED_ROYALTY',
           payment_id: ownerTxId
         });
       } else {
@@ -262,10 +199,10 @@ export default async function handler(req, res) {
       success: true,
       category: category,
       amountPaid: delegatorAmount,
+      paymentId: txId,
       message: category === 'delegator'
-        ? `Suara terkonfirmasi. Insentif Delegator (${delegatorAmount} Pi) dikirim ke Wallet, dan 50% Royalti (${ownerAmount} Pi) dialokasikan ke Pemilik Asli (@${targetOwnerUsername}).`
-        : `Insentif sebesar ${delegatorAmount} Pi berhasil dikirim ke Wallet ${walletAddress}`,
-      paymentId: paymentId
+        ? `Suara terkonfirmasi! Payout ${delegatorAmount} Pi telah didaftarkan ke Antrean (payout_queue) & log, serta 50% Royalti (${ownerAmount} Pi) untuk Pemilik Asli (@${targetOwnerUsername}).`
+        : `Suara terkonfirmasi! Insentif ${delegatorAmount} Pi berhasil didaftarkan ke Antrean Pembayaran (payout_queue) & Payout Logs.`
     });
 
   } catch (err) {
