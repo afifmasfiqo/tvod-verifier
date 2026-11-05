@@ -56,28 +56,6 @@ async function saveVoteToSupabase(voteData) {
   }
 }
 
-// Helper Simpan Proposal Baru Ke Supabase
-async function saveProposalToSupabase(proposalData) {
-  if (!supabaseClient) return false;
-  try {
-    const { data, error } = await supabaseClient
-      .from('proposals')
-      .upsert([proposalData], { onConflict: 'id' });
-    if (error) {
-      console.error("Gagal menyimpan proposal ke Supabase:", error);
-      alert("❌ Supabase Error: " + error.message);
-      return false;
-    } else {
-      console.log("✅ Proposal tersimpan di Supabase:", data);
-      return true;
-    }
-  } catch (err) {
-    console.error("Supabase Proposal Error:", err);
-    alert("❌ Error: Gagal terhubung ke database Supabase.");
-    return false;
-  }
-}
-
 // Helper Ambil Profil Voter dari Supabase
 async function fetchVoterProfileFromSupabase(username) {
   if (!supabaseClient || !username) return;
@@ -256,7 +234,7 @@ let activeProposal = {
   status: "ACTIVE"
 };
 
-// --- FUNGSI CEK SALDO WALLET APP TVOD VIA PI HORIZON NODE ---
+// Cek Saldo Wallet App TVOD
 async function checkAppWalletBalance() {
   const display = $("#appWalletDisplay");
   const addrText = $("#appWalletAddrText");
@@ -280,7 +258,7 @@ async function checkAppWalletBalance() {
   }
 }
 
-// --- COLORIZER STEMPEL EMAS ---
+// Colorizer Stempel Emas
 function loadAndColorizeStamp(src, goldColor = "#F59E0B") {
   return new Promise((resolve) => {
     const img = new Image();
@@ -303,7 +281,7 @@ function loadAndColorizeStamp(src, goldColor = "#F59E0B") {
   });
 }
 
-// --- INITIALIZATION ---
+// Inisialisasi
 async function initialize() {
   setConnection("● Ecosystem Ready", true);
 
@@ -347,7 +325,6 @@ async function initialize() {
   }
 }
 
-// --- FUNGSI KOMPRESI & RESIZE FOTO GALERI HP ---
 function compressAndResizeImage(file, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -477,7 +454,7 @@ function renderUser(user) {
   }
 }
 
-// --- AUTHENTICATION ---
+// Otentikasi Pi SDK
 async function handlePiAuth() {
   if (!window.Pi) {
     throw new Error("Pi SDK belum dimuat. Buka di dalam Pi Browser.");
@@ -590,6 +567,7 @@ function handleOnboarding(e) {
     }
     if (nftType === "piday" && hashList.length !== 3) {
       alert("Pendaftaran Ditolak: NFT PiDay2026 membutuhkan tepat 3 Hash NFT (dipisahkan koma).");
+      return;
     }
 
     activeUser.ownerUsername = ownerUsername;
@@ -674,7 +652,7 @@ function renderProposalMaterials() {
   }
 }
 
-// --- FUNGSI UTAMA PENERBITAN PROPOSAL ---
+// Penerbitan Proposal Baru
 async function publishNewProposal(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -731,28 +709,30 @@ async function publishNewProposal(e) {
   renderProposalMaterials();
   await fetchVoterStatsForAdmin();
 
-  const isSaved = await saveProposalToSupabase({
-    id: activeProposal.id,
-    title: activeProposal.title,
-    category: activeProposal.category,
-    description: activeProposal.description,
-    proposer_entity: "TVOD Development Team",
-    proposer_username: "TVOD Development Team",
-    duration_hours: activeProposal.durationHours,
-    voting_end_time: votingEndTime.toISOString(),
-    images: activeProposal.images,
-    video_url: activeProposal.videoUrl,
-    status: 'ACTIVE'
-  });
-
-  if (isSaved) {
-    alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan oleh TVOD Development Team!\nDurasi Voting: ${durationHrs} Jam.`);
-  } else {
-    alert(`✅ Proposal Baru Berhasil Ditampilkan di dApp!\nID: ${activeProposal.id}\nDurasi Voting: ${durationHrs} Jam.`);
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('proposals').upsert([{
+        id: activeProposal.id,
+        title: activeProposal.title,
+        category: activeProposal.category,
+        description: activeProposal.description,
+        proposer_entity: "TVOD Development Team",
+        proposer_username: "TVOD Development Team",
+        duration_hours: activeProposal.durationHours,
+        voting_end_time: votingEndTime.toISOString(),
+        images: activeProposal.images,
+        video_url: activeProposal.videoUrl,
+        status: 'ACTIVE'
+      }], { onConflict: 'id' });
+    } catch (err) {
+      console.error("Supabase Proposal Insert Error:", err);
+    }
   }
+
+  alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan oleh TVOD Development Team!\nDurasi Voting: ${durationHrs} Jam.`);
 }
 
-// --- FUNGSI BATALKAN / TUTUP PROPOSAL AKTIF OLEH ADMIN ---
+// Batalkan Proposal Aktif
 async function cancelActiveProposal() {
   if (!confirm(`Apakah Anda yakin ingin membatalkan/menutup proposal "${activeProposal.title}" secara paksa?`)) {
     return;
@@ -778,13 +758,7 @@ async function cancelActiveProposal() {
 
   if (supabaseClient && activeProposal.id) {
     try {
-      const { error } = await supabaseClient
-        .from('proposals')
-        .update({ status: 'CANCELLED' })
-        .eq('id', activeProposal.id);
-
-      if (error) console.error("Gagal update status proposal di Supabase:", error);
-      else console.log("✅ Status proposal diperbarui menjadi CANCELLED di Supabase.");
+      await supabaseClient.from('proposals').update({ status: 'CANCELLED' }).eq('id', activeProposal.id);
     } catch (err) {
       console.error("Supabase Cancel Proposal Error:", err);
     }
@@ -826,77 +800,7 @@ function clearOfficerSig(id) {
   if (signaturePads[id]) signaturePads[id].clear();
 }
 
-// --- FUNGSI ADMIN EDIT STATUS VOTER MANUAL ---
-let selectedVoterForEdit = null;
-
-async function searchVoterForAdminEdit() {
-  const targetUsername = $("#searchAdminUsername") ? $("#searchAdminUsername").value.trim().replace("@", "") : "";
-  if (!targetUsername) {
-    alert("Masukkan username Pi yang ingin dicari.");
-    return;
-  }
-
-  if (!supabaseClient) {
-    alert("Koneksi Supabase belum siap.");
-    return;
-  }
-
-  try {
-    const { data, error } = await supabaseClient
-      .from('voters')
-      .select('*')
-      .eq('username', targetUsername)
-      .single();
-
-    if (error || !data) {
-      alert(`⚠️ User @${targetUsername} tidak ditemukan di database Supabase.`);
-      return;
-    }
-
-    selectedVoterForEdit = data;
-    $("#adminVoterEditForm").classList.remove("hidden");
-    $("#editAdminCategory").value = data.category || "owner";
-    $("#editAdminRole").value = data.role || "Member";
-    $("#editAdminOwnerUsername").value = data.owner_username || "";
-
-    alert(`✅ Data Voter @${targetUsername} ditemukan! Silakan sesuaikan kategori dan role.`);
-  } catch (err) {
-    console.error("Admin Search Error:", err);
-    alert("Gagal mengambil data voter.");
-  }
-}
-
-async function saveVoterStatusByAdmin() {
-  if (!selectedVoterForEdit) return;
-
-  const newCategory = $("#editAdminCategory").value;
-  const newRole = $("#editAdminRole").value;
-  const newOwnerUsername = $("#editAdminOwnerUsername").value.trim().replace("@", "");
-
-  try {
-    const { error } = await supabaseClient
-      .from('voters')
-      .update({
-        category: newCategory,
-        role: newRole,
-        owner_username: newOwnerUsername || null
-      })
-      .eq('username', selectedVoterForEdit.username);
-
-    if (error) {
-      alert("❌ Gagal memperbarui status voter: " + error.message);
-      return;
-    }
-
-    alert(`✅ Berhasil memperbarui status @${selectedVoterForEdit.username}!\nKategori Baru: ${newCategory.toUpperCase()}\nRole: ${newRole}\nPayout: ${newCategory === 'delegator' ? '50% Split' : '100% Full'}`);
-    $("#adminVoterEditForm").classList.add("hidden");
-  } catch (err) {
-    console.error("Admin Update Voter Error:", err);
-    alert("Terjadi kesalahan saat menyimpan data.");
-  }
-}
-
-// --- FUNGSI PROSES VOTING & KLAIM INSENTIF (1 USER = 1 SUARA STRICT) ---
+// Proses Voting & Payout
 async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -922,21 +826,19 @@ async function handleCastVote(e) {
 
   if (supabaseClient && currentUsername !== "Anonymous") {
     try {
-      const { data: existingVotes, error: checkErr } = await supabaseClient
+      const { data: existingVotes } = await supabaseClient
         .from('votes')
         .select('id')
         .eq('proposal_id', activeProposal.id)
         .or(`username.eq.${currentUsername},wallet_address.eq.${currentWallet}`)
         .limit(1);
 
-      if (checkErr) console.warn("Pengecekan suara ganda:", checkErr.message);
-
       if (existingVotes && existingVotes.length > 0) {
         if (btn) {
           btn.innerText = "✅ Anda Sudah Mengirim Suara";
           btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3 rounded-lg text-xs border border-amber-500/30 cursor-not-allowed";
         }
-        alert("⛔ AKSES VOTING DITOLAK!\n\nAnda (@" + currentUsername + ") sudah memberikan suara dan mengklaim insentif untuk proposal ini.\nSatu akun/wallet hanya diizinkan memilih 1 kali per proposal.");
+        alert("⛔ AKSES VOTING DITOLAK!\n\nAnda (@" + currentUsername + ") sudah memberikan suara untuk proposal ini.");
         return;
       }
     } catch (err) {
@@ -951,12 +853,7 @@ async function handleCastVote(e) {
       btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
       btn.disabled = false;
     }
-    alert("⛔ AKSES VOTING DITOLAK!\n\nSistem gagal mengonfirmasi kepemilikan NFT di wallet Pi Anda.\nNFT terdaftar (Garuda / Halloween / PiDay2026) tidak terdeteksi secara On-Chain.");
-
-    const banBanner = $("#banBanner");
-    const banReason = $("#banReason");
-    if (banBanner) banBanner.classList.remove("hidden");
-    if (banReason) banReason.innerText = "Akses Voting Ditolak: NFT terdaftar tidak ditemukan di wallet Anda.";
+    alert("⛔ AKSES VOTING DITOLAK!\n\nNFT terdaftar tidak ditemukan di wallet Anda.");
     return;
   }
 
@@ -1002,12 +899,7 @@ async function handleCastVote(e) {
   const payoutRateEl = $("#payoutRate");
   const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
 
-  let rewardAmount = baseReward;
-  if (activeUser.category === "delegator") {
-    rewardAmount = baseReward * 0.5;
-  }
-
-  if (btn) btn.innerText = "Menghitung & Mengirim Insentif Pi...";
+  if (btn) btn.innerText = "Memproses Insentif Pi...";
 
   try {
     const payoutRes = await fetch('/api/payout', {
@@ -1015,22 +907,23 @@ async function handleCastVote(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         walletAddress: currentWallet,
-        amount: rewardAmount,
+        amount: baseReward,
         username: currentUsername,
-        voteHash: voteHash
+        voteHash: voteHash,
+        proposalId: activeProposal.id
       })
     });
 
     const payoutData = await payoutRes.json();
 
     if (payoutData.success) {
-      alert(`✅ SUARA TERKONFIRMASI & INSENTIF DIKIRIM!\n\nKategori Pemilih: ${activeUser.category.toUpperCase()}\nSkor Terbobot: ${individualScore}\nHash SHA-256: ${voteHash.substring(0, 16)}...\nInsentif: ${rewardAmount} Pi dikirim ke Wallet ${currentWallet}`);
+      alert(`✅ SUARA TERKONFIRMASI!\n\nKategori Pemilih: ${activeUser.category.toUpperCase()}\nStatus Payout: ${payoutData.message}`);
     } else {
-      alert(`✅ Suara berhasil disimpan (1x Vote).\n\n⚠️ Status Insentif (${rewardAmount} Pi): ${payoutData.message}`);
+      alert(`✅ Suara berhasil disimpan.\n⚠️ Catatan Payout: ${payoutData.message}`);
     }
   } catch (payErr) {
     console.error("Gagal klaim payout:", payErr);
-    alert(`✅ Suara berhasil disimpan (1x Vote).\nInsentif sebesar ${rewardAmount} Pi akan dikreditkan saat koneksi server Pi Network aktif.`);
+    alert(`✅ Suara berhasil disimpan.`);
   }
 
   if (btn) {
@@ -1099,7 +992,7 @@ async function addOfficialStamp(pdf, x, y, width = 48, height = 48) {
   }
 }
 
-// --- GENERATE OFFICIAL MINUTES PDF (BISA TANPA TTD PAD / UNTUHKAN OFFLINE) ---
+// Generate Official Minutes PDF
 async function generateOfficialMinutesPDF() {
   if (!window.jspdf?.jsPDF) {
     alert("Pustaka PDF tidak tersedia.");
@@ -1199,7 +1092,7 @@ async function generateOfficialMinutesPDF() {
   pdf.save(`TVOD_Official_Minutes_${activeProposal.id}.pdf`);
 }
 
-// --- GENERATE CERTIFICATE PDF ---
+// Generate Certificate PDF
 async function generateCertificatePDF() {
   if (!window.jspdf?.jsPDF) {
     alert("Pustaka PDF tidak tersedia.");
@@ -1283,14 +1176,12 @@ async function generateCertificatePDF() {
   pdf.save(`TVOD_Digital_Verification_Certificate_${activeProposal.id}.pdf`);
 }
 
-// EKSPOR GLOBAL KE SCOPE WINDOW
+// Ekspor ke Window Global
 window.publishNewProposal = publishNewProposal;
 window.cancelActiveProposal = cancelActiveProposal;
 window.handleGalleryImagesSelect = handleGalleryImagesSelect;
 window.checkAppWalletBalance = checkAppWalletBalance;
 window.fetchVoterStatsForAdmin = fetchVoterStatsForAdmin;
-window.searchVoterForAdminEdit = searchVoterForAdminEdit;
-window.saveVoterStatusByAdmin = saveVoterStatusByAdmin;
 window.setConfidence = setConfidence;
 window.clearOfficerSig = clearOfficerSig;
 window.toggleUserBan = toggleUserBan;
