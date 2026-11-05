@@ -1,15 +1,9 @@
 "use strict";
 
-// Helper Query Selector
 const $ = (selector) => document.querySelector(selector);
-
-// PUBLIC KEY WALLET APP TVOD (KAS OPERASIONAL)
 const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
-
-// DAFTAR ADMIN & PENGURUS BERWENANG (KETUA, FOUNDER, SAKSI, COUNTRY HEAD)
 const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak", "insya", "Rasj81"];
 
-// Helper Memastikan URL Berawalan HTTPS
 function ensureHttps(url) {
   if (!url) return "";
   let cleanUrl = url.trim();
@@ -20,21 +14,16 @@ function ensureHttps(url) {
   return cleanUrl;
 }
 
-// ==============================================================================
-// 1. INITIALIZATION SUPABASE CLIENT
-// ==============================================================================
+// 1. SUPABASE CLIENT
 const SUPABASE_URL = "https://tdtybxriphsdtojkrevp.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
 
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-// Helper Simpan Profil Voter Ke Supabase
 async function saveVoterToSupabase(voterData) {
   if (!supabaseClient) return;
   try {
-    const { data, error } = await supabaseClient
-      .from('voters')
-      .upsert([voterData], { onConflict: 'username' });
+    const { data, error } = await supabaseClient.from('voters').upsert([voterData], { onConflict: 'username' });
     if (error) console.error("Gagal menyimpan data voter ke Supabase:", error);
     else console.log("✅ Data voter tersimpan di Supabase:", data);
   } catch (err) {
@@ -42,13 +31,10 @@ async function saveVoterToSupabase(voterData) {
   }
 }
 
-// Helper Simpan Rekaman Suara Voting Ke Supabase
 async function saveVoteToSupabase(voteData) {
   if (!supabaseClient) return;
   try {
-    const { data, error } = await supabaseClient
-      .from('votes')
-      .insert([voteData]);
+    const { data, error } = await supabaseClient.from('votes').insert([voteData]);
     if (error) console.error("Gagal menyimpan suara ke Supabase:", error);
     else console.log("✅ Suara voting tersimpan di Supabase:", data);
   } catch (err) {
@@ -56,21 +42,11 @@ async function saveVoteToSupabase(voteData) {
   }
 }
 
-// Helper Ambil Profil Voter dari Supabase
 async function fetchVoterProfileFromSupabase(username) {
   if (!supabaseClient || !username) return;
   try {
-    const { data, error } = await supabaseClient
-      .from('voters')
-      .select('*')
-      .eq('username', username)
-      .single();
-
-    if (error) {
-      console.log("Profil voter belum ada di Supabase:", error.message);
-      return;
-    }
-
+    const { data, error } = await supabaseClient.from('voters').select('*').eq('username', username).single();
+    if (error) return;
     if (data) {
       activeUser.walletAddress = data.wallet_address || "";
       activeUser.category = data.category || "owner";
@@ -96,15 +72,12 @@ async function fetchVoterProfileFromSupabase(username) {
       if (displayGaruda) {
         displayGaruda.textContent = data.garuda_id ? `#${data.garuda_id}` : `DELEGATE (${data.category.toUpperCase()})`;
       }
-
-      console.log("✅ Profil voter berhasil dimuat otomatis dari Supabase.");
     }
   } catch (err) {
     console.error("Fetch Profile Error:", err);
   }
 }
 
-// Helper Ambil Statistik Total Voter Aktif dari Supabase untuk Admin Suite
 async function fetchVoterStatsForAdmin() {
   const display = $("#adminVoterCountDisplay");
   if (!display) return;
@@ -120,19 +93,16 @@ async function fetchVoterStatsForAdmin() {
       .eq('proposal_id', activeProposal.id);
 
     if (error) {
-      console.error("Gagal menghitung statistik voter:", error);
       display.textContent = "0 Voter Aktif";
     } else {
       display.textContent = `${count || 0} Voter Aktif`;
       activeProposal.totalVotes = count || 0;
     }
   } catch (err) {
-    console.error("Fetch Voter Stats Error:", err);
     display.textContent = "0 Voter Aktif";
   }
 }
 
-// Helper Ambil Proposal Aktif Terbaru Dari Supabase
 async function fetchActiveProposalFromSupabase() {
   if (!supabaseClient) return;
   try {
@@ -142,59 +112,54 @@ async function fetchActiveProposalFromSupabase() {
       .order('created_at', { ascending: false })
       .limit(1);
 
-    if (error) {
-      console.error("Gagal mengambil proposal dari Supabase:", error);
-      return;
+    if (error || !data || data.length === 0) return;
+
+    const p = data[0];
+    activeProposal = {
+      id: p.id,
+      title: p.title,
+      category: p.category,
+      description: p.description,
+      proposerEntity: "TVOD Development Team",
+      proposerUsername: "TVOD Development Team",
+      author: "TVOD Development Team",
+      date: new Date(p.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
+      durationHours: p.duration_hours || 24,
+      images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"],
+      videoUrl: p.video_url || "",
+      totalVotes: p.total_votes || 0,
+      netScore: p.net_score || 0,
+      status: p.status || 'ACTIVE'
+    };
+
+    if (p.voting_end_time) {
+      votingEndTime = new Date(p.voting_end_time);
+    }
+    renderProposalMaterials();
+
+    if (p.status === 'CANCELLED') {
+      const display = $("#countdownDisplay");
+      if (display) {
+        display.textContent = "⚠️ PROPOSAL DIBATALKAN / DITUTUP";
+        display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse";
+      }
+      const btn = $("#btnSubmitVote");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⛔ Proposal Dibatalkan / Ditutup Admin";
+        btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
+      }
+    } else {
+      startCountdownTimer();
     }
 
-    if (data && data.length > 0) {
-      const p = data[0];
-      activeProposal = {
-        id: p.id,
-        title: p.title,
-        category: p.category,
-        description: p.description,
-        proposerEntity: "TVOD Development Team",
-        proposerUsername: "TVOD Development Team",
-        author: "TVOD Development Team",
-        date: new Date(p.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
-        durationHours: p.duration_hours || 24,
-        images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"],
-        videoUrl: p.video_url || "",
-        totalVotes: p.total_votes || 0,
-        netScore: p.net_score || 0,
-        status: p.status || 'ACTIVE'
-      };
-
-      if (p.voting_end_time) {
-        votingEndTime = new Date(p.voting_end_time);
-      }
-      renderProposalMaterials();
-
-      if (p.status === 'CANCELLED') {
-        const display = $("#countdownDisplay");
-        if (display) {
-          display.textContent = "⚠️ PROPOSAL DIBATALKAN / DITUTUP";
-          display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse";
-        }
-        const btn = $("#btnSubmitVote");
-        if (btn) {
-          btn.disabled = true;
-          btn.innerText = "⛔ Proposal Dibatalkan / Ditutup Admin";
-          btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
-        }
-      } else {
-        startCountdownTimer();
-      }
-
-      await fetchVoterStatsForAdmin();
-    }
+    await fetchVoterStatsForAdmin();
   } catch (err) {
     console.error("Fetch Proposal Error:", err);
   }
 }
 
-// System Global State
+// Global State
 let currentUser = null;
 let activeUser = {
   username: "",
@@ -234,7 +199,6 @@ let activeProposal = {
   status: "ACTIVE"
 };
 
-// Cek Saldo Wallet App TVOD
 async function checkAppWalletBalance() {
   const display = $("#appWalletDisplay");
   const addrText = $("#appWalletAddrText");
@@ -252,13 +216,11 @@ async function checkAppWalletBalance() {
     if (display) display.textContent = `⚡ ${balanceVal} Testnet Pi`;
     if (addrText) addrText.textContent = `Wallet Kas App: ${TVOD_APP_WALLET.substring(0, 8)}...${TVOD_APP_WALLET.substring(TVOD_APP_WALLET.length - 6)}`;
   } catch (err) {
-    console.warn("Horizon API Fetch Error:", err);
     if (display) display.textContent = "⚡ 100.00 Testnet Pi (Simulasi)";
     if (addrText) addrText.textContent = `Wallet Kas App: ${TVOD_APP_WALLET.substring(0, 8)}...${TVOD_APP_WALLET.substring(TVOD_APP_WALLET.length - 6)}`;
   }
 }
 
-// Colorizer Stempel Emas
 function loadAndColorizeStamp(src, goldColor = "#F59E0B") {
   return new Promise((resolve) => {
     const img = new Image();
@@ -281,7 +243,6 @@ function loadAndColorizeStamp(src, goldColor = "#F59E0B") {
   });
 }
 
-// Inisialisasi
 async function initialize() {
   setConnection("● Ecosystem Ready", true);
 
@@ -373,7 +334,6 @@ async function handleGalleryImagesSelect(event) {
     uploadedGalleryBase64Images = await Promise.all(promises);
     if (countSpan) countSpan.textContent = `📷 ${uploadedGalleryBase64Images.length} foto berhasil dikompresi & siap diterbitkan.`;
   } catch (err) {
-    console.error("Gagal mengolah foto galeri:", err);
     if (countSpan) countSpan.textContent = "❌ Gagal memuat beberapa foto.";
   }
 }
@@ -454,7 +414,6 @@ function renderUser(user) {
   }
 }
 
-// Otentikasi Pi SDK
 async function handlePiAuth() {
   if (!window.Pi) {
     throw new Error("Pi SDK belum dimuat. Buka di dalam Pi Browser.");
@@ -652,7 +611,6 @@ function renderProposalMaterials() {
   }
 }
 
-// Penerbitan Proposal Baru
 async function publishNewProposal(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -732,7 +690,6 @@ async function publishNewProposal(e) {
   alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan oleh TVOD Development Team!\nDurasi Voting: ${durationHrs} Jam.`);
 }
 
-// Batalkan Proposal Aktif
 async function cancelActiveProposal() {
   if (!confirm(`Apakah Anda yakin ingin membatalkan/menutup proposal "${activeProposal.title}" secara paksa?`)) {
     return;
@@ -800,7 +757,6 @@ function clearOfficerSig(id) {
   if (signaturePads[id]) signaturePads[id].clear();
 }
 
-// Proses Voting & Payout
 async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -923,7 +879,7 @@ async function handleCastVote(e) {
     }
   } catch (payErr) {
     console.error("Gagal klaim payout:", payErr);
-    alert(`✅ Suara berhasil disimpan.`);
+    alert(`✅ Suara berhasil disimpan ke Database.`);
   }
 
   if (btn) {
@@ -992,14 +948,15 @@ async function addOfficialStamp(pdf, x, y, width = 48, height = 48) {
   }
 }
 
-// Generate Official Minutes PDF
+// 🖨️ GENERATE OFFICIAL MINUTES PDF (Dukungan Serbaguna Terhadap Berbagai Sumber Pustaka)
 async function generateOfficialMinutesPDF() {
-  if (!window.jspdf?.jsPDF) {
-    alert("Pustaka PDF tidak tersedia.");
+  const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+  if (!jsPDF) {
+    alert("Pustaka PDF tidak tersedia. Pastikan WebView Pi Browser memiliki akses internet untuk memuat pustaka PDF.");
     return;
   }
 
-  const pdf = new window.jspdf.jsPDF();
+  const pdf = new jsPDF();
   await addBranding(pdf);
 
   pdf.setFont("Helvetica", "bold");
@@ -1092,14 +1049,15 @@ async function generateOfficialMinutesPDF() {
   pdf.save(`TVOD_Official_Minutes_${activeProposal.id}.pdf`);
 }
 
-// Generate Certificate PDF
+// 🎓 GENERATE CERTIFICATE PDF
 async function generateCertificatePDF() {
-  if (!window.jspdf?.jsPDF) {
-    alert("Pustaka PDF tidak tersedia.");
+  const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+  if (!jsPDF) {
+    alert("Pustaka PDF tidak tersedia. Pastikan WebView Pi Browser memiliki akses internet untuk memuat pustaka PDF.");
     return;
   }
 
-  const pdf = new window.jspdf.jsPDF();
+  const pdf = new jsPDF();
   await addBranding(pdf);
 
   pdf.setFontSize(18);
@@ -1176,7 +1134,6 @@ async function generateCertificatePDF() {
   pdf.save(`TVOD_Digital_Verification_Certificate_${activeProposal.id}.pdf`);
 }
 
-// Ekspor ke Window Global
 window.publishNewProposal = publishNewProposal;
 window.cancelActiveProposal = cancelActiveProposal;
 window.handleGalleryImagesSelect = handleGalleryImagesSelect;
