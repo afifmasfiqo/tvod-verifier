@@ -123,6 +123,34 @@ async function fetchVoterProfileFromSupabase(username) {
   }
 }
 
+// Helper Ambil Statistik Total Voter Aktif dari Supabase untuk Admin Suite
+async function fetchVoterStatsForAdmin() {
+  const display = $("#adminVoterCountDisplay");
+  if (!display) return;
+  if (!supabaseClient || !activeProposal.id) {
+    display.textContent = "0 Voter Aktif";
+    return;
+  }
+
+  try {
+    const { count, error } = await supabaseClient
+      .from('votes')
+      .select('id', { count: 'exact', head: true })
+      .eq('proposal_id', activeProposal.id);
+
+    if (error) {
+      console.error("Gagal menghitung statistik voter:", error);
+      display.textContent = "0 Voter Aktif";
+    } else {
+      display.textContent = `${count || 0} Voter Aktif`;
+      activeProposal.totalVotes = count || 0;
+    }
+  } catch (err) {
+    console.error("Fetch Voter Stats Error:", err);
+    display.textContent = "0 Voter Aktif";
+  }
+}
+
 // Helper Ambil Proposal Aktif Terbaru Dari Supabase
 async function fetchActiveProposalFromSupabase() {
   if (!supabaseClient) return;
@@ -145,9 +173,9 @@ async function fetchActiveProposalFromSupabase() {
         title: p.title,
         category: p.category,
         description: p.description,
-        proposerEntity: p.proposer_entity || "ICP2E & TVOD Development Team",
-        proposerUsername: p.proposer_username || "afifmasfiqo",
-        author: `@${p.proposer_username || 'afifmasfiqo'} (Chairman)`,
+        proposerEntity: "TVOD Development Team",
+        proposerUsername: "TVOD Development Team",
+        author: "TVOD Development Team",
         date: new Date(p.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
         durationHours: p.duration_hours || 24,
         images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"],
@@ -177,6 +205,8 @@ async function fetchActiveProposalFromSupabase() {
       } else {
         startCountdownTimer();
       }
+
+      await fetchVoterStatsForAdmin();
     }
   } catch (err) {
     console.error("Fetch Proposal Error:", err);
@@ -209,10 +239,10 @@ const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak"];
 let activeProposal = {
   id: "TVOD-PROP-2026-001",
   title: "Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD",
-  proposerEntity: "ICP2E & TVOD Development Team",
-  proposerUsername: "afifmasfiqo",
+  proposerEntity: "TVOD Development Team",
+  proposerUsername: "TVOD Development Team",
   category: "Verifikasi Objek / Kasus",
-  author: "@afifmasfiqo (Chairman)",
+  author: "TVOD Development Team",
   date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
   description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.\nHarap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.",
   durationHours: 24,
@@ -220,8 +250,8 @@ let activeProposal = {
     "https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"
   ],
   videoUrl: "",
-  totalVotes: 42,
-  netScore: 18.5,
+  totalVotes: 0,
+  netScore: 0,
   status: "ACTIVE"
 };
 
@@ -434,6 +464,7 @@ function renderUser(user) {
 
     fetchVoterProfileFromSupabase(user.username);
     checkAppWalletBalance();
+    fetchVoterStatsForAdmin();
   } else {
     if (userBadge) {
       userBadge.classList.add("hidden");
@@ -667,7 +698,9 @@ async function publishNewProposal(e) {
   activeProposal.category = category;
   activeProposal.description = description;
   activeProposal.durationHours = durationHrs;
-  activeProposal.author = `@${activeUser.username || 'afifmasfiqo'} (Chairman)`;
+  activeProposal.proposerEntity = "TVOD Development Team";
+  activeProposal.proposerUsername = "TVOD Development Team";
+  activeProposal.author = "TVOD Development Team";
   activeProposal.date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   activeProposal.status = "ACTIVE";
 
@@ -698,14 +731,17 @@ async function publishNewProposal(e) {
   // RENDERING KE TAMPILAN MATERI VOTING
   renderProposalMaterials();
 
+  // REFRESH STATISTIK VOTER (JADI 0 KARENA PROPOSAL BARU)
+  await fetchVoterStatsForAdmin();
+
   // SIMPAN KE SUPABASE DATABASE
   const isSaved = await saveProposalToSupabase({
     id: activeProposal.id,
     title: activeProposal.title,
     category: activeProposal.category,
     description: activeProposal.description,
-    proposer_entity: activeProposal.proposerEntity || "ICP2E & TVOD Development Team",
-    proposer_username: activeUser.username || activeProposal.proposerUsername || "afifmasfiqo",
+    proposer_entity: "TVOD Development Team",
+    proposer_username: "TVOD Development Team",
     duration_hours: activeProposal.durationHours,
     voting_end_time: votingEndTime.toISOString(),
     images: activeProposal.images,
@@ -714,7 +750,7 @@ async function publishNewProposal(e) {
   });
 
   if (isSaved) {
-    alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan & Tersimpan di Database Supabase!\nDurasi Voting: ${durationHrs} Jam.`);
+    alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan oleh TVOD Development Team!\nDurasi Voting: ${durationHrs} Jam.`);
   } else {
     alert(`✅ Proposal Baru Berhasil Ditampilkan di dApp!\nID: ${activeProposal.id}\nDurasi Voting: ${durationHrs} Jam.`);
   }
@@ -726,14 +762,11 @@ async function cancelActiveProposal() {
     return;
   }
 
-  // 1. HENTIKAN TIMER & SET WAKTU EXPIRED
   if (countdownInterval) clearInterval(countdownInterval);
   votingEndTime = new Date(0);
 
-  // 2. UBAH STATUS PROPOSAL LOKAL
   activeProposal.status = 'CANCELLED';
 
-  // 3. UBAH TAMPILAN UI
   const display = $("#countdownDisplay");
   if (display) {
     display.textContent = "⚠️ PROPOSAL DIBATALKAN / DITUTUP";
@@ -747,7 +780,6 @@ async function cancelActiveProposal() {
     btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
   }
 
-  // 4. PERBARUI STATUS DI DATABASE SUPABASE
   if (supabaseClient && activeProposal.id) {
     try {
       const { error } = await supabaseClient
@@ -798,20 +830,88 @@ function clearOfficerSig(id) {
   if (signaturePads[id]) signaturePads[id].clear();
 }
 
+// --- FUNGSI ADMIN EDIT STATUS VOTER MANUAL ---
+let selectedVoterForEdit = null;
+
+async function searchVoterForAdminEdit() {
+  const targetUsername = $("#searchAdminUsername") ? $("#searchAdminUsername").value.trim().replace("@", "") : "";
+  if (!targetUsername) {
+    alert("Masukkan username Pi yang ingin dicari.");
+    return;
+  }
+
+  if (!supabaseClient) {
+    alert("Koneksi Supabase belum siap.");
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('voters')
+      .select('*')
+      .eq('username', targetUsername)
+      .single();
+
+    if (error || !data) {
+      alert(`⚠️ User @${targetUsername} tidak ditemukan di database Supabase.`);
+      return;
+    }
+
+    selectedVoterForEdit = data;
+    $("#adminVoterEditForm").classList.remove("hidden");
+    $("#editAdminCategory").value = data.category || "owner";
+    $("#editAdminRole").value = data.role || "Member";
+    $("#editAdminOwnerUsername").value = data.owner_username || "";
+
+    alert(`✅ Data Voter @${targetUsername} ditemukan! Silakan sesuaikan kategori dan role.`);
+  } catch (err) {
+    console.error("Admin Search Error:", err);
+    alert("Gagal mengambil data voter.");
+  }
+}
+
+async function saveVoterStatusByAdmin() {
+  if (!selectedVoterForEdit) return;
+
+  const newCategory = $("#editAdminCategory").value;
+  const newRole = $("#editAdminRole").value;
+  const newOwnerUsername = $("#editAdminOwnerUsername").value.trim().replace("@", "");
+
+  try {
+    const { error } = await supabaseClient
+      .from('voters')
+      .update({
+        category: newCategory,
+        role: newRole,
+        owner_username: newOwnerUsername || null
+      })
+      .eq('username', selectedVoterForEdit.username);
+
+    if (error) {
+      alert("❌ Gagal memperbarui status voter: " + error.message);
+      return;
+    }
+
+    alert(`✅ Berhasil memperbarui status @${selectedVoterForEdit.username}!\nKategori Baru: ${newCategory.toUpperCase()}\nRole: ${newRole}\nPayout: ${newCategory === 'delegator' ? '50% Split' : '100% Full'}`);
+    $("#adminVoterEditForm").classList.add("hidden");
+  } catch (err) {
+    console.error("Admin Update Voter Error:", err);
+    alert("Terjadi kesalahan saat menyimpan data.");
+  }
+}
+
 // --- FUNGSI PROSES VOTING & KLAIM INSENTIF (1 USER = 1 SUARA STRICT) ---
 async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   const btn = $("#btnSubmitVote");
 
-  // 1. KUNCI TOMBOL SEGERA UNTUK MENCEGAH DOUBLE CLICK
   if (btn) {
     if (btn.disabled) return;
     btn.disabled = true;
     btn.innerText = "⏳ Memeriksa Hak Suara...";
   }
 
-  // 2. CEK MASA VOTING PROPOSAL
   if (activeProposal.status === 'CANCELLED' || new Date().getTime() > votingEndTime.getTime()) {
     if (btn) {
       btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis / Dibatalkan)";
@@ -821,7 +921,6 @@ async function handleCastVote(e) {
     return;
   }
 
-  // 3. CEK CEGAH SUARA GANDA DI SUPABASE (1 VOTER = 1 KALI VOTE & KLAIM)
   const currentUsername = activeUser.username || "Anonymous";
   const currentWallet = activeUser.walletAddress || "";
 
@@ -849,7 +948,6 @@ async function handleCastVote(e) {
     }
   }
 
-  // 4. VERIFIKASI KEPEMILIKAN NFT ON-CHAIN
   if (btn) btn.innerText = "Memeriksa NFT di Wallet On-Chain...";
   const isNftValid = await verifyOnChainNftOwnership();
   if (!isNftValid) {
@@ -866,7 +964,6 @@ async function handleCastVote(e) {
     return;
   }
 
-  // 5. VALIDASI ARAH PILIHAN SUARA
   const selectedValue = document.querySelector('input[name="voteValue"]:checked');
   if (!selectedValue) {
     if (btn) {
@@ -877,7 +974,6 @@ async function handleCastVote(e) {
     return;
   }
 
-  // 6. HITUNG SKOR TERBOBOT
   const voteVal = parseInt(selectedValue.value);
   let roleWeight = 0.5;
   if (activeUser.role === "Group Leader") roleWeight = 1.0;
@@ -892,7 +988,6 @@ async function handleCastVote(e) {
     voteHash = window.CryptoJS.SHA256(rawPayload).toString();
   }
 
-  // 7. SIMPAN SUARA KE SUPABASE
   if (btn) btn.innerText = "Menyimpan Suara Terenkripsi...";
   await saveVoteToSupabase({
     proposal_id: activeProposal.id,
@@ -906,16 +1001,17 @@ async function handleCastVote(e) {
     voter_signature_base64: null
   });
 
-  // 8. HITUNG NOMINAL INSENTIF PIPAYOUT
+  // REFRESH STATISTIK VOTER DI ADMIN SUITE
+  await fetchVoterStatsForAdmin();
+
   const payoutRateEl = $("#payoutRate");
   const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
 
   let rewardAmount = baseReward;
   if (activeUser.category === "delegator") {
-    rewardAmount = baseReward * 0.5; // Delegator menerima 50%
+    rewardAmount = baseReward * 0.5;
   }
 
-  // 9. PROSES KLAIM PAYOUT KE BACKEND API
   if (btn) btn.innerText = "Menghitung & Mengirim Insentif Pi...";
 
   try {
@@ -942,7 +1038,6 @@ async function handleCastVote(e) {
     alert(`✅ Suara berhasil disimpan (1x Vote).\nInsentif sebesar ${rewardAmount} Pi akan dikreditkan saat koneksi server Pi Network aktif.`);
   }
 
-  // 10. UBAH TAMPILAN TOMBOL MENJADI TERKUNCI SETELAH SUKSES VOTING
   if (btn) {
     btn.disabled = true;
     btn.innerText = "✅ Anda Sudah Mengirim Suara";
@@ -1050,32 +1145,33 @@ async function generateOfficialMinutesPDF() {
   pdf.setFontSize(8);
   pdf.text(`• Proposal Title       : ${activeProposal.title}`, 15, 81);
   pdf.text(`• Case Category        : ${activeProposal.category}`, 15, 86);
-  pdf.text(`• Presiding Chairman   : @afifmasfiqo (Garuda ID: #911)`, 15, 91);
-  pdf.text(`• Presiding Inspector  : @Nalaktak (Garuda ID: #999)`, 15, 96);
-  pdf.text(`• Community Chapter    : ${activeUser.chapter || "GLOBAL"}`, 15, 101);
-  pdf.text(`• Voting Expiry Date   : ${votingEndTime.toLocaleString('en-US')}`, 15, 106);
+  pdf.text(`• Issuing Entity       : TVOD Development Team`, 15, 91);
+  pdf.text(`• Presiding Chairman   : @afifmasfiqo (Garuda ID: #911)`, 15, 96);
+  pdf.text(`• Presiding Inspector  : @Nalaktak (Garuda ID: #999)`, 15, 101);
+  pdf.text(`• Community Chapter    : ${activeUser.chapter || "GLOBAL"}`, 15, 106);
+  pdf.text(`• Voting Expiry Date   : ${votingEndTime.toLocaleString('en-US')}`, 15, 111);
 
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(9);
-  pdf.text("SECTION II: MATHEMATICAL SCORING & VERDICT BREAKDOWN", 15, 116);
+  pdf.text("SECTION II: MATHEMATICAL SCORING & VERDICT BREAKDOWN", 15, 121);
   pdf.setFont("Helvetica", "normal");
   pdf.setFontSize(8);
-  pdf.text("Formula: Individual Score = (Vote Direction: +1/0/-1) x (Confidence: 1-5) x (Role Weight)", 15, 122);
-  pdf.text("Applied Role Weights: Founder = 2.0 | Group Leader = 1.0 | Member = 0.5", 15, 127);
-  pdf.text(`• Total Verified Ballots Cast : ${activeProposal.totalVotes} Ballots`, 15, 133);
-  pdf.text(`• Aggregate Net Score        : +${activeProposal.netScore} Points`, 15, 138);
+  pdf.text("Formula: Individual Score = (Vote Direction: +1/0/-1) x (Confidence: 1-5) x (Role Weight)", 15, 127);
+  pdf.text("Applied Role Weights: Founder = 2.0 | Group Leader = 1.0 | Member = 0.5", 15, 132);
+  pdf.text(`• Total Verified Ballots Cast : ${activeProposal.totalVotes} Ballots`, 15, 138);
+  pdf.text(`• Aggregate Net Score        : +${activeProposal.netScore} Points`, 15, 143);
   pdf.setFont("Helvetica", "bold");
-  pdf.text(`• FINAL GOVERNANCE VERDICT  : PASSED (AGREE)`, 15, 144);
+  pdf.text(`• FINAL GOVERNANCE VERDICT  : PASSED (AGREE)`, 15, 149);
 
   pdf.setFont("Helvetica", "bold");
   pdf.setFontSize(9);
-  pdf.text("SECTION III: OFFICIAL AUTHORIZATION & SIGNATURES", 15, 156);
+  pdf.text("SECTION III: OFFICIAL AUTHORIZATION & SIGNATURES", 15, 159);
 
   const signers = [
-    { title: "Chairman", name: "@afifmasfiqo (#911)", id: "sig-chairman", x: 15, y: 165 },
-    { title: "Witness", name: "@insya (Witness)", id: "sig-witness", x: 105, y: 165 },
-    { title: "Inspector", name: "@Nalaktak (#999)", id: "sig-inspector", x: 15, y: 200 },
-    { title: "Country Head", name: "@Rasj81", id: "sig-country-head", x: 105, y: 200 }
+    { title: "Chairman", name: "@afifmasfiqo (#911)", id: "sig-chairman", x: 15, y: 168 },
+    { title: "Witness", name: "@insya (Witness)", id: "sig-witness", x: 105, y: 168 },
+    { title: "Inspector", name: "@Nalaktak (#999)", id: "sig-inspector", x: 15, y: 203 },
+    { title: "Country Head", name: "@Rasj81", id: "sig-country-head", x: 105, y: 203 }
   ];
 
   signers.forEach((s) => {
@@ -1101,8 +1197,8 @@ async function generateOfficialMinutesPDF() {
   }
   pdf.setFontSize(7);
   pdf.setFont("Courier", "normal");
-  pdf.text(`SHA-256 Cryptographic Proof: ${shaProof}`, 15, 245);
-  pdf.text("Disclaimer: Official Minutes compiled for Pi Core Team reporting, Web3 ecosystem audit, and governance record.", 15, 250);
+  pdf.text(`SHA-256 Cryptographic Proof: ${shaProof}`, 15, 248);
+  pdf.text("Disclaimer: Official Minutes compiled for Pi Core Team reporting, Web3 ecosystem audit, and governance record.", 15, 253);
 
   pdf.save(`TVOD_Official_Minutes_${activeProposal.id}.pdf`);
 }
@@ -1136,10 +1232,10 @@ async function generateCertificatePDF() {
 
   pdf.setFontSize(9);
   pdf.setFont("Helvetica", "normal");
-  pdf.text(`Submitted By Entity / Creator : ${activeProposal.proposerEntity} (@${activeProposal.proposerUsername})`, 15, 72);
-  pdf.text(`Case Category                : ${activeProposal.category}`, 15, 78);
-  pdf.text(`Verification Reference ID    : ${activeProposal.id}`, 15, 84);
-  pdf.text(`Date of Final Ratification   : ${activeProposal.date}`, 15, 90);
+  pdf.text(`Submitted By Entity / Publisher : TVOD Development Team`, 15, 72);
+  pdf.text(`Case Category                   : ${activeProposal.category}`, 15, 78);
+  pdf.text(`Verification Reference ID       : ${activeProposal.id}`, 15, 84);
+  pdf.text(`Date of Final Ratification      : ${activeProposal.date}`, 15, 90);
 
   pdf.line(15, 95, 195, 95);
 
@@ -1195,6 +1291,9 @@ window.publishNewProposal = publishNewProposal;
 window.cancelActiveProposal = cancelActiveProposal;
 window.handleGalleryImagesSelect = handleGalleryImagesSelect;
 window.checkAppWalletBalance = checkAppWalletBalance;
+window.fetchVoterStatsForAdmin = fetchVoterStatsForAdmin;
+window.searchVoterForAdminEdit = searchVoterForAdminEdit;
+window.saveVoterStatusByAdmin = saveVoterStatusByAdmin;
 window.setConfidence = setConfidence;
 window.clearOfficerSig = clearOfficerSig;
 window.toggleUserBan = toggleUserBan;
