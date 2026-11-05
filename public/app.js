@@ -590,7 +590,6 @@ function handleOnboarding(e) {
     }
     if (nftType === "piday" && hashList.length !== 3) {
       alert("Pendaftaran Ditolak: NFT PiDay2026 membutuhkan tepat 3 Hash NFT (dipisahkan koma).");
-      return;
     }
 
     activeUser.ownerUsername = ownerUsername;
@@ -1177,7 +1176,6 @@ async function generateOfficialMinutesPDF() {
     pdf.text(`${s.title}: ${s.name}`, s.x, s.y);
     pdf.line(s.x, s.y + 22, s.x + 70, s.y + 22);
 
-    // Cek jika pad TTD diisi di app, jika kosong garis TTD tetap disediakan untuk TTD offline/basah
     if (signaturePads[s.id] && !signaturePads[s.id].isEmpty()) {
       try {
         pdf.addImage(signaturePads[s.id].toDataURL("image/png"), "PNG", s.x, s.y + 2, 60, 18);
@@ -1280,7 +1278,7 @@ async function generateCertificatePDF() {
 
   pdf.setFontSize(7);
   pdf.setFont("Helvetica", "italic");
-  pdf.text("Disclaimer: Konten ini dibuat semata-mata untuk tujuan hiburan, berbagi panduan simulasi permainan digital, serta edukasi komunitas.", 15, 220);
+  pdf.text("TVOD Development Team", 15, 220);
 
   pdf.save(`TVOD_Digital_Verification_Certificate_${activeProposal.id}.pdf`);
 }
