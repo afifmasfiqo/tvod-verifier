@@ -22,6 +22,24 @@ async function logPayoutToSupabase(logData) {
   }
 }
 
+// Helper insert antrean ke payout_queue
+async function insertPayoutQueue(queueData) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/payout_queue`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(queueData)
+    });
+  } catch (err) {
+    console.error("❌ Gagal mencatat antrean ke payout_queue:", err);
+  }
+}
+
 // Helper fetch data voter dari Supabase
 async function fetchVoterProfile(username) {
   try {
@@ -85,6 +103,7 @@ export default async function handler(req, res) {
 
   const cleanUsername = (username || 'Anonymous').replace('@', '');
   const baseAmount = parseFloat(amount) || 1.0;
+  const currentProposalId = proposalId || "TVOD-PROP-ACTIVE";
   const PI_API_KEY = process.env.PI_API_KEY;
 
   try {
@@ -92,7 +111,7 @@ export default async function handler(req, res) {
     const voter = await fetchVoterProfile(cleanUsername);
     const category = voter ? voter.category : 'owner';
 
-    // 🔴 4. ATURAN KHUSUS SAKSI (WITNESS): TIDAK ADA PAYOUT
+    // 4. ATURAN KHUSUS SAKSI (WITNESS): TIDAK ADA PAYOUT
     if (category === 'witness') {
       await logPayoutToSupabase({
         username: cleanUsername,
@@ -110,7 +129,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🟢 5. HITUNG PORSI PAYOUT (OWNER = 100%, DELEGATOR = 50% SPLIT)
+    // 5. HITUNG PORSI PAYOUT (OWNER = 100%, DELEGATOR = 50% SPLIT)
     let delegatorAmount = baseAmount;
     let ownerAmount = 0;
     let targetOwnerUsername = null;
@@ -121,12 +140,22 @@ export default async function handler(req, res) {
       targetOwnerUsername = voter && voter.owner_username ? voter.owner_username.replace('@', '') : null;
     }
 
-    // 🔵 6. EKSEKUSI / SIMULASI PAYOUT UNTUK VOTER (DELEGATOR / OWNER TETAP)
+    // 6. SIMPAN KE PAYOUT QUEUE
+    await insertPayoutQueue({
+      proposal_id: currentProposalId,
+      vote_hash: voteHash || '',
+      recipient_username: cleanUsername,
+      wallet_address: walletAddress,
+      amount: delegatorAmount,
+      payout_role: category === 'delegator' ? 'DELEGATOR_SHARE_50' : 'OWNER_FULL_100',
+      status: PI_API_KEY ? 'QUEUED' : 'SIMULATED'
+    });
+
+    // 7. EKSEKUSI / SIMULASI PAYOUT UNTUK VOTER
     let paymentId = `SIMULATED-${Date.now()}`;
     let isLive = false;
 
     if (PI_API_KEY) {
-      // Payout Live via Pi Platform API
       const piResponse = await fetch('https://api.minepi.com/v2/payments', {
         method: 'POST',
         headers: {
@@ -137,7 +166,7 @@ export default async function handler(req, res) {
           payment: {
             amount: delegatorAmount,
             memo: `Insentif Voting TVOD (${category.toUpperCase()}) - Hash: ${(voteHash || '').substring(0, 8)}`,
-            metadata: { voteHash, username: cleanUsername, category },
+            metadata: { voteHash, username: cleanUsername, category, proposalId: currentProposalId },
             uid: cleanUsername || walletAddress
           }
         })
@@ -176,13 +205,22 @@ export default async function handler(req, res) {
       payment_id: paymentId
     });
 
-    // 🟡 7. JIKA DELEGATOR: PROSES PORSI 50% UNTUK PEMILIK ASLI GARUDA
+    // 8. JIKA DELEGATOR: PROSES PORSI 50% UNTUK PEMILIK ASLI GARUDA
     if (category === 'delegator' && targetOwnerUsername) {
       const ownerProfile = await fetchVoterProfile(targetOwnerUsername);
 
       if (ownerProfile && ownerProfile.wallet_address) {
-        // Pemilik Asli Terdaftar -> Catat Log / Kirim Payout
         let ownerTxId = `SIMULATED-ROYALTY-${Date.now()}`;
+
+        await insertPayoutQueue({
+          proposal_id: currentProposalId,
+          vote_hash: voteHash || '',
+          recipient_username: targetOwnerUsername,
+          wallet_address: ownerProfile.wallet_address,
+          amount: ownerAmount,
+          payout_role: 'GARUDA_OWNER_ROYALTY_50',
+          status: PI_API_KEY ? 'QUEUED' : 'SIMULATED'
+        });
 
         if (PI_API_KEY) {
           try {
@@ -196,7 +234,7 @@ export default async function handler(req, res) {
                 payment: {
                   amount: ownerAmount,
                   memo: `Royalti Garuda 50% TVOD dari Delegator @${cleanUsername}`,
-                  metadata: { voteHash, delegator: cleanUsername },
+                  metadata: { voteHash, delegator: cleanUsername, proposalId: currentProposalId },
                   uid: targetOwnerUsername
                 }
               })
@@ -219,7 +257,6 @@ export default async function handler(req, res) {
           payment_id: ownerTxId
         });
       } else {
-        // Pemilik Asli Belum Terdaftar -> Simpan Saldo ke Pending Rewards
         await savePendingReward({
           owner_username: targetOwnerUsername,
           amount: ownerAmount,
