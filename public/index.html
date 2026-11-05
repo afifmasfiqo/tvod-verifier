@@ -186,3 +186,339 @@
     <section id="section-material" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
       <div class="border-b border-slate-800 pb-3 mb-4">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <span id="displayPropCategory" class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2.5 py-0.5 rounded font-mono uppercase">
+            🏷️ Kategori: Verifikasi Objek / Kasus
+          </span>
+          <div class="flex items-center gap-2">
+            <span id="countdownDisplay" class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold">
+              ⏳ Durasi Voting: Loading...
+            </span>
+            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono">
+              ● ACTIVE PROPOSAL
+            </span>
+          </div>
+        </div>
+        <h2 id="displayPropTitle" class="text-xl font-extrabold text-slate-100">
+          Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD
+        </h2>
+        <p class="text-[11px] text-slate-400 font-mono mt-1">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400">TVOD Development Team</span> | Tanggal: <span id="displayPropDate">30 Okt 2026</span></p>
+      </div>
+
+      <div class="mb-5">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📄 Latar Belakang & Deskripsi Objek</h3>
+        <div id="displayPropDescription" class="bg-slate-950 border border-slate-800 rounded-lg p-4 text-xs text-slate-300 leading-relaxed whitespace-pre-line">
+          Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.
+          Harap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.
+        </div>
+      </div>
+
+      <div>
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">📸 Galeri Bukti Foto & Video Objek</h3>
+        <div class="space-y-4">
+          <div id="mediaGalleryContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+          
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 flex flex-col items-center justify-center">
+            <span class="text-[10px] font-semibold text-slate-400 self-start mb-1">Bukti Rekaman Video:</span>
+            <div id="videoContainer" class="w-full h-48 bg-slate-900 rounded flex items-center justify-center overflow-hidden">
+              <video id="displayMediaVideo" controls class="w-full h-full object-cover hidden">
+                <source src="" type="video/mp4">
+              </video>
+              <iframe id="displayMediaIframe" class="w-full h-full hidden" frameborder="0" allowfullscreen></iframe>
+              <p id="videoPlaceholder" class="text-xs text-slate-500 font-mono">Belum ada video dilampirkan</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: FAST VOTING MODULE -->
+    <section id="section-voting" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+      <div class="border-b border-slate-800 pb-3 mb-4">
+        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 2</span>
+        <h2 class="text-xl font-bold text-slate-100">Modul Fast Voting</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Sistem memverifikasi keberadaan NFT di wallet secara On-Chain sebelum menyimpan suara Anda.</p>
+      </div>
+
+      <form id="votingForm" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">1. Arah Pilihan Suara Anda</label>
+          <div class="grid grid-cols-3 gap-3 text-xs">
+            <label class="cursor-pointer">
+              <input type="radio" name="voteValue" value="1" required class="peer hidden">
+              <div class="p-3 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-emerald-600 peer-checked:border-emerald-400 peer-checked:font-bold transition">
+                👍 Agree (+1)
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="voteValue" value="0" class="peer hidden">
+              <div class="p-3 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-slate-700 peer-checked:border-slate-400 peer-checked:font-bold transition">
+                😐 Neutral (0)
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="voteValue" value="-1" class="peer hidden">
+              <div class="p-3 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-red-600 peer-checked:border-red-400 peer-checked:font-bold transition">
+                👎 Disagree (-1)
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">2. Tingkat Keyakinan / Confidence (Skala 1 - 5)</label>
+          <div class="grid grid-cols-5 gap-2">
+            <button type="button" onclick="setConfidence(1)" class="conf-btn p-2 rounded bg-slate-950 border border-slate-800 text-xs hover:border-amber-500">1</button>
+            <button type="button" onclick="setConfidence(2)" class="conf-btn p-2 rounded bg-slate-950 border border-slate-800 text-xs hover:border-amber-500">2</button>
+            <button type="button" onclick="setConfidence(3)" class="conf-btn p-2 rounded bg-slate-950 border border-slate-800 text-xs font-bold bg-amber-500 text-slate-950">3</button>
+            <button type="button" onclick="setConfidence(4)" class="conf-btn p-2 rounded bg-slate-950 border border-slate-800 text-xs hover:border-amber-500">4</button>
+            <button type="button" onclick="setConfidence(5)" class="conf-btn p-2 rounded bg-slate-950 border border-slate-800 text-xs hover:border-amber-500">5</button>
+          </div>
+        </div>
+
+        <button type="submit" id="btnSubmitVote" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg">
+          Kirim Suara Terenkripsi & Klaim Insentif Pi
+        </button>
+      </form>
+    </section>
+
+    <!-- SECTION 4: ADMIN & DEVELOPER GOVERNANCE SUITE -->
+    <section id="section-admin" class="hidden bg-slate-900 border border-amber-500/40 rounded-xl p-6 shadow-2xl space-y-6">
+      <div class="border-b border-amber-500/30 pb-3 flex justify-between items-center">
+        <h2 class="text-base font-bold text-amber-400 flex items-center gap-2">
+          🛡️ Admin & Developer Governance Suite
+        </h2>
+        <span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-mono">RESTRICTED ACCESS</span>
+      </div>
+
+      <!-- STATISTIK KAS WALLET & TOTAL VOTER AKTIF -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- WALLET KAS -->
+        <div class="bg-slate-950 p-4 rounded-lg border border-amber-500/30 flex flex-col justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-amber-400 uppercase text-xs">💰 Saldo Wallet App TVOD (Kas Payout)</h3>
+            <p id="appWalletDisplay" class="text-lg font-mono font-bold text-slate-100 mt-0.5">Loading Saldo...</p>
+            <span id="appWalletAddrText" class="text-[10px] font-mono text-slate-400 truncate max-w-xs block">GBBIFANY...3TDQ3WL</span>
+          </div>
+          <button type="button" onclick="checkAppWalletBalance()" class="self-start bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded text-xs transition">
+            🔄 Cek Saldo Wallet
+          </button>
+        </div>
+
+        <!-- JUMLAH VOTER AKTIF PROPOSAL -->
+        <div class="bg-slate-950 p-4 rounded-lg border border-emerald-500/30 flex flex-col justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-emerald-400 uppercase text-xs">👥 Total Voter Aktif (Suara Masuk)</h3>
+            <p id="adminVoterCountDisplay" class="text-lg font-mono font-bold text-slate-100 mt-0.5">0 Voter Aktif</p>
+            <span class="text-[10px] font-mono text-slate-400 block">Jumlah partisipan terverifikasi pada proposal ini</span>
+          </div>
+          <button type="button" onclick="fetchVoterStatsForAdmin()" class="self-start bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded text-xs transition">
+            🔄 Refresh Statistik Voter
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
+          <h3 class="font-bold text-slate-300 uppercase mb-2">Code of Ethics Ban & Reinstatement</h3>
+          <input type="text" id="targetUser" placeholder="Username Pi Target (@user)" class="w-full bg-slate-900 border border-slate-800 rounded p-2 mb-2 text-xs">
+          <div class="flex gap-2">
+            <button type="button" onclick="toggleUserBan(true)" class="flex-1 bg-red-600 hover:bg-red-700 font-bold py-1.5 rounded text-white">Ban / Revoke</button>
+            <button type="button" onclick="toggleUserBan(false)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-1.5 rounded text-white">Reinstate</button>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
+          <h3 class="font-bold text-slate-300 uppercase mb-2">Atur Rate Insentif Pi / Suara</h3>
+          <div class="flex gap-2">
+            <input type="number" id="payoutRate" step="0.1" min="0.8" max="100" value="1.0" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs font-mono">
+            <button type="button" onclick="savePayoutRate()" class="bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded">Simpan</button>
+          </div>
+        </div>
+
+        <!-- MODUL EDIT STATUS VOTER OLEH ADMIN -->
+        <div class="bg-slate-950 p-4 rounded-lg border border-amber-500/30 md:col-span-2">
+          <h3 class="font-bold text-amber-400 uppercase text-xs mb-2">👤 Admin User Management & Override Status</h3>
+          <p class="text-[11px] text-slate-400 mb-3">Cari username voter untuk mengubah Kategori (Owner/Delegator), Hak Payout (50%/100%), atau Peran secara manual.</p>
+          
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="searchAdminUsername" placeholder="Masukkan Username Pi (@username)" class="flex-1 bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-100">
+            <button type="button" onclick="searchVoterForAdminEdit()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded text-xs transition">
+              🔍 Cari Voter
+            </button>
+          </div>
+
+          <!-- Form Edit Voter (Tampil Setelah Dicari) -->
+          <div id="adminVoterEditForm" class="hidden border-t border-slate-800 pt-3 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-1">Kategori Voter</label>
+                <select id="editAdminCategory" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-100">
+                  <option value="owner">Pemilih Tetap (Owner - 100% Payout)</option>
+                  <option value="delegator">Delegator (50% Split Payout)</option>
+                  <option value="witness">Saksi Luar (Witness Bypass)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-1">Role Governance</label>
+                <select id="editAdminRole" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-100">
+                  <option value="Member">Member (Bobot 0.5)</option>
+                  <option value="Group Leader">Group Leader (Bobot 1.0)</option>
+                  <option value="Founder">Founder (Bobot 2.0)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-1">Username Pemilik Asli (Jika Delegator)</label>
+                <input type="text" id="editAdminOwnerUsername" placeholder="@username_pemilik" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-100">
+              </div>
+            </div>
+
+            <button type="button" onclick="saveVoterStatusByAdmin()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-xs transition">
+              💾 Simpan Perubahan Status Voter
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 md:col-span-2">
+          <h3 class="font-bold text-slate-300 uppercase mb-2">Brand Asset Manager (Logo & Cap Stempel Digital)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-slate-400 mb-1">Upload Logo Header (PNG)</label>
+              <input type="file" accept="image/*" onchange="uploadAsset(event, 'logo')" class="text-slate-400 text-[10px] w-full">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Upload Cap Stempel Transparan (PNG)</label>
+              <input type="file" accept="image/*" onchange="uploadAsset(event, 'stamp')" class="text-slate-400 text-[10px] w-full">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PUBLISH SUITE & CONTROLLER PROPOSAL BARU -->
+      <div class="bg-slate-950 p-5 rounded-lg border border-amber-500/30 space-y-4">
+        <div class="border-b border-slate-800 pb-2">
+          <h3 class="font-bold text-amber-400 uppercase text-sm">📝 Publish Suite Proposal Baru</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, atau batalkan proposal yang sedang berjalan.</p>
+        </div>
+
+        <div class="space-y-4 text-xs">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Judul Proposal / Objek Voting</label>
+            <input type="text" id="inputPropTitle" placeholder="Contoh: Ratifikasi Hasil Verifikasi DAO" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Kategori Objek</label>
+              <select id="inputPropCategory" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+                <option value="Verifikasi Objek / Kasus">Verifikasi Objek / Kasus</option>
+                <option value="Pengesahan Proposal Regional">Pengesahan Proposal Regional</option>
+                <option value="Pelanggaran Kode Etik">Pelanggaran Kode Etik</option>
+                <option value="Pengajuan Hibah / Reward">Pengajuan Hibah / Reward</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Durasi Voting (Dalam Jam)</label>
+              <input type="number" id="inputPropDuration" value="24" min="0.1" step="0.5" placeholder="Contoh: 24" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100 font-mono">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Latar Belakang & Deskripsi Objek Voting (Bisa sertakan link jika ada)</label>
+            <textarea id="inputPropDesc" rows="3" placeholder="Jelaskan detail proyek / objek verifikasi secara lengkap..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100"></textarea>
+          </div>
+
+          <div class="border-t border-slate-800 pt-3">
+            <label class="block text-amber-300 font-bold mb-2">📷 GALERI MEDIA & BUKTI FOTO / VIDEO</label>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-slate-300 text-[11px] font-semibold mb-1">📱 Opsi 1: Upload Langsung dari Galeri HP / Laptop (Bisa Pilih Banyak Foto)</label>
+                <input type="file" id="inputPropFileImages" accept="image/*" multiple class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-300 text-xs cursor-pointer">
+                <span id="galleryFilesCount" class="text-[10px] text-amber-400 font-mono mt-1 block"></span>
+              </div>
+
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-1">Opsi 2: Atau Masukkan Link/URL Foto Eksternal (Pisahkan koma jika beberapa)</label>
+                <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg, https://domain.com/foto2.jpg" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+              </div>
+
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-1">URL Video Bukti (Support YouTube Embed / Link MP4 Direct)</label>
+                <input type="text" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-100">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3 mt-2">
+            <button type="button" onclick="publishNewProposal(event)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg cursor-pointer">
+              🚀 Terbitkan Proposal & Mulai Timer Voting
+            </button>
+            <button type="button" onclick="cancelActiveProposal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg text-xs transition shadow-lg cursor-pointer">
+              ⛔ Batalkan / Tutup Proposal Aktif
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: HYBRID OFFICIAL MINUTES & DIGITAL CERTIFICATE -->
+    <section id="section-bap" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="border-b border-slate-800 pb-3">
+        <h2 class="text-xl font-bold text-slate-100">Generator Dokumen Resmi PDF & Sertifikat</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Menghasilkan dokumen Official Minutes (English) untuk Pi Core Team dan Sertifikat Verifikasi SHA-256 untuk Pengaju Objek Voting.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold p-4 rounded-lg text-xs transition flex flex-col items-center gap-2">
+          <span class="text-2xl">📄</span>
+          <span>Download Official Minutes PDF (English)</span>
+        </button>
+        <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold p-4 rounded-lg text-xs transition flex flex-col items-center gap-2">
+          <span class="text-2xl">🎓</span>
+          <span>Download TVOD Digital Verification Certificate</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SECTION 6: TOUCHSCREEN SIGNATURES -->
+    <section id="section-signatures" class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+      <div class="border-b border-slate-800 pb-3">
+        <h2 class="text-xl font-bold text-slate-100">Tanda Tangan Digital 4 Pejabat TVOD</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Tanda tangan dari Chairman, Witness, Inspector, dan Country Head untuk disematkan di Official Minutes PDF.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-amber-400 mb-1">1. Chairman (@afifmasfiqo #911)</label>
+          <canvas id="sig-chairman" class="signature-pad w-full h-28"></canvas>
+          <button type="button" onclick="clearOfficerSig('sig-chairman')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-amber-400 mb-1">2. Witness (@insya)</label>
+          <canvas id="sig-witness" class="signature-pad w-full h-28"></canvas>
+          <button type="button" onclick="clearOfficerSig('sig-witness')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-amber-400 mb-1">3. Inspector (@Nalaktak #999)</label>
+          <canvas id="sig-inspector" class="signature-pad w-full h-28"></canvas>
+          <button type="button" onclick="clearOfficerSig('sig-inspector')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-amber-400 mb-1">4. Country Head (@Rasj81)</label>
+          <canvas id="sig-country-head" class="signature-pad w-full h-28"></canvas>
+          <button type="button" onclick="clearOfficerSig('sig-country-head')" class="text-[10px] text-red-400 hover:underline mt-1">Clear</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+    <p>THE VOICE OF DAO (TVOD) · Web3 Verification & Voting Infrastructure</p>
+    <p class="text-[10px] text-slate-600 mt-1">Konten ini dibuat semata-mata untuk tujuan hiburan, berbagi panduan simulasi permainan digital, serta edukasi komunitas.</p>
+  </footer>
+
+  <!-- LOAD EXTERNAL APP LOGIC SCRIPT -->
+  <script src="/app.js"></script>
+
+</body>
+</html>
