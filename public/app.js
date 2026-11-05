@@ -6,6 +6,9 @@ const $ = (selector) => document.querySelector(selector);
 // PUBLIC KEY WALLET APP TVOD (KAS OPERASIONAL)
 const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
 
+// DAFTAR ADMIN & PENGURUS BERWENANG (KETUA, FOUNDER, SAKSI, COUNTRY HEAD)
+const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak", "insya", "Rasj81"];
+
 // Helper Memastikan URL Berawalan HTTPS
 function ensureHttps(url) {
   if (!url) return "";
@@ -233,8 +236,6 @@ let uploadedGalleryBase64Images = [];
 
 let votingEndTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
 let countdownInterval = null;
-
-const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak"];
 
 let activeProposal = {
   id: "TVOD-PROP-2026-001",
@@ -728,13 +729,9 @@ async function publishNewProposal(e) {
   const rawVideo = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
   activeProposal.videoUrl = rawVideo ? ensureHttps(rawVideo) : "";
 
-  // RENDERING KE TAMPILAN MATERI VOTING
   renderProposalMaterials();
-
-  // REFRESH STATISTIK VOTER (JADI 0 KARENA PROPOSAL BARU)
   await fetchVoterStatsForAdmin();
 
-  // SIMPAN KE SUPABASE DATABASE
   const isSaved = await saveProposalToSupabase({
     id: activeProposal.id,
     title: activeProposal.title,
@@ -1001,7 +998,6 @@ async function handleCastVote(e) {
     voter_signature_base64: null
   });
 
-  // REFRESH STATISTIK VOTER DI ADMIN SUITE
   await fetchVoterStatsForAdmin();
 
   const payoutRateEl = $("#payoutRate");
@@ -1104,6 +1100,7 @@ async function addOfficialStamp(pdf, x, y, width = 48, height = 48) {
   }
 }
 
+// --- GENERATE OFFICIAL MINUTES PDF (BISA TANPA TTD PAD / UNTUHKAN OFFLINE) ---
 async function generateOfficialMinutesPDF() {
   if (!window.jspdf?.jsPDF) {
     alert("Pustaka PDF tidak tersedia.");
@@ -1180,6 +1177,7 @@ async function generateOfficialMinutesPDF() {
     pdf.text(`${s.title}: ${s.name}`, s.x, s.y);
     pdf.line(s.x, s.y + 22, s.x + 70, s.y + 22);
 
+    // Cek jika pad TTD diisi di app, jika kosong garis TTD tetap disediakan untuk TTD offline/basah
     if (signaturePads[s.id] && !signaturePads[s.id].isEmpty()) {
       try {
         pdf.addImage(signaturePads[s.id].toDataURL("image/png"), "PNG", s.x, s.y + 2, 60, 18);
@@ -1203,6 +1201,7 @@ async function generateOfficialMinutesPDF() {
   pdf.save(`TVOD_Official_Minutes_${activeProposal.id}.pdf`);
 }
 
+// --- GENERATE CERTIFICATE PDF ---
 async function generateCertificatePDF() {
   if (!window.jspdf?.jsPDF) {
     alert("Pustaka PDF tidak tersedia.");
