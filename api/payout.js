@@ -1,9 +1,9 @@
-// api/payout.js - Backend Vercel Serverless Function dengan Log Otomatis ke Supabase
+// api/payout.js - Vercel Serverless Function TVOD Payout Engine
 
-const SUPABASE_URL = "https://tdtybxriphsdtojkrevp.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://tdtybxriphsdtojkrevp.supabase.co";
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
 
-// Helper fungsi untuk mencatat log payout ke Supabase secara langsung
+// Helper log payout ke Supabase REST API
 async function logPayoutToSupabase(logData) {
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/payout_logs`, {
@@ -16,125 +16,246 @@ async function logPayoutToSupabase(logData) {
       },
       body: JSON.stringify(logData)
     });
-    console.log("✅ Log payout berhasil dicatat ke Supabase:", logData.username);
+    console.log("✅ Log payout dicatat ke Supabase:", logData.username);
   } catch (err) {
-    console.error("❌ Gagal menyimpan log payout ke Supabase:", err);
+    console.error("❌ Gagal mencatat log payout ke Supabase:", err);
+  }
+}
+
+// Helper fetch data voter dari Supabase
+async function fetchVoterProfile(username) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/voters?username=eq.${encodeURIComponent(username)}&select=*`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data && data.length > 0 ? data[0] : null;
+  } catch (err) {
+    console.error("Fetch Voter Error:", err);
+    return null;
+  }
+}
+
+// Helper simpan pending rewards untuk pemilik Garuda yang belum mendaftar
+async function savePendingReward(rewardData) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/pending_rewards`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(rewardData)
+    });
+  } catch (err) {
+    console.error("Save Pending Reward Error:", err);
   }
 }
 
 export default async function handler(req, res) {
-  // 1. Validasi Method HTTP
-  if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      success: false, 
-      message: 'Method Not Allowed. Gunakan POST.' 
-    });
+  // 1. Handling CORS Preflight
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  // 2. Ambil payload request
-  const { walletAddress, amount, username, voteHash } = req.body || {};
+  // 2. Validasi HTTP Method
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method Not Allowed. Gunakan POST.' });
+  }
+
+  const { walletAddress, amount, username, voteHash, proposalId } = req.body || {};
 
   if (!walletAddress || !amount) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Wallet Address dan Amount wajib diisi.' 
-    });
+    return res.status(400).json({ success: false, message: 'Wallet Address dan Amount wajib diisi.' });
   }
 
-  // 3. Ambil API Key Pi Network
+  const cleanUsername = (username || 'Anonymous').replace('@', '');
+  const baseAmount = parseFloat(amount) || 1.0;
   const PI_API_KEY = process.env.PI_API_KEY;
 
-  // Jika PI_API_KEY belum dikonfigurasi di Vercel, tetap catat ke Supabase dengan status SIMULATED/PENDING
-  if (!PI_API_KEY) {
-    const simTxId = `SIMULATED-${Date.now()}`;
-    await logPayoutToSupabase({
-      username: username || 'Anonymous',
-      wallet_address: walletAddress,
-      amount: parseFloat(amount),
-      vote_hash: voteHash || '',
-      status: 'SIMULATED',
-      payment_id: simTxId
-    });
-
-    return res.status(200).json({ 
-      success: true, 
-      message: `Suara tersimpan. Payout ${amount} Pi dicatat dalam status simulasi (PI_API_KEY belum dipasang di Vercel).`,
-      paymentId: simTxId
-    });
-  }
-
   try {
-    // 4. Kirim Permintaan Payout ke Pi Platform Server API
-    const piResponse = await fetch('https://api.minepi.com/v2/payments', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${PI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        payment: {
-          amount: parseFloat(amount),
-          memo: `Insentif Voting TVOD - Hash: ${(voteHash || '').substring(0, 8)}`,
-          metadata: { voteHash, username },
-          uid: username || walletAddress
-        }
-      })
-    });
+    // 3. Ambil Kategori Voter dari Supabase
+    const voter = await fetchVoterProfile(cleanUsername);
+    const category = voter ? voter.category : 'owner';
 
-    const data = await piResponse.json();
-
-    if (!piResponse.ok) {
-      // Catat status FAILED ke Supabase
+    // 🔴 4. ATURAN KHUSUS SAKSI (WITNESS): TIDAK ADA PAYOUT
+    if (category === 'witness') {
       await logPayoutToSupabase({
-        username: username || 'Anonymous',
+        username: cleanUsername,
         wallet_address: walletAddress,
-        amount: parseFloat(amount),
+        amount: 0,
         vote_hash: voteHash || '',
-        status: 'FAILED',
-        payment_id: null
+        status: 'WITNESS_EXEMPT',
+        payment_id: `EXEMPT-${Date.now()}`
       });
 
-      return res.status(piResponse.status).json({ 
-        success: false, 
-        message: data.message || 'Gagal memproses pembayaran melalui Pi Platform API.',
-        error: data 
+      return res.status(200).json({
+        success: true,
+        category: 'witness',
+        message: `Suara Saksi @${cleanUsername} terverifikasi. Saksi tidak menerima insentif voting (Witness Exempt).`
       });
     }
 
-    const paymentId = data.identifier || data.id || `TX-${Date.now()}`;
+    // 🟢 5. HITUNG PORSI PAYOUT (OWNER = 100%, DELEGATOR = 50% SPLIT)
+    let delegatorAmount = baseAmount;
+    let ownerAmount = 0;
+    let targetOwnerUsername = null;
 
-    // 5. Catat status SUCCESS ke Supabase
+    if (category === 'delegator') {
+      delegatorAmount = baseAmount * 0.5;
+      ownerAmount = baseAmount * 0.5;
+      targetOwnerUsername = voter && voter.owner_username ? voter.owner_username.replace('@', '') : null;
+    }
+
+    // 🔵 6. EKSEKUSI / SIMULASI PAYOUT UNTUK VOTER (DELEGATOR / OWNER TETAP)
+    let paymentId = `SIMULATED-${Date.now()}`;
+    let isLive = false;
+
+    if (PI_API_KEY) {
+      // Payout Live via Pi Platform API
+      const piResponse = await fetch('https://api.minepi.com/v2/payments', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Key ${PI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          payment: {
+            amount: delegatorAmount,
+            memo: `Insentif Voting TVOD (${category.toUpperCase()}) - Hash: ${(voteHash || '').substring(0, 8)}`,
+            metadata: { voteHash, username: cleanUsername, category },
+            uid: cleanUsername || walletAddress
+          }
+        })
+      });
+
+      const piData = await piResponse.json();
+
+      if (!piResponse.ok) {
+        await logPayoutToSupabase({
+          username: cleanUsername,
+          wallet_address: walletAddress,
+          amount: delegatorAmount,
+          vote_hash: voteHash || '',
+          status: 'FAILED',
+          payment_id: null
+        });
+
+        return res.status(piResponse.status).json({
+          success: false,
+          message: piData.message || 'Gagal memproses pembayaran melalui Pi Platform API.',
+          error: piData
+        });
+      }
+
+      paymentId = piData.identifier || piData.id || `TX-${Date.now()}`;
+      isLive = true;
+    }
+
+    // Catat Log Utama untuk Voter
     await logPayoutToSupabase({
-      username: username || 'Anonymous',
+      username: cleanUsername,
       wallet_address: walletAddress,
-      amount: parseFloat(amount),
+      amount: delegatorAmount,
       vote_hash: voteHash || '',
-      status: 'SUCCESS',
+      status: isLive ? 'SUCCESS' : 'SIMULATED',
       payment_id: paymentId
     });
 
+    // 🟡 7. JIKA DELEGATOR: PROSES PORSI 50% UNTUK PEMILIK ASLI GARUDA
+    if (category === 'delegator' && targetOwnerUsername) {
+      const ownerProfile = await fetchVoterProfile(targetOwnerUsername);
+
+      if (ownerProfile && ownerProfile.wallet_address) {
+        // Pemilik Asli Terdaftar -> Catat Log / Kirim Payout
+        let ownerTxId = `SIMULATED-ROYALTY-${Date.now()}`;
+
+        if (PI_API_KEY) {
+          try {
+            const piOwnerRes = await fetch('https://api.minepi.com/v2/payments', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Key ${PI_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                payment: {
+                  amount: ownerAmount,
+                  memo: `Royalti Garuda 50% TVOD dari Delegator @${cleanUsername}`,
+                  metadata: { voteHash, delegator: cleanUsername },
+                  uid: targetOwnerUsername
+                }
+              })
+            });
+            const piOwnerData = await piOwnerRes.json();
+            if (piOwnerRes.ok) {
+              ownerTxId = piOwnerData.identifier || piOwnerData.id || ownerTxId;
+            }
+          } catch (e) {
+            console.error("Owner Payout Error:", e);
+          }
+        }
+
+        await logPayoutToSupabase({
+          username: targetOwnerUsername,
+          wallet_address: ownerProfile.wallet_address,
+          amount: ownerAmount,
+          vote_hash: voteHash || '',
+          status: PI_API_KEY ? 'SUCCESS_ROYALTY' : 'SIMULATED_ROYALTY',
+          payment_id: ownerTxId
+        });
+      } else {
+        // Pemilik Asli Belum Terdaftar -> Simpan Saldo ke Pending Rewards
+        await savePendingReward({
+          owner_username: targetOwnerUsername,
+          amount: ownerAmount,
+          source_vote_hash: voteHash || '',
+          source_delegator: cleanUsername,
+          status: 'UNCLAIMED',
+          created_at: new Date().toISOString()
+        });
+      }
+    }
+
     return res.status(200).json({
       success: true,
-      message: `Insentif sebesar ${amount} Pi berhasil dikirim ke Wallet ${walletAddress}`,
+      category: category,
+      amountPaid: delegatorAmount,
+      message: category === 'delegator'
+        ? `Suara terkonfirmasi. Insentif Delegator (${delegatorAmount} Pi) dikirim ke Wallet, dan 50% Royalti (${ownerAmount} Pi) dialokasikan ke Pemilik Asli (@${targetOwnerUsername}).`
+        : `Insentif sebesar ${delegatorAmount} Pi berhasil dikirim ke Wallet ${walletAddress}`,
       paymentId: paymentId
     });
 
   } catch (err) {
     console.error("Payout Serverless Error:", err);
 
-    // Catat status ERROR ke Supabase
     await logPayoutToSupabase({
-      username: username || 'Anonymous',
+      username: cleanUsername,
       wallet_address: walletAddress,
-      amount: parseFloat(amount),
+      amount: baseAmount,
       vote_hash: voteHash || '',
       status: 'ERROR',
       payment_id: null
     });
 
-    return res.status(500).json({ 
-      success: false, 
-      message: err.message || 'Terjadi kesalahan pada server backend.' 
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Terjadi kesalahan pada server backend.'
     });
   }
 }
