@@ -1,9 +1,8 @@
 // api/payout.js - Vercel Serverless Function TVOD Payout Engine
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://tdtybxriphsdtojkrevp.supabase.co";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
+const SUPABASE_ANON_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
 
-// Helper log payout ke Supabase REST API
 async function logPayoutToSupabase(logData) {
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/payout_logs`, {
@@ -16,13 +15,11 @@ async function logPayoutToSupabase(logData) {
       },
       body: JSON.stringify(logData)
     });
-    console.log("✅ Log payout dicatat ke Supabase:", logData.username);
   } catch (err) {
     console.error("❌ Gagal mencatat log payout ke Supabase:", err);
   }
 }
 
-// Helper insert antrean ke payout_queue
 async function insertPayoutQueue(queueData) {
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/payout_queue`, {
@@ -40,7 +37,6 @@ async function insertPayoutQueue(queueData) {
   }
 }
 
-// Helper fetch data voter dari Supabase
 async function fetchVoterProfile(username) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/voters?username=eq.${encodeURIComponent(username)}&select=*`, {
@@ -58,7 +54,6 @@ async function fetchVoterProfile(username) {
   }
 }
 
-// Helper simpan pending rewards untuk pemilik Garuda yang belum mendaftar
 async function savePendingReward(rewardData) {
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/pending_rewards`, {
@@ -77,7 +72,6 @@ async function savePendingReward(rewardData) {
 }
 
 export default async function handler(req, res) {
-  // 1. Handling CORS Preflight
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -90,7 +84,6 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // 2. Validasi HTTP Method
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method Not Allowed. Gunakan POST.' });
   }
@@ -107,11 +100,10 @@ export default async function handler(req, res) {
   const PI_API_KEY = process.env.PI_API_KEY;
 
   try {
-    // 3. Ambil Kategori Voter dari Supabase
     const voter = await fetchVoterProfile(cleanUsername);
     const category = voter ? voter.category : 'owner';
 
-    // 4. ATURAN KHUSUS SAKSI (WITNESS): TIDAK ADA PAYOUT
+    // 1. ATURAN KHUSUS SAKSI (WITNESS EXEMPT)
     if (category === 'witness') {
       await logPayoutToSupabase({
         username: cleanUsername,
@@ -129,7 +121,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 5. HITUNG PORSI PAYOUT (OWNER = 100%, DELEGATOR = 50% SPLIT)
+    // 2. HITUNG PORSI PAYOUT
     let delegatorAmount = baseAmount;
     let ownerAmount = 0;
     let targetOwnerUsername = null;
@@ -140,7 +132,7 @@ export default async function handler(req, res) {
       targetOwnerUsername = voter && voter.owner_username ? voter.owner_username.replace('@', '') : null;
     }
 
-    // 6. SIMPAN KE PAYOUT QUEUE
+    // 3. MASUKKAN KE PAYOUT QUEUE
     await insertPayoutQueue({
       proposal_id: currentProposalId,
       vote_hash: voteHash || '',
@@ -151,7 +143,6 @@ export default async function handler(req, res) {
       status: PI_API_KEY ? 'QUEUED' : 'SIMULATED'
     });
 
-    // 7. EKSEKUSI / SIMULASI PAYOUT UNTUK VOTER
     let paymentId = `SIMULATED-${Date.now()}`;
     let isLive = false;
 
@@ -195,7 +186,6 @@ export default async function handler(req, res) {
       isLive = true;
     }
 
-    // Catat Log Utama untuk Voter
     await logPayoutToSupabase({
       username: cleanUsername,
       wallet_address: walletAddress,
@@ -205,7 +195,7 @@ export default async function handler(req, res) {
       payment_id: paymentId
     });
 
-    // 8. JIKA DELEGATOR: PROSES PORSI 50% UNTUK PEMILIK ASLI GARUDA
+    // 4. JIKA DELEGATOR: ALOKASI 50% ROYALTIES KE PEMILIK GARUDA
     if (category === 'delegator' && targetOwnerUsername) {
       const ownerProfile = await fetchVoterProfile(targetOwnerUsername);
 
