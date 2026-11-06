@@ -141,13 +141,13 @@ async function fetchActiveProposalFromSupabase() {
       const display = $("#countdownDisplay");
       if (display) {
         display.textContent = "⚠️ PROPOSAL DIBATALKAN / DITUTUP";
-        display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse";
+        display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-xs px-3 py-1 rounded-full font-mono font-bold animate-pulse";
       }
       const btn = $("#btnSubmitVote");
       if (btn) {
         btn.disabled = true;
         btn.innerText = "⛔ Proposal Dibatalkan / Ditutup Admin";
-        btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
+        btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
       }
     } else {
       startCountdownTimer();
@@ -286,7 +286,7 @@ async function initialize() {
   }
 }
 
-function compressAndResizeImage(file, maxWidth = 800, quality = 0.7) {
+function compressAndResizeImage(file, maxWidth = 1000, quality = 0.8) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -330,7 +330,7 @@ async function handleGalleryImagesSelect(event) {
   if (countSpan) countSpan.textContent = `⏳ Mengompres ${files.length} foto dari Galeri...`;
 
   try {
-    const promises = Array.from(files).map((file) => compressAndResizeImage(file, 800, 0.7));
+    const promises = Array.from(files).map((file) => compressAndResizeImage(file, 1000, 0.8));
     uploadedGalleryBase64Images = await Promise.all(promises);
     if (countSpan) countSpan.textContent = `📷 ${uploadedGalleryBase64Images.length} foto berhasil dikompresi & siap diterbitkan.`;
   } catch (err) {
@@ -352,12 +352,12 @@ function startCountdownTimer() {
       clearInterval(countdownInterval);
       if (display) {
         display.textContent = "⚠️ VOTING TELAH BERAKHIR";
-        display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse";
+        display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-xs px-3 py-1 rounded-full font-mono font-bold animate-pulse";
       }
       if (btn) {
         btn.disabled = true;
         btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis)";
-        btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
+        btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
       }
       return;
     }
@@ -459,7 +459,7 @@ const demoLoginBtn = $("#demo-login-button");
 if (demoLoginBtn) {
   demoLoginBtn.addEventListener("click", () => {
     renderUser({ username: "afifmasfiqo", demo: true });
-    alert("Masuk ke Mode Simulasi Demo sebagai @afifmasfiqo.");
+    alert("Masuk ke Mode Simulasi Demo.");
   });
 }
 
@@ -561,6 +561,7 @@ function handleOnboarding(e) {
   alert(`✅ Registrasi Berhasil!\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}\nData tersimpan ke Supabase Database.`);
 }
 
+// 📸 TAMPILKAN GAMBAR OBJEK UTUH TANPA TERPOTONG (OBJECT-CONTAIN)
 function renderProposalMaterials() {
   if ($("#displayPropTitle")) $("#displayPropTitle").textContent = activeProposal.title;
   if ($("#displayPropCategory")) $("#displayPropCategory").textContent = "🏷️ Kategori: " + activeProposal.category;
@@ -571,9 +572,9 @@ function renderProposalMaterials() {
   const galleryContainer = $("#mediaGalleryContainer");
   if (galleryContainer && activeProposal.images) {
     galleryContainer.innerHTML = activeProposal.images.map((imgUrl, idx) => `
-      <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-center">
-        <span class="text-[10px] font-semibold text-slate-400 block mb-1">Bukti Foto #${idx + 1}:</span>
-        <img src="${imgUrl}" alt="Bukti Foto #${idx + 1}" class="w-full h-44 object-cover rounded border border-slate-800">
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 sm:p-4 text-center shadow-lg">
+        <span class="text-xs sm:text-sm font-semibold text-amber-400 block mb-2">Bukti Foto #${idx + 1}:</span>
+        <img src="${imgUrl}" alt="Bukti Foto #${idx + 1}" class="w-full h-auto max-h-[650px] object-contain rounded-xl border border-slate-800 bg-slate-900/60 shadow">
       </div>
     `).join("");
   }
@@ -646,7 +647,7 @@ async function publishNewProposal(e) {
   if (btnSubmit) {
     btnSubmit.disabled = false;
     btnSubmit.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-    btnSubmit.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-lg text-xs transition shadow-lg";
+    btnSubmit.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-4 rounded-xl text-sm transition shadow-lg";
   }
   startCountdownTimer();
 
@@ -703,14 +704,14 @@ async function cancelActiveProposal() {
   const display = $("#countdownDisplay");
   if (display) {
     display.textContent = "⚠️ PROPOSAL DIBATALKAN / DITUTUP";
-    display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse";
+    display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-xs px-3 py-1 rounded-full font-mono font-bold animate-pulse";
   }
 
   const btn = $("#btnSubmitVote");
   if (btn) {
     btn.disabled = true;
     btn.innerText = "⛔ Proposal Dibatalkan / Ditutup Admin";
-    btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
+    btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
   }
 
   if (supabaseClient && activeProposal.id) {
@@ -771,7 +772,7 @@ async function handleCastVote(e) {
   if (activeProposal.status === 'CANCELLED' || new Date().getTime() > votingEndTime.getTime()) {
     if (btn) {
       btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis / Dibatalkan)";
-      btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-xs cursor-not-allowed";
+      btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
     }
     alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin.");
     return;
@@ -792,7 +793,7 @@ async function handleCastVote(e) {
       if (existingVotes && existingVotes.length > 0) {
         if (btn) {
           btn.innerText = "✅ Anda Sudah Mengirim Suara";
-          btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3 rounded-lg text-xs border border-amber-500/30 cursor-not-allowed";
+          btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
         }
         alert("⛔ AKSES VOTING DITOLAK!\n\nAnda (@" + currentUsername + ") sudah memberikan suara untuk proposal ini.");
         return;
@@ -885,7 +886,7 @@ async function handleCastVote(e) {
   if (btn) {
     btn.disabled = true;
     btn.innerText = "✅ Anda Sudah Mengirim Suara";
-    btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3 rounded-lg text-xs border border-amber-500/30 cursor-not-allowed";
+    btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
   }
 }
 
@@ -939,26 +940,31 @@ async function addOfficialStamp(pdf, x, y, width = 48, height = 48) {
   }
 }
 
-// HELPER DOKUMEN PDF UNTUK PI BROWSER WEBVIEW
+// 🖨️ PRATINJAU & DOKUMEN VIEWER SELULER PI BROWSER
 function openOrDownloadPdf(pdf, filename) {
   try {
-    pdf.save(filename);
+    const dataUri = pdf.output('datauristring');
+    const modal = $("#pdfDownloadModal");
+    const downloadLink = $("#pdfModalDownloadBtn");
+    const title = $("#pdfModalTitle");
+    const imgPreview = $("#pdfModalImagePreview");
+
+    if (modal && downloadLink && imgPreview) {
+      if (title) title.textContent = filename;
+      downloadLink.href = dataUri;
+      downloadLink.setAttribute("download", filename);
+
+      // Konversi PDF Data URL menjadi Gambar PNG High-Res untuk Pratinjau HP
+      const pdfData = pdf.output('dataurlstring');
+      imgPreview.src = pdfData;
+
+      modal.classList.remove("hidden");
+    } else {
+      window.open(dataUri, '_blank');
+    }
   } catch (e) {
-    console.warn("pdf.save fallback:", e);
-  }
-
-  const dataUri = pdf.output('datauristring');
-  const modal = $("#pdfDownloadModal");
-  const downloadLink = $("#pdfModalDownloadBtn");
-  const title = $("#pdfModalTitle");
-
-  if (modal && downloadLink) {
-    if (title) title.textContent = filename;
-    downloadLink.href = dataUri;
-    downloadLink.setAttribute("download", filename);
-    modal.classList.remove("hidden");
-  } else {
-    window.open(dataUri, '_blank');
+    console.warn("openOrDownloadPdf Error:", e);
+    alert("Dokumen PDF berhasil digenerate!");
   }
 }
 
@@ -966,9 +972,24 @@ function closePdfModal() {
   const modal = $("#pdfDownloadModal");
   if (modal) modal.classList.add("hidden");
 }
-window.closePdfModal = closePdfModal;
 
-// 🖨️ GENERATE OFFICIAL MINUTES PDF
+function printPdfModal() {
+  const imgPreview = $("#pdfModalImagePreview");
+  if (imgPreview && imgPreview.src) {
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(`<img src="${imgPreview.src}" style="width:100%;">`);
+      printWin.document.close();
+      printWin.focus();
+      printWin.print();
+    }
+  }
+}
+
+window.closePdfModal = closePdfModal;
+window.printPdfModal = printPdfModal;
+
+// 📄 GENERATE OFFICIAL MINUTES PDF
 async function generateOfficialMinutesPDF() {
   try {
     const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
