@@ -20,6 +20,109 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+// Global State
+let isPiSDKInitialized = false;
+let currentUser = null;
+let activeUser = {
+  username: "",
+  walletAddress: "",
+  category: "owner",
+  role: "Member",
+  chapter: "GLOBAL",
+  garudaId: null,
+  garudaHash: null,
+  ownerUsername: null,
+  delegatedNftType: null,
+  delegatedHashes: []
+};
+let currentConfidence = 3;
+const signaturePads = {};
+let uploadedGalleryBase64Images = [];
+
+let votingEndTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+let countdownInterval = null;
+
+let activeProposal = {
+  id: "TVOD-PROP-2026-001",
+  title: "Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD",
+  proposerEntity: "TVOD Development Team",
+  proposerUsername: "TVOD Development Team",
+  category: "Verifikasi Objek / Kasus",
+  author: "TVOD Development Team",
+  date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
+  description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.\nHarap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.",
+  durationHours: 24,
+  images: [
+    "https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"
+  ],
+  videoUrl: "",
+  totalVotes: 0,
+  netScore: 0,
+  agreeCount: 0,
+  neutralCount: 0,
+  disagreeCount: 0,
+  avgConfidence: 0,
+  status: "ACTIVE"
+};
+
+// ⚡ INISIALISASI PI SDK SATU KALI KHUSUS UNTUK PI BROWSER
+async function initPiSDK() {
+  if (isPiSDKInitialized) return true;
+  if (!window.Pi) return false;
+  try {
+    await window.Pi.init({ version: "2.0", sandbox: true });
+    isPiSDKInitialized = true;
+    console.log("✅ Pi SDK Berhasil Diinisialisasi");
+    return true;
+  } catch (err) {
+    console.warn("Pi SDK Init Warning:", err);
+    return false;
+  }
+}
+
+async function handlePiAuth() {
+  const initialized = await initPiSDK();
+  if (!initialized) {
+    throw new Error("Pi SDK belum siap. Pastikan dApp dibuka di dalam Pi Browser.");
+  }
+
+  const auth = await window.Pi.authenticate(["username", "payments"], (payment) => {
+    console.warn("Incomplete payment found:", payment);
+  });
+
+  if (!auth || !auth.accessToken) {
+    throw new Error("Gagal memperoleh otentikasi dari Pi SDK.");
+  }
+
+  const verifiedUser = {
+    username: auth.user.username,
+    uid: auth.user.uid,
+    demo: false
+  };
+
+  // Simpan Sesi Login di LocalStorage agar tidak hilang saat refresh
+  localStorage.setItem("tvod_user_session", JSON.stringify(verifiedUser));
+
+  renderUser(verifiedUser);
+  setConnection("● Verified by Pi SDK", true);
+  return verifiedUser;
+}
+
+function checkSavedSession() {
+  const saved = localStorage.getItem("tvod_user_session");
+  if (saved) {
+    try {
+      const user = JSON.parse(saved);
+      if (user && user.username) {
+        renderUser(user);
+        setConnection(user.demo ? "● Mode Demo" : "● Verified by Pi SDK", true);
+      }
+    } catch (e) {
+      console.warn("Gagal membaca saved session:", e);
+    }
+  }
+}
+
 async function saveVoterToSupabase(voterData) {
   if (!supabaseClient) return;
   try {
@@ -78,7 +181,6 @@ async function fetchVoterProfileFromSupabase(username) {
   }
 }
 
-// VERIFIKASI STATISTIK VOTER & SKOR REAL-TIME DARI SUPABASE
 async function fetchVoterStatsForAdmin() {
   const display = $("#adminVoterCountDisplay");
   if (!supabaseClient || !activeProposal.id) {
@@ -188,50 +290,6 @@ async function fetchActiveProposalFromSupabase() {
   }
 }
 
-// Global State
-let currentUser = null;
-let activeUser = {
-  username: "",
-  walletAddress: "",
-  category: "owner",
-  role: "Member",
-  chapter: "GLOBAL",
-  garudaId: null,
-  garudaHash: null,
-  ownerUsername: null,
-  delegatedNftType: null,
-  delegatedHashes: []
-};
-let currentConfidence = 3;
-const signaturePads = {};
-let uploadedGalleryBase64Images = [];
-
-let votingEndTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-let countdownInterval = null;
-
-let activeProposal = {
-  id: "TVOD-PROP-2026-001",
-  title: "Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD",
-  proposerEntity: "TVOD Development Team",
-  proposerUsername: "TVOD Development Team",
-  category: "Verifikasi Objek / Kasus",
-  author: "TVOD Development Team",
-  date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
-  description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.\nHarap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.",
-  durationHours: 24,
-  images: [
-    "https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"
-  ],
-  videoUrl: "",
-  totalVotes: 0,
-  netScore: 0,
-  agreeCount: 0,
-  neutralCount: 0,
-  disagreeCount: 0,
-  avgConfidence: 0,
-  status: "ACTIVE"
-};
-
 async function checkAppWalletBalance() {
   const display = $("#appWalletDisplay");
   const addrText = $("#appWalletAddrText");
@@ -286,15 +344,11 @@ async function initialize() {
   renderProposalMaterials();
   startCountdownTimer();
 
-  await fetchActiveProposalFromSupabase();
+  // Inisialisasi SDK & Pulihkan Sesi Login Terakhir
+  await initPiSDK();
+  checkSavedSession();
 
-  try {
-    if (window.Pi) {
-      await handlePiAuth();
-    }
-  } catch (e) {
-    console.warn("Auto sign-in pending user action:", e);
-  }
+  await fetchActiveProposalFromSupabase();
 }
 
 function compressAndResizeImage(file, maxWidth = 1000, quality = 0.8) {
@@ -425,42 +479,17 @@ function renderUser(user) {
   }
 }
 
-async function handlePiAuth() {
-  if (!window.Pi) {
-    throw new Error("Pi SDK belum dimuat. Buka di dalam Pi Browser.");
-  }
-
-  await window.Pi.init({ version: "2.0", sandbox: true });
-
-  const auth = await window.Pi.authenticate(["username", "payments"], (payment) => {
-    console.warn("Incomplete payment found:", payment);
-  });
-
-  if (!auth || !auth.accessToken) {
-    throw new Error("Gagal memperoleh token otentikasi Pi SDK.");
-  }
-
-  const verifiedUser = {
-    username: auth.user.username,
-    uid: auth.user.uid,
-    demo: false
-  };
-
-  renderUser(verifiedUser);
-  setConnection("● Verified by Pi SDK", true);
-  return verifiedUser;
-}
-
 const piLoginBtn = $("#pi-login-button");
 if (piLoginBtn) {
-  piLoginBtn.addEventListener("click", async () => {
+  piLoginBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
     piLoginBtn.disabled = true;
     try {
       const user = await handlePiAuth();
       alert(`Selamat datang @${user.username}! Otentikasi Pi SDK Berhasil.`);
     } catch (error) {
       alert("Pi Login Notice: " + error.message);
-    } fontally {
+    } finally {
       piLoginBtn.disabled = false;
     }
   });
@@ -468,8 +497,11 @@ if (piLoginBtn) {
 
 const demoLoginBtn = $("#demo-login-button");
 if (demoLoginBtn) {
-  demoLoginBtn.addEventListener("click", () => {
-    renderUser({ username: "afifmasfiqo", demo: true });
+  demoLoginBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    const demoUser = { username: "afifmasfiqo", demo: true };
+    localStorage.setItem("tvod_user_session", JSON.stringify(demoUser));
+    renderUser(demoUser);
     alert("Masuk ke Mode Simulasi Demo.");
   });
 }
@@ -965,7 +997,7 @@ window.closePdfModal = closePdfModal;
 window.printPdfModal = printPdfModal;
 window.copyDocumentText = copyDocumentText;
 
-// 📄 GENERATE OFFICIAL MINUTES DOKUMEN FORMAT BARU (MENGADOPSI CONTOH BUKTI)
+// 📄 GENERATE OFFICIAL MINUTES DOKUMEN FORMAT BARU
 async function generateOfficialMinutesPDF() {
   await fetchVoterStatsForAdmin();
 
@@ -983,7 +1015,6 @@ async function generateOfficialMinutesPDF() {
   const verdictText = netScoreVal > 0 ? "AGREE" : (netScoreVal < 0 ? "DISAGREE" : "NEUTRAL / TIED");
   const integrityHash = window.CryptoJS ? window.CryptoJS.SHA256(`TVOD-HASH-${activeProposal.id}`).toString().substring(0, 16).toUpperCase() : "8F97D023B35F5C67";
 
-  // Ambil Tanda Tangan Gambar dari Canvas Signature Pads
   const sigChairman = getSignatureDataUrl("sig-chairman");
   const sigWitness = getSignatureDataUrl("sig-witness");
   const sigInspector = getSignatureDataUrl("sig-inspector");
@@ -995,7 +1026,7 @@ async function generateOfficialMinutesPDF() {
       <!-- HEADER LOGO & JUDUL DOKUMEN -->
       <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 55px; margin: 0 auto 5px auto; display: block;" />
-        <h1 style="font-size: 20px; font-weight: bold; color: #1e3a8a; margin: 0; text-transform: uppercase; tracking-wide: 1px;">OFFICIAL MINUTES</h1>
+        <h1 style="font-size: 20px; font-weight: bold; color: #1e3a8a; margin: 0; text-transform: uppercase;">OFFICIAL MINUTES</h1>
         <h2 style="font-size: 13px; font-weight: bold; color: #3b82f6; margin: 2px 0 0 0; text-transform: uppercase;">WEB3 VOTING — ${activeProposal.title}</h2>
         <p style="font-size: 10px; color: #64748b; margin: 2px 0 0 0; font-family: monospace;">PiBox X TVOD DAO Ecosystem</p>
       </div>
@@ -1122,7 +1153,7 @@ async function generateOfficialMinutesPDF() {
         Based on the weighted score calculation from the Web3 Voting system, it is hereby determined that the option with the highest Total Score is:
       </p>
       <div style="text-align: center; padding: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 15px;">
-        <h2 style="font-size: 18px; font-weight: bold; color: #166534; margin: 0; letter-spacing: 1px;">${verdictText}</h2>
+        <h2 style="font-size: 18px; font-weight: bold; color: #166534; margin: 0;">${verdictText}</h2>
         <p style="font-size: 10px; color: #64748b; margin: 2px 0 0 0;">with a Total Score of +${netScoreVal.toFixed(2)} and an average Confidence level of ${avgConf}</p>
       </div>
 
@@ -1133,46 +1164,41 @@ async function generateOfficialMinutesPDF() {
       </p>
 
       <!-- AREA TANDA TANGAN 4 PEJABAT + STEMPEL EMAS TVOD OVERLAY -->
-      <div style="position: relative; margin-top: 20px; border-top: 1px border-slate-300; pt-10px;">
+      <div style="position: relative; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px;">
         
-        <!-- STEMPEL EMAS TVOD SEBAGAI OVERLAY DI SAMPING TANDA TANGAN -->
         <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; right: 20px; top: 10px; width: 110px; height: 110px; opacity: 0.85; pointer-events: none; z-index: 10;" />
 
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
           
-          <!-- Chair / Person in Charge -->
-          <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; background: #fafafa; min-height: 90px;">
-            <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; block mb-1;">Chair / Person in Charge:</span>
+          <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fafafa; min-height: 85px;">
+            <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; display: block;">Chair / Person in Charge:</span>
             <strong style="font-size: 11px; display: block;">@afifmasfiqo (#911)</strong>
-            <div style="margin-top: 5px; height: 45px; display: flex; align-items: center;">
-              ${sigChairman ? `<img src="${sigChairman}" style="max-height: 45px; max-width: 100%; object-contain: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Tanda Tangan Digital Terverifikasi]</span>`}
+            <div style="margin-top: 4px; height: 40px; display: flex; align-items: center;">
+              ${sigChairman ? `<img src="${sigChairman}" style="max-height: 40px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Tanda Tangan Digital Terverifikasi]</span>`}
             </div>
           </div>
 
-          <!-- Witness / Verifier -->
-          <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; background: #fafafa; min-height: 90px;">
-            <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; block mb-1;">Witness / Verifier:</span>
+          <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fafafa; min-height: 85px;">
+            <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; display: block;">Witness / Verifier:</span>
             <strong style="font-size: 11px; display: block;">@insya (Witness)</strong>
-            <div style="margin-top: 5px; height: 45px; display: flex; align-items: center;">
-              ${sigWitness ? `<img src="${sigWitness}" style="max-height: 45px; max-width: 100%; object-contain: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Tanda Tangan Digital Terverifikasi]</span>`}
+            <div style="margin-top: 4px; height: 40px; display: flex; align-items: center;">
+              ${sigWitness ? `<img src="${sigWitness}" style="max-height: 40px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Tanda Tangan Digital Terverifikasi]</span>`}
             </div>
           </div>
 
-          <!-- Inspector -->
-          <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; background: #fafafa; min-height: 90px;">
-            <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; block mb-1;">Inspector:</span>
+          <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fafafa; min-height: 85px;">
+            <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; display: block;">Inspector:</span>
             <strong style="font-size: 11px; display: block;">@Nalaktak (#999)</strong>
-            <div style="margin-top: 5px; height: 45px; display: flex; align-items: center;">
-              ${sigInspector ? `<img src="${sigInspector}" style="max-height: 45px; max-width: 100%; object-contain: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Tanda Tangan Digital Terverifikasi]</span>`}
+            <div style="margin-top: 4px; height: 40px; display: flex; align-items: center;">
+              ${sigInspector ? `<img src="${sigInspector}" style="max-height: 40px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Tanda Tangan Digital Terverifikasi]</span>`}
             </div>
           </div>
 
-          <!-- Country Head -->
-          <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; background: #fafafa; min-height: 90px;">
-            <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; block mb-1;">Country Head:</span>
+          <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fafafa; min-height: 85px;">
+            <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; display: block;">Country Head:</span>
             <strong style="font-size: 11px; display: block;">@Rasj81</strong>
-            <div style="margin-top: 5px; height: 45px; display: flex; align-items: center;">
-              ${sigCountryHead ? `<img src="${sigCountryHead}" style="max-height: 45px; max-width: 100%; object-contain: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Tanda Tangan Digital Terverifikasi]</span>`}
+            <div style="margin-top: 4px; height: 40px; display: flex; align-items: center;">
+              ${sigCountryHead ? `<img src="${sigCountryHead}" style="max-height: 40px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Tanda Tangan Digital Terverifikasi]</span>`}
             </div>
           </div>
 
@@ -1216,7 +1242,7 @@ async function generateCertificatePDF() {
       </div>
 
       <div style="background: #f0fdf4; border: 2px solid #166534; padding: 12px; border-radius: 8px; margin-bottom: 15px; position: relative;">
-        <span style="font-size: 10px; font-weight: bold; color: #166534; uppercase display: block; margin-bottom: 4px;">GOVERNANCE AUDIT STATUS:</span>
+        <span style="font-size: 10px; font-weight: bold; color: #166534; display: block; margin-bottom: 4px;">GOVERNANCE AUDIT STATUS:</span>
         <strong style="font-size: 16px; color: #166534;">STATUS: ${verdictText}</strong>
         <p style="font-size: 11px; color: #334155; margin: 6px 0 0 0;">
           Net Weighted Score: <strong>+${netScoreVal.toFixed(1)} Pts</strong> | Total Verified On-Chain Votes: <strong>${activeProposal.totalVotes} Ballots</strong>
