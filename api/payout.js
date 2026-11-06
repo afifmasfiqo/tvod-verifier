@@ -7,15 +7,27 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const PI_HORIZON_URL = "https://api.testnet.minepi.com";
 const server = new Server(PI_HORIZON_URL);
-// Passphrase Resmi Pi Testnet Network
 const PI_NETWORK_PASSPHRASE = "Test Pi Network ; December 2019";
 
 export default async function handler(req, res) {
+  // CORS Headers untuk kompatibilitas Pi Browser & WebView
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method Not Allowed' });
   }
 
-  const { walletAddress, amount, username, proposalId } = req.body;
+  const { walletAddress, amount, username, proposalId } = req.body || {};
 
   if (!walletAddress || !amount) {
     return res.status(400).json({ success: false, message: 'Wallet address dan amount wajib diisi' });
@@ -34,7 +46,7 @@ export default async function handler(req, res) {
 
     return res.status(500).json({ 
       success: false, 
-      message: 'PI_PAYOUT_SEED belum aktif di Vercel! Silakan klik REDEPLOY di Vercel.' 
+      message: 'PI_PAYOUT_SEED belum aktif di Vercel! Silakan set Environment Variable PI_PAYOUT_SEED lalu REDEPLOY.' 
     });
   }
 
@@ -43,7 +55,7 @@ export default async function handler(req, res) {
     const sourceKeypair = Keypair.fromSecret(cleanSeed);
     const sourceAccount = await server.loadAccount(sourceKeypair.publicKey());
 
-    // Cek apakah wallet tujuan sudah terdaftar di ledger Horizon
+    // Cek keberadaan wallet tujuan di ledger Horizon
     let destinationExists = true;
     try {
       await server.loadAccount(walletAddress);
@@ -92,10 +104,12 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Payout Error:", error);
 
-    let detailedError = error.message;
-    if (error.response && error.response.data && error.response.data.extras) {
+    let detailedError = error.message || 'Unknown Error';
+    if (error?.response?.data?.extras?.result_codes) {
       const codes = error.response.data.extras.result_codes;
       detailedError = `Horizon Error: ${JSON.stringify(codes)}`;
+    } else if (error?.data?.extras?.result_codes) {
+      detailedError = `Horizon Error: ${JSON.stringify(error.data.extras.result_codes)}`;
     }
 
     await supabase.from('payout_queue').insert([{
