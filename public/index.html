@@ -12,7 +12,7 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Script Pustaka dengan Fallback Multi-CDN -->
+  <!-- Pustaka PDF & Utilities -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
   <script>
     if (!window.jspdf) {
@@ -222,7 +222,6 @@
       <div>
         <h3 class="text-xs sm:text-sm font-bold text-amber-400 uppercase tracking-wider mb-3">📸 GALERI BUKTI FOTO & VIDEO OBJEK</h3>
         <div class="space-y-5">
-          <!-- Gambar Tampil Utuh Tanpa Terpotong (Object Contain) -->
           <div id="mediaGalleryContainer" class="flex flex-col gap-5"></div>
           
           <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center">
@@ -380,13 +379,13 @@
             <label class="block text-amber-300 font-bold mb-2">📷 GALERI MEDIA & BUKTI FOTO / VIDEO</label>
             <div class="space-y-3">
               <div>
-                <label class="block text-slate-300 text-xs font-semibold mb-1">📱 Opsi 1: Upload Langsung dari Galeri HP / Laptop</label>
+                <label class="block text-slate-300 text-xs font-semibold mb-1">📱 Upload Foto dari Galeri HP / Laptop</label>
                 <input type="file" id="inputPropFileImages" accept="image/*" multiple class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-300 text-xs cursor-pointer">
                 <span id="galleryFilesCount" class="text-xs text-amber-400 font-mono mt-1 block"></span>
               </div>
 
               <div>
-                <label class="block text-slate-400 text-xs mb-1">Opsi 2: Link Foto Eksternal (Pisahkan koma)</label>
+                <label class="block text-slate-400 text-xs mb-1">Link Foto Eksternal (Pisahkan koma)</label>
                 <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg, https://domain.com/foto2.jpg" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
               </div>
 
@@ -442,18 +441,18 @@
       <!-- GENERATOR DOKUMEN PDF & SERTIFIKAT -->
       <div id="section-bap" class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
         <div class="border-b border-slate-800 pb-2">
-          <h3 class="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">📑 Generator Dokumen Resmi PDF & Sertifikat</h3>
-          <p class="text-xs text-slate-400 mt-0.5">Dapat diunduh kapan saja (baik dengan atau tanpa tanda tangan digital pad).</p>
+          <h3 class="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">📑 Generator Dokumen Resmi & Sertifikat</h3>
+          <p class="text-xs text-slate-400 mt-0.5">Merender dokumen resmi sesuai data real-time voting dari Supabase.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow">
             <span class="text-3xl">📄</span>
-            <span>Download Official Minutes PDF (English)</span>
+            <span>Generate Official Minutes Document (English)</span>
           </button>
           <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow">
             <span class="text-3xl">🎓</span>
-            <span>Download TVOD Digital Verification Certificate</span>
+            <span>Generate Digital Verification Certificate</span>
           </button>
         </div>
       </div>
@@ -462,9 +461,9 @@
 
   </main>
 
-  <!-- MODAL FULLSCREEN PDF / DOCUMENT IMAGE VIEWER UNTUK PI BROWSER SELULER -->
-  <div id="pdfDownloadModal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-    <div class="bg-slate-900 border border-amber-500/50 rounded-2xl p-4 sm:p-6 max-w-2xl w-full shadow-2xl space-y-4 text-center my-auto max-h-[95vh] flex flex-col">
+  <!-- MODAL DOCUMENT VIEWER SELULER KHUSUS PI BROWSER -->
+  <div id="pdfDownloadModal" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-slate-900 border border-amber-500/50 rounded-2xl p-4 sm:p-6 max-w-3xl w-full shadow-2xl space-y-4 my-auto max-h-[95vh] flex flex-col">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <h3 class="text-base sm:text-lg font-bold text-amber-400 flex items-center gap-2" id="pdfModalTitle">
           📄 Dokumen Resmi TVOD Ready
@@ -472,22 +471,17 @@
         <button type="button" onclick="closePdfModal()" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button>
       </div>
 
-      <!-- Canvas / High-Res Image Display yang Bisa Dilihat & Disimpan Langsung di HP -->
-      <div class="flex-1 overflow-y-auto bg-black p-2 rounded-xl border border-slate-800 flex justify-center items-center">
-        <img id="pdfModalImagePreview" src="" alt="Pratinjau Dokumen TVOD" class="w-full h-auto max-h-[60vh] object-contain rounded border border-slate-700 shadow-lg">
+      <!-- Styled HTML Responsive Document Viewer Container -->
+      <div id="documentViewerContent" class="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6 rounded-xl border border-slate-800 text-slate-200 text-xs sm:text-sm font-sans space-y-4 shadow-inner">
+        <!-- Rendered Live Document Content -->
       </div>
 
-      <div class="space-y-2 text-xs sm:text-sm">
-        <p class="text-amber-300 font-semibold">💡 Petunjuk Simpan Dokumen di Pi Browser:</p>
-        <p class="text-slate-300"><strong>Tekan & Tahan Gambar di atas</strong> lalu pilih <span class="text-emerald-400 font-bold">"Simpan Gambar" / "Save Image"</span> untuk mendownload langsung ke Galeri Foto HP Anda.</p>
-      </div>
-
-      <div class="flex flex-wrap gap-3 pt-2">
-        <a id="pdfModalDownloadBtn" href="#" target="_blank" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl text-xs sm:text-sm transition shadow text-center">
-          👉 Buka / Download Berkas
-        </a>
-        <button type="button" onclick="printPdfModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3 px-5 rounded-xl text-xs sm:text-sm border border-slate-700 transition">
-          🖨️ Cetak / Print
+      <div class="flex flex-wrap gap-2.5 pt-2 border-t border-slate-800">
+        <button type="button" onclick="printPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2">
+          <span>🖨️</span> Cetak / Simpan PDF HP
+        </button>
+        <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm border border-slate-700 transition">
+          📋 Salin Teks Dokumen
         </button>
         <button type="button" onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm transition">
           Tutup
