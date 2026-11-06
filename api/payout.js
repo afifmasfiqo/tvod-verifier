@@ -1,9 +1,9 @@
-// api/payout.js - Vercel Serverless Function TVOD Payout & On-Chain Horizon Execution Engine
+// api/payout.js - Vercel Serverless Function TVOD Payout & Stellar Horizon Execution Engine
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://tdtybxriphsdtojkrevp.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
 
-// Environment Variable untuk Secret Key App Wallet Pi (Contoh: S...)
+// Environment Variable untuk Secret Key App Wallet Pi (Secret Seed: S...)
 const PI_APP_WALLET_SEED = process.env.PI_APP_WALLET_SEED || ""; 
 const PI_HORIZON_URL = "https://api.testnet.minepi.com";
 
@@ -77,7 +77,7 @@ async function savePendingReward(rewardData) {
   }
 }
 
-// ⚡ MODUL EKSEKUSI TRANSFER ON-CHAIN DI BLOCKCHAIN PI TESTNET
+// ⚡ MODUL EKSEKUSI TRANSFER ON-CHAIN DI BLOCKCHAIN PI TESTNET HORIZON
 async function executeOnChainHorizonPayment(destinationAddress, amountStr) {
   if (!PI_APP_WALLET_SEED) {
     return {
@@ -88,7 +88,6 @@ async function executeOnChainHorizonPayment(destinationAddress, amountStr) {
   }
 
   try {
-    // Memanggil Horizon REST API untuk membuat & mengirimkan transaksi transfer Pi
     const accountRes = await fetch(`${PI_HORIZON_URL}/accounts/${destinationAddress}`);
     if (!accountRes.ok) {
       return { success: false, onChainExecuted: false, reason: "Wallet tujuan belum aktif di Horizon Testnet." };
