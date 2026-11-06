@@ -903,7 +903,7 @@ async function handleCastVote(e) {
   const payoutRateEl = $("#payoutRate");
   const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
 
-  if (btn) btn.innerText = "Memproses Insentif Pi...";
+  if (btn) btn.innerText = "Memproses Insentif Pi On-Chain...";
 
   try {
     const payoutRes = await fetch('/api/payout', {
@@ -913,7 +913,6 @@ async function handleCastVote(e) {
         walletAddress: currentWallet,
         amount: baseReward,
         username: currentUsername,
-        voteHash: voteHash,
         proposalId: activeProposal.id
       })
     });
@@ -921,13 +920,13 @@ async function handleCastVote(e) {
     const payoutData = await payoutRes.json();
 
     if (payoutRes.ok && payoutData.success) {
-      alert(`✅ SUARA TERKONFIRMASI!\n\nKategori Pemilih: ${activeUser.category.toUpperCase()}\nStatus Payout: ${payoutData.message}`);
+      alert(`🎉 SUARA & PAYOUT SUCCESS!\n\nTx Hash: ${payoutData.txHash}\nStatus: ${payoutData.message}`);
     } else {
-      alert(`✅ Suara berhasil disimpan ke Database.\n⚠️ Payout Status: ${payoutData.message || 'Berhasil dicatat di antrean'}`);
+      alert(`⚠️ HAK SUARA TERSIMPAN, TETAPI PAYOUT GAGAL:\n\nAlasan: ${payoutData.message}\n\nCatatan: Insentif Anda telah dicatat ke antrean PENDING dan dapat dikirim ulang oleh Admin.`);
     }
   } catch (payErr) {
     console.error("Gagal klaim payout:", payErr);
-    alert(`✅ Suara berhasil disimpan ke Database.`);
+    alert(`✅ Suara berhasil disimpan ke Database, namun koneksi payout terputus.`);
   }
 
   if (btn) {
@@ -946,6 +945,71 @@ function toggleUserBan(isBan) {
 function savePayoutRate() {
   const rate = $("#payoutRate") ? $("#payoutRate").value : "1.0";
   alert(`Rate insentif berhasil diperbarui menjadi ${rate} Pi / suara.`);
+}
+
+// FITUR RETRY PEMBAYARAN PENDING DARI ADMIN SUITE
+async function retryFailedPayouts() {
+  if (!supabaseClient) return alert("Supabase Client belum siap.");
+  
+  const displayBtn = $("#btnRetryPayouts");
+  if (displayBtn) {
+    displayBtn.disabled = true;
+    displayBtn.innerText = "⏳ Memproses Ulang Pembayaran...";
+  }
+
+  try {
+    const { data: pendingQueue, error } = await supabaseClient
+      .from('payout_queue')
+      .select('*')
+      .eq('status', 'PENDING');
+
+    if (error || !pendingQueue || pendingQueue.length === 0) {
+      alert("✅ Tidak ada antrean pembayaran yang tertunda (0 Pending).");
+      if (displayBtn) {
+        displayBtn.disabled = false;
+        displayBtn.innerText = "🔄 Process Pending Payouts Queue";
+      }
+      return;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of pendingQueue) {
+      try {
+        const res = await fetch('/api/payout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: item.wallet_address,
+            amount: item.amount,
+            username: item.username,
+            proposalId: item.proposal_id
+          })
+        });
+
+        const result = await res.json();
+        if (res.ok && result.success) {
+          successCount++;
+          await supabaseClient.from('payout_queue').update({ status: 'SUCCESS', tx_hash: result.txHash }).eq('id', item.id);
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        failCount++;
+      }
+    }
+
+    alert(`📋 HASIL RETRY PEMBAYARAN:\n\n✅ Berhasil Terkirim: ${successCount}\n❌ Masih Gagal: ${failCount}`);
+
+  } catch (err) {
+    alert("Gagal memproses antrean pembayaran: " + err.message);
+  } finally {
+    if (displayBtn) {
+      displayBtn.disabled = false;
+      displayBtn.innerText = "🔄 Process Pending Payouts Queue";
+    }
+  }
 }
 
 function changeLanguage(lang) {
@@ -1294,6 +1358,7 @@ window.setConfidence = setConfidence;
 window.clearOfficerSig = clearOfficerSig;
 window.toggleUserBan = toggleUserBan;
 window.savePayoutRate = savePayoutRate;
+window.retryFailedPayouts = retryFailedPayouts;
 window.changeLanguage = changeLanguage;
 window.generateOfficialMinutesPDF = generateOfficialMinutesPDF;
 window.generateCertificatePDF = generateCertificatePDF;
