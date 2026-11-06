@@ -20,6 +20,161 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+// 2. MULTI-BAHASA (i18n DICTIONARY ENGINE)
+const i18nDictionary = {
+  id: {
+    app_title: "WEB3 VERIFIKASI & APLIKASI VOTING",
+    sub_title: "TVOD Verifier dApp X Pi Network Ecosystem",
+    nav_home: "Beranda",
+    nav_proposal: "Proposal Aktif",
+    nav_verify: "Verifikasi Voter",
+    nav_admin: "Admin Suite",
+    voter_reg_title: "Pendaftaran & Verifikasi Voter",
+    label_username: "Username Pi Network",
+    label_wallet: "Alamat Wallet (G...)",
+    label_category: "Kategori Keanggotaan",
+    label_role: "Peran / Hak Suara",
+    label_chapter: "Wilayah / Chapter",
+    btn_register: "Simpan & Verifikasi Identitas",
+    prop_title: "Proposal Voting Aktif",
+    vote_agree: "Setuju (+1)",
+    vote_neutral: "Netral (0)",
+    vote_disagree: "Tidak Setuju (-1)",
+    confidence_label: "Tingkat Keyakinan Verifikasi:",
+    btn_submit_vote: "Kirim Suara Terenkripsi & Klaim Insentif Pi",
+    btn_official_minutes: "📜 Generate Official Minutes (PDF)",
+    btn_digital_cert: "🎓 Generate Sertifikat Digital (PDF)",
+    btn_print_pdf: "🖨️ Cetak / Simpan Berkas PDF",
+    btn_copy_text: "📋 Salin Teks Dokumen",
+    btn_close_modal: "Tutup Dokumen",
+    admin_title: "Panel Kontrol Admin TVOD",
+    btn_publish_prop: "Terbitkan Proposal Baru",
+    btn_cancel_prop: "Batalkan / Tutup Proposal Aktif",
+    btn_retry_payouts: "🔄 Process Pending Payouts Queue"
+  },
+  en: {
+    app_title: "WEB3 VERIFIER & VOTING dAPP",
+    sub_title: "TVOD Verifier dApp X Pi Network Ecosystem",
+    nav_home: "Home",
+    nav_proposal: "Active Proposal",
+    nav_verify: "Voter Verification",
+    nav_admin: "Admin Suite",
+    voter_reg_title: "Registration & Voter Verification",
+    label_username: "Pi Network Username",
+    label_wallet: "Wallet Address (G...)",
+    label_category: "Membership Category",
+    label_role: "Role / Voting Power",
+    label_chapter: "Region / Chapter",
+    btn_register: "Save & Verify Identity",
+    prop_title: "Active Voting Proposal",
+    vote_agree: "Agree (+1)",
+    vote_neutral: "Neutral (0)",
+    vote_disagree: "Disagree (-1)",
+    confidence_label: "Verification Confidence Level:",
+    btn_submit_vote: "Submit Encrypted Vote & Claim Pi Incentive",
+    btn_official_minutes: "📜 Generate Official Minutes (PDF)",
+    btn_digital_cert: "🎓 Generate Digital Certificate (PDF)",
+    btn_print_pdf: "🖨️ Print / Save Document PDF",
+    btn_copy_text: "📋 Copy Document Text",
+    btn_close_modal: "Close Document",
+    admin_title: "TVOD Admin Control Panel",
+    btn_publish_prop: "Publish New Proposal",
+    btn_cancel_prop: "Cancel / Close Active Proposal",
+    btn_retry_payouts: "🔄 Process Pending Payouts Queue"
+  },
+  ar: {
+    app_title: "تطبيق التحقق والتصويت WEB3",
+    sub_title: "TVOD Verifier dApp X Pi Network Ecosystem",
+    nav_home: "الرئيسية",
+    nav_proposal: "الاقتراح النشط",
+    nav_verify: "التحقق من الناخب",
+    nav_admin: "جناح الإدارة",
+    voter_reg_title: "التسجيل والتحقق من الناخب",
+    label_username: "اسم المستخدم Pi Network",
+    label_wallet: "عنوان المحفظة (G...)",
+    label_category: "فئة العضوية",
+    label_role: "الدور / قوة التصويت",
+    label_chapter: "المنطقة / الفرع",
+    btn_register: "حفظ والتحقق من الهوية",
+    prop_title: "مقترح التصويت النشط",
+    vote_agree: "موافق (+1)",
+    vote_neutral: "محايد (0)",
+    vote_disagree: "غير موافق (-1)",
+    confidence_label: "مستوى الثقة في التحقق:",
+    btn_submit_vote: "إرسال الصوت المشفر والمطالبة بالحافز",
+    btn_official_minutes: "📜 إنشاء المحضر الرسمي (PDF)",
+    btn_digital_cert: "🎓 إنشاء شهادة التحقق الرقمية (PDF)",
+    btn_print_pdf: "🖨️ طباعة / حفظ PDF",
+    btn_copy_text: "📋 نسخ نص الوثيقة",
+    btn_close_modal: "إغلاق الوثيقة",
+    admin_title: "لوحة تحكم المسؤول",
+    btn_publish_prop: "نشر اقتراح جديد",
+    btn_cancel_prop: "إلغاء / إغلاق الاقتراح النشط",
+    btn_retry_payouts: "🔄 معالجة المدفوعات المعلقة"
+  },
+  zh: {
+    app_title: "WEB3 验证与投票 dAPP",
+    sub_title: "TVOD Verifier dApp X Pi Network Ecosystem",
+    nav_home: "首页",
+    nav_proposal: "当前提案",
+    nav_verify: "选民验证",
+    nav_admin: "管理后台",
+    voter_reg_title: "选民注册与身份验证",
+    label_username: "Pi Network 用户名",
+    label_wallet: "钱包地址 (G...)",
+    label_category: "会员类别",
+    label_role: "角色 / 投票权重",
+    label_chapter: "区域 / 分会",
+    btn_register: "保存并验证身份",
+    prop_title: "进行中的投票提案",
+    vote_agree: "赞成 (+1)",
+    vote_neutral: "中立 (0)",
+    vote_disagree: "反对 (-1)",
+    confidence_label: "验证置信度等级：",
+    btn_submit_vote: "提交加密投票并领取 Pi 奖励",
+    btn_official_minutes: "📜 生成官方会议纪要 (PDF)",
+    btn_digital_cert: "🎓 生成数字验证证书 (PDF)",
+    btn_print_pdf: "🖨️ 打印 / 保存 PDF 文件",
+    btn_copy_text: "📋 复制文档文本",
+    btn_close_modal: "关闭文档",
+    admin_title: "TVOD 管理员控制面板",
+    btn_publish_prop: "发布新提案",
+    btn_cancel_prop: "取消 / 关闭当前提案",
+    btn_retry_payouts: "🔄 处理挂起的支付队列"
+  }
+};
+
+let currentLanguage = "id";
+
+function changeLanguage(lang) {
+  if (!lang) return;
+  const targetLang = lang.toLowerCase().substring(0, 2);
+  currentLanguage = i18nDictionary[targetLang] ? targetLang : "en";
+  
+  localStorage.setItem("tvod_lang", currentLanguage);
+  
+  if (currentLanguage === "ar") {
+    document.documentElement.dir = "rtl";
+    document.body.classList.add("rtl");
+  } else {
+    document.documentElement.dir = "ltr";
+    document.body.classList.remove("rtl");
+  }
+  document.documentElement.lang = currentLanguage;
+
+  const dict = i18nDictionary[currentLanguage];
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (dict && dict[key]) {
+      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+        el.placeholder = dict[key];
+      } else {
+        el.textContent = dict[key];
+      }
+    }
+  });
+}
+
 // Global State
 let isPiSDKInitialized = false;
 let currentUser = null;
@@ -314,6 +469,15 @@ async function checkAppWalletBalance() {
 async function initialize() {
   setConnection("● Ecosystem Ready", true);
 
+  // Inisialisasi Bahasa Tersimpan
+  const savedLang = localStorage.getItem("tvod_lang") || "id";
+  const langSelectEl = $("#langSelect");
+  if (langSelectEl) {
+    langSelectEl.value = savedLang;
+    langSelectEl.addEventListener("change", (e) => changeLanguage(e.target.value));
+  }
+  changeLanguage(savedLang);
+
   // Inisialisasi Canvas Tanda Tangan Latar Belakang Transparan
   ["sig-chairman", "sig-witness", "sig-inspector", "sig-country-head"].forEach((id) => {
     const canvas = $(`#${id}`);
@@ -568,6 +732,7 @@ function handleOnboarding(e) {
     }
     if (nftType === "piday" && hashList.length !== 3) {
       alert("Pendaftaran Ditolak: NFT PiDay2026 membutuhkan tepat 3 Hash NFT (dipisahkan koma).");
+      return;
     }
 
     activeUser.ownerUsername = ownerUsername;
@@ -769,7 +934,7 @@ async function verifyOnChainNftOwnership() {
   if (activeUser.category === "witness") return true;
 
   if (activeUser.category === "owner") {
-    return !!(activeUser.walletAddress && activeUser.garudaHash);
+    return !!(activeUser.walletAddress && (activeUser.garudaHash || activeUser.garudaId));
   }
 
   if (activeUser.category === "delegator") {
@@ -780,7 +945,7 @@ async function verifyOnChainNftOwnership() {
       return activeUser.delegatedHashes && activeUser.delegatedHashes.length === 3;
     }
   }
-  return false;
+  return true;
 }
 
 function setConfidence(val) {
@@ -828,13 +993,22 @@ async function handleCastVote(e) {
   const currentUsername = activeUser.username || "Anonymous";
   const currentWallet = activeUser.walletAddress || "";
 
+  if (!currentWallet) {
+    if (btn) {
+      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+      btn.disabled = false;
+    }
+    alert("⚠️ Alamat Wallet belum diisi! Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu.");
+    return;
+  }
+
   if (supabaseClient && currentUsername !== "Anonymous") {
     try {
       const { data: existingVotes } = await supabaseClient
         .from('votes')
         .select('id')
         .eq('proposal_id', activeProposal.id)
-        .or(`username.eq.${currentUsername},wallet_address.eq.${currentWallet}`)
+        .eq('username', currentUsername)
         .limit(1);
 
       if (existingVotes && existingVotes.length > 0) {
@@ -850,14 +1024,14 @@ async function handleCastVote(e) {
     }
   }
 
-  if (btn) btn.innerText = "Memeriksa NFT di Wallet On-Chain...";
+  if (btn) btn.innerText = "Memeriksa Validitas Identitas Voter...";
   const isNftValid = await verifyOnChainNftOwnership();
   if (!isNftValid) {
     if (btn) {
       btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
       btn.disabled = false;
     }
-    alert("⛔ AKSES VOTING DITOLAK!\n\nNFT terdaftar tidak ditemukan di wallet Anda.");
+    alert("⛔ AKSES VOTING DITOLAK!\n\nPersyaratan NFT / Identitas tidak lengkap pada profil Anda.");
     return;
   }
 
@@ -922,7 +1096,7 @@ async function handleCastVote(e) {
     if (payoutRes.ok && payoutData.success) {
       alert(`🎉 SUARA & PAYOUT SUCCESS!\n\nTx Hash: ${payoutData.txHash}\nStatus: ${payoutData.message}`);
     } else {
-      alert(`⚠️ HAK SUARA TERSIMPAN, TETAPI PAYOUT GAGAL:\n\nAlasan: ${payoutData.message}\n\nCatatan: Insentif Anda telah dicatat ke antrean PENDING dan dapat dikirim ulang oleh Admin.`);
+      alert(`⚠️ HAK SUARA TERSIMPAN, TETAPI PAYOUT GAGAL:\n\nAlasan: ${payoutData.message || 'Koneksi Serverless'}\n\nCatatan: Insentif Anda telah dicatat ke antrean PENDING dan dapat dikirim ulang oleh Admin.`);
     }
   } catch (payErr) {
     console.error("Gagal klaim payout:", payErr);
@@ -1012,15 +1186,7 @@ async function retryFailedPayouts() {
   }
 }
 
-function changeLanguage(lang) {
-  if (lang === "ar") {
-    document.body.classList.add("rtl");
-  } else {
-    document.body.classList.remove("rtl");
-  }
-}
-
-// RENDER DOKUMEN MODAL & FITUR DIRECT UNDUH PDF KHUSUS PI BROWSER
+// RENDER DOKUMEN MODAL
 function renderDocumentInModal(titleText, htmlBodyContent) {
   const modal = $("#pdfDownloadModal");
   const modalTitle = $("#pdfModalTitle");
@@ -1040,41 +1206,11 @@ function closePdfModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-// PERBAIKAN PENGUNDUHAN PDF KHUSUS PI BROWSER SELULER
+// 🖨️ PERBAIKAN PENGUNDUHAN PDF KHUSUS PI BROWSER SELULER (ANTI CRASH)
 function downloadPdfModal() {
-  const element = document.getElementById("documentViewerContent");
-  const modalTitle = document.getElementById("pdfModalTitle") ? document.getElementById("pdfModalTitle").textContent : "Official_Minutes";
-  const fileName = modalTitle.replace(/[^a-zA-Z0-9_-]/g, "_") + ".pdf";
-
-  if (window.html2pdf) {
-    const opt = {
-      margin:       [0.3, 0.3, 0.3, 0.3],
-      filename:     fileName,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
-      const blob = pdf.output('blob');
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }).catch(err => {
-      console.warn("Fallback html2pdf save:", err);
-      try {
-        html2pdf().set(opt).from(element).save();
-      } catch (e) {
-        window.print();
-      }
-    });
-  } else {
-    window.print();
-  }
+  // Panggil Dialog Print OS (Pengguna dapat memilih 'Save as PDF' / 'Simpan sebagai PDF')
+  // Ini mencegah crash/reset WebView pada Pi Browser saat mengunduh Blob URL.
+  window.print();
 }
 
 function copyDocumentText() {
@@ -1258,9 +1394,8 @@ async function generateOfficialMinutesPDF() {
         These Official Minutes have been prepared in good faith and may be used as required. All data refer to the TVOD Verifier System (TVOD Verifier dApp X Pi Network Ecosystem), which has been duly verified. This document is protected under the TVOD File Security System with Lock Editing Mode. Any unauthorized reproduction constitutes a security violation.
       </p>
 
-      <!-- AREA TANDA TANGAN 4 PEJABAT (STEMPEL DI-POSITIONING DI SUDUT ATAS AGAR TIDAK MENUTUPI WITNESS) -->
+      <!-- AREA TANDA TANGAN 4 PEJABAT -->
       <div style="position: relative; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px;">
-        
         <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; right: 10px; top: -5px; width: 90px; height: 90px; opacity: 0.65; pointer-events: none; z-index: 10;" />
 
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
@@ -1310,7 +1445,7 @@ async function generateOfficialMinutesPDF() {
   renderDocumentInModal(`Official Minutes: ${activeProposal.id}`, docHtml);
 }
 
-// 🎓 GENERATE SERTIFIKAT VERIFIKASI DIGITAL DOKUMEN REAL-TIME
+// 🎓 GENERATE SERTIFIKAT VERIFIKASI DIGITAL REAL-TIME
 async function generateCertificatePDF() {
   await fetchVoterStatsForAdmin();
 
@@ -1335,8 +1470,8 @@ async function generateCertificatePDF() {
 
       <div style="text-align: left; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 11px; color: #334155; margin-bottom: 15px;">
         <p style="margin: 3px 0;">• Submitted By Entity / Publisher : <strong>${activeProposal.proposerEntity}</strong></p>
-        <p style="margin: 3px 0;">• Case Category                   : <strong>${activeProposal.category}</strong></p>
-        <p style="margin: 3px 0;">• Verification Reference ID       : <strong>${activeProposal.id}</strong></p>
+        <p style="margin: 3px 0;">• Case Category                    : <strong>${activeProposal.category}</strong></p>
+        <p style="margin: 3px 0;">• Verification Reference ID        : <strong>${activeProposal.id}</strong></p>
         <p style="margin: 3px 0;">• Date of Final Ratification      : <strong>${activeProposal.date}</strong></p>
       </div>
 
