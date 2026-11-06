@@ -15,7 +15,6 @@
   <!-- Pustaka Utility -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -23,22 +22,33 @@
     .rtl { direction: rtl; }
     canvas.signature-pad { touch-action: none; background-color: #020617; border: 1px solid #334155; border-radius: 0.5rem; }
 
+    /* CSS CETAK UTUK PI BROWSER (ANTI-CRASH WEBVIEW) */
     @media print {
-      body * {
-        visibility: hidden !important;
+      body > *:not(#pdfDownloadModal) {
+        display: none !important;
       }
-      #printArea, #printArea * {
-        visibility: visible !important;
-      }
-      #printArea {
+      #pdfDownloadModal {
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
-        color: #000 !important;
-        background: #fff !important;
+        height: auto !important;
+        background: #ffffff !important;
+        color: #000000 !important;
         padding: 0 !important;
         margin: 0 !important;
+        display: block !important;
+      }
+      #pdfDownloadModal > div {
+        max-width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+      }
+      #documentViewerContent {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 10px !important;
       }
       .no-print {
         display: none !important;
@@ -57,17 +67,17 @@
       <a class="flex items-center gap-3" href="/" aria-label="TVOD home">
         <img id="appLogo" src="/logo.png" alt="TVOD Logo" class="h-11 w-11 object-contain rounded">
         <div>
-          <strong class="text-lg text-slate-100 block leading-tight">THE VOICE OF DAO</strong>
-          <small class="text-xs text-amber-400 font-mono font-semibold">WEB3 VERIFIER & VOTING dAPP</small>
+          <strong class="text-lg text-slate-100 block leading-tight" data-i18n="app_title">THE VOICE OF DAO</strong>
+          <small class="text-xs text-amber-400 font-mono font-semibold" data-i18n="sub_title">WEB3 VERIFIER & VOTING dAPP</small>
         </div>
       </a>
 
       <div class="flex items-center gap-3 flex-wrap">
-        <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-slate-800 border border-slate-700 text-xs rounded-lg px-3 py-1.5 text-slate-200 outline-none">
-          <option value="en">English (EN)</option>
+        <!-- Selector Bahasa Multi-i18n -->
+        <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-slate-800 border border-slate-700 text-xs rounded-lg px-3 py-1.5 text-slate-200 outline-none cursor-pointer">
           <option value="id">Indonesian (ID)</option>
+          <option value="en">English (EN)</option>
           <option value="ar">Arabic (AR)</option>
-          <option value="ru">Russian (RU)</option>
           <option value="zh">Chinese (ZH)</option>
         </select>
 
@@ -89,10 +99,10 @@
   <!-- Dashboard Navigation -->
   <nav class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5 overflow-x-auto no-print">
     <div class="max-w-7xl mx-auto flex gap-2.5 text-xs sm:text-sm font-medium whitespace-nowrap">
-      <a href="#section-auth" class="px-4 py-2 rounded-lg bg-slate-800 text-amber-400 hover:bg-slate-700 transition">🔑 Onboarding & Wallet</a>
-      <a href="#section-material" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📄 Materi Voting</a>
-      <a href="#section-voting" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🗳️ Fast Voting</a>
-      <a href="#section-admin" id="nav-admin-link" class="hidden px-4 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition">🛡️ Admin Suite</a>
+      <a href="#section-auth" class="px-4 py-2 rounded-lg bg-slate-800 text-amber-400 hover:bg-slate-700 transition" data-i18n="nav_verify">🔑 Onboarding & Wallet</a>
+      <a href="#section-material" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-i18n="nav_proposal">📄 Materi Voting</a>
+      <a href="#section-voting" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-i18n="nav_home">🗳️ Fast Voting</a>
+      <a href="#section-admin" id="nav-admin-link" class="hidden px-4 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition" data-i18n="nav_admin">🛡️ Admin Suite</a>
     </div>
   </nav>
 
@@ -107,7 +117,7 @@
     <section id="section-auth" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-xl">
       <div class="border-b border-slate-800 pb-3 mb-5">
         <span class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 1</span>
-        <h2 class="text-2xl font-bold text-slate-100 mt-1">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
+        <h2 class="text-2xl font-bold text-slate-100 mt-1" data-i18n="voter_reg_title">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
         <p class="text-xs sm:text-sm text-slate-400 mt-1">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.</p>
       </div>
 
@@ -123,13 +133,13 @@
 
       <form id="onboardingForm" class="space-y-4">
         <div>
-          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5">Pi Wallet Address (Public Key untuk Payout & Cek NFT)</label>
+          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5" data-i18n="label_wallet">Pi Wallet Address (Public Key untuk Payout & Cek NFT)</label>
           <input type="text" id="walletAddress" placeholder="G..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-amber-300 font-mono focus:border-amber-500 outline-none">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5">Kategori Pemilih (Voter Category)</label>
+            <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5" data-i18n="label_category">Kategori Pemilih (Voter Category)</label>
             <select id="voterCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-200 outline-none">
               <option value="owner">Pemilih Tetap (Pemilik NFT Garuda #1 - #1000)</option>
               <option value="delegator">Delegator (NFT Halloween 1 Unit / NFT PiDay2026 3 Unit)</option>
@@ -138,7 +148,7 @@
           </div>
 
           <div>
-            <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5">Wilayah Komunitas (Chapter)</label>
+            <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5" data-i18n="label_chapter">Wilayah Komunitas (Chapter)</label>
             <select id="communityChapter" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-200 outline-none">
               <option value="ICP2E JAKARTA">ICP2E JAKARTA</option>
               <option value="ICP2E SOLO">ICP2E SOLO</option>
@@ -187,7 +197,7 @@
         </div>
 
         <div>
-          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5">Peran Tata Kelola (Governance Role)</label>
+          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5" data-i18n="label_role">Peran Tata Kelola (Governance Role)</label>
           <select id="userRole" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-200">
             <option value="Member">Member</option>
             <option value="Group Leader">Group Leader</option>
@@ -195,7 +205,7 @@
           </select>
         </div>
 
-        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3.5 rounded-lg text-sm transition shadow-lg">
+        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3.5 rounded-lg text-sm transition shadow-lg" data-i18n="btn_register">
           Verifikasi Data & Buka Akses Voting
         </button>
       </form>
@@ -217,7 +227,7 @@
             </span>
           </div>
         </div>
-        <h2 id="displayPropTitle" class="text-2xl font-extrabold text-slate-100 leading-tight">
+        <h2 id="displayPropTitle" class="text-2xl font-extrabold text-slate-100 leading-tight" data-i18n="prop_title">
           Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD
         </h2>
         <p class="text-xs sm:text-sm text-slate-400 font-mono mt-1.5">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400 font-semibold">TVOD Development Team</span> | Tanggal: <span id="displayPropDate">30 Okt 2026</span></p>
@@ -264,19 +274,19 @@
           <div class="grid grid-cols-3 gap-3 text-sm font-semibold">
             <label class="cursor-pointer">
               <input type="radio" name="voteValue" value="1" required class="peer hidden">
-              <div class="p-3.5 text-center rounded-xl bg-slate-950 border border-slate-800 peer-checked:bg-emerald-600 peer-checked:border-emerald-400 peer-checked:font-bold transition shadow">
+              <div class="p-3.5 text-center rounded-xl bg-slate-950 border border-slate-800 peer-checked:bg-emerald-600 peer-checked:border-emerald-400 peer-checked:font-bold transition shadow" data-i18n="vote_agree">
                 👍 Agree (+1)
               </div>
             </label>
             <label class="cursor-pointer">
               <input type="radio" name="voteValue" value="0" class="peer hidden">
-              <div class="p-3.5 text-center rounded-xl bg-slate-950 border border-slate-800 peer-checked:bg-slate-700 peer-checked:border-slate-400 peer-checked:font-bold transition shadow">
+              <div class="p-3.5 text-center rounded-xl bg-slate-950 border border-slate-800 peer-checked:bg-slate-700 peer-checked:border-slate-400 peer-checked:font-bold transition shadow" data-i18n="vote_neutral">
                 😐 Neutral (0)
               </div>
             </label>
             <label class="cursor-pointer">
               <input type="radio" name="voteValue" value="-1" class="peer hidden">
-              <div class="p-3.5 text-center rounded-xl bg-slate-950 border border-slate-800 peer-checked:bg-red-600 peer-checked:border-red-400 peer-checked:font-bold transition shadow">
+              <div class="p-3.5 text-center rounded-xl bg-slate-950 border border-slate-800 peer-checked:bg-red-600 peer-checked:border-red-400 peer-checked:font-bold transition shadow" data-i18n="vote_disagree">
                 👎 Disagree (-1)
               </div>
             </label>
@@ -284,7 +294,7 @@
         </div>
 
         <div>
-          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-2">2. Tingkat Keyakinan / Confidence (Skala 1 - 5)</label>
+          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-2" data-i18n="confidence_label">2. Tingkat Keyakinan / Confidence (Skala 1 - 5)</label>
           <div class="grid grid-cols-5 gap-2.5">
             <button type="button" onclick="setConfidence(1)" class="conf-btn p-3 rounded-xl bg-slate-950 border border-slate-800 text-sm hover:border-amber-500 font-bold">1</button>
             <button type="button" onclick="setConfidence(2)" class="conf-btn p-3 rounded-xl bg-slate-950 border border-slate-800 text-sm hover:border-amber-500 font-bold">2</button>
@@ -294,7 +304,7 @@
           </div>
         </div>
 
-        <button type="submit" id="btnSubmitVote" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-4 rounded-xl text-sm transition shadow-lg">
+        <button type="submit" id="btnSubmitVote" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-4 rounded-xl text-sm transition shadow-lg" data-i18n="btn_submit_vote">
           Kirim Suara Terenkripsi & Klaim Insentif Pi
         </button>
       </form>
@@ -303,7 +313,7 @@
     <!-- SECTION 4: ADMIN SUITE -->
     <section id="section-admin" class="hidden bg-slate-900 border border-amber-500/40 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-6">
       <div class="border-b border-amber-500/30 pb-3 flex justify-between items-center">
-        <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+        <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2" data-i18n="admin_title">
           🛡️ Admin Suite
         </h2>
         <span class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded font-mono font-semibold">RESTRICTED ACCESS</span>
@@ -346,10 +356,14 @@
 
         <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
           <h3 class="font-bold text-slate-300 uppercase mb-2">Atur Rate Insentif Pi / Suara</h3>
-          <div class="flex gap-2">
+          <div class="flex gap-2 mb-3">
             <input type="number" id="payoutRate" step="0.1" min="0.8" max="100" value="1.0" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm font-mono">
             <button type="button" onclick="savePayoutRate()" class="bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm">Simpan</button>
           </div>
+          <!-- Tombol Retry Payout Pendings -->
+          <button type="button" id="btnRetryPayouts" onclick="retryFailedPayouts()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-xs sm:text-sm transition shadow" data-i18n="btn_retry_payouts">
+            🔄 Process Pending Payouts Queue
+          </button>
         </div>
       </div>
 
@@ -409,10 +423,10 @@
           </div>
 
           <div class="flex flex-col sm:flex-row gap-3 mt-3">
-            <button type="button" onclick="publishNewProposal(event)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3.5 rounded-xl text-sm transition shadow-lg cursor-pointer">
+            <button type="button" onclick="publishNewProposal(event)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3.5 rounded-xl text-sm transition shadow-lg cursor-pointer" data-i18n="btn_publish_prop">
               🚀 Terbitkan Proposal & Mulai Timer Voting
             </button>
-            <button type="button" onclick="cancelActiveProposal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-5 rounded-xl text-sm transition shadow-lg cursor-pointer">
+            <button type="button" onclick="cancelActiveProposal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-5 rounded-xl text-sm transition shadow-lg cursor-pointer" data-i18n="btn_cancel_prop">
               ⛔ Batalkan / Tutup Proposal Aktif
             </button>
           </div>
@@ -458,11 +472,11 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow">
+          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow" data-i18n="btn_official_minutes">
             <span class="text-3xl">📄</span>
             <span>Generate Official Minutes Document (English)</span>
           </button>
-          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow">
+          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow" data-i18n="btn_digital_cert">
             <span class="text-3xl">🎓</span>
             <span>Generate Digital Verification Certificate</span>
           </button>
@@ -473,7 +487,7 @@
 
   </main>
 
-  <!-- MODAL DOCUMENT VIEWER SELULER KHUSUS PI BROWSER -->
+  <!-- MODAL DOCUMENT VIEWER SELULER KHUSUS PI BROWSER (ANTI-CRASH) -->
   <div id="pdfDownloadModal" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-5 overflow-y-auto no-print">
     <div class="bg-slate-900 border border-amber-500/50 rounded-2xl p-4 sm:p-6 max-w-4xl w-full shadow-2xl space-y-4 my-auto max-h-[95vh] flex flex-col">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -489,14 +503,14 @@
       </div>
 
       <div class="flex flex-wrap gap-2.5 pt-2 border-t border-slate-800">
-        <button type="button" onclick="downloadPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2">
-          <span>📥</span> Download Berkas PDF (Langsung Simpan)
+        <button type="button" onclick="downloadPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2" data-i18n="btn_print_pdf">
+          <span>🖨️</span> Cetak / Simpan Berkas PDF
         </button>
-        <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm border border-slate-700 transition">
+        <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm border border-slate-700 transition" data-i18n="btn_copy_text">
           📋 Salin Teks Dokumen
         </button>
-        <button type="button" onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm transition">
-          Tutup
+        <button type="button" onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm transition" data-i18n="btn_close_modal">
+          Tutup Dokumen
         </button>
       </div>
     </div>
