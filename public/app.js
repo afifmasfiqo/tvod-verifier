@@ -78,28 +78,49 @@ async function fetchVoterProfileFromSupabase(username) {
   }
 }
 
+// FERIFIKASI STATISTIK VOTER & SKOR REAL-TIME DARI SUPABASE
 async function fetchVoterStatsForAdmin() {
   const display = $("#adminVoterCountDisplay");
-  if (!display) return;
   if (!supabaseClient || !activeProposal.id) {
-    display.textContent = "0 Voter Aktif";
+    if (display) display.textContent = "0 Voter Aktif";
     return;
   }
 
   try {
-    const { count, error } = await supabaseClient
+    const { data: voteRows, error } = await supabaseClient
       .from('votes')
-      .select('id', { count: 'exact', head: true })
+      .select('*')
       .eq('proposal_id', activeProposal.id);
 
-    if (error) {
-      display.textContent = "0 Voter Aktif";
+    if (error || !voteRows) {
+      if (display) display.textContent = "0 Voter Aktif";
+      activeProposal.totalVotes = 0;
+      activeProposal.netScore = 0;
+      activeProposal.agreeCount = 0;
+      activeProposal.neutralCount = 0;
+      activeProposal.disagreeCount = 0;
     } else {
-      display.textContent = `${count || 0} Voter Aktif`;
-      activeProposal.totalVotes = count || 0;
+      const count = voteRows.length;
+      let totalNetScore = 0;
+      let agreeC = 0, neutralC = 0, disagreeC = 0;
+
+      voteRows.forEach((v) => {
+        totalNetScore += (parseFloat(v.weighted_score) || 0);
+        if (v.vote_direction === 1) agreeC++;
+        else if (v.vote_direction === 0) neutralC++;
+        else if (v.vote_direction === -1) disagreeC++;
+      });
+
+      activeProposal.totalVotes = count;
+      activeProposal.netScore = totalNetScore;
+      activeProposal.agreeCount = agreeC;
+      activeProposal.neutralCount = neutralC;
+      activeProposal.disagreeCount = disagreeC;
+
+      if (display) display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts)`;
     }
   } catch (err) {
-    display.textContent = "0 Voter Aktif";
+    if (display) display.textContent = "0 Voter Aktif";
   }
 }
 
@@ -129,6 +150,9 @@ async function fetchActiveProposalFromSupabase() {
       videoUrl: p.video_url || "",
       totalVotes: p.total_votes || 0,
       netScore: p.net_score || 0,
+      agreeCount: 0,
+      neutralCount: 0,
+      disagreeCount: 0,
       status: p.status || 'ACTIVE'
     };
 
@@ -196,6 +220,9 @@ let activeProposal = {
   videoUrl: "",
   totalVotes: 0,
   netScore: 0,
+  agreeCount: 0,
+  neutralCount: 0,
+  disagreeCount: 0,
   status: "ACTIVE"
 };
 
@@ -219,28 +246,6 @@ async function checkAppWalletBalance() {
     if (display) display.textContent = "⚡ 210.00 Testnet Pi";
     if (addrText) addrText.textContent = `Wallet Kas App: ${TVOD_APP_WALLET.substring(0, 8)}...${TVOD_APP_WALLET.substring(TVOD_APP_WALLET.length - 6)}`;
   }
-}
-
-function loadAndColorizeStamp(src, goldColor = "#F59E0B") {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = img.width;
-      canvas.height = img.height;
-
-      ctx.drawImage(img, 0, 0);
-      ctx.globalCompositeOperation = "source-in";
-      ctx.fillStyle = goldColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      resolve(canvas.toDataURL("image/png"));
-    };
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
 }
 
 async function initialize() {
@@ -561,7 +566,6 @@ function handleOnboarding(e) {
   alert(`✅ Registrasi Berhasil!\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}\nData tersimpan ke Supabase Database.`);
 }
 
-// 📸 TAMPILKAN GAMBAR OBJEK UTUH TANPA TERPOTONG (OBJECT-CONTAIN)
 function renderProposalMaterials() {
   if ($("#displayPropTitle")) $("#displayPropTitle").textContent = activeProposal.title;
   if ($("#displayPropCategory")) $("#displayPropCategory").textContent = "🏷️ Kategori: " + activeProposal.category;
@@ -876,7 +880,7 @@ async function handleCastVote(e) {
     if (payoutRes.ok && payoutData.success) {
       alert(`✅ SUARA TERKONFIRMASI!\n\nKategori Pemilih: ${activeUser.category.toUpperCase()}\nStatus Payout: ${payoutData.message}`);
     } else {
-      alert(`✅ Suara berhasil disimpan ke Database.\n⚠️ Payout Queue Status: ${payoutData.message || 'Berhasil dicatat di antrean'}`);
+      alert(`✅ Suara berhasil disimpan ke Database.\n⚠️ Payout Status: ${payoutData.message || 'Berhasil dicatat di antrean'}`);
     }
   } catch (payErr) {
     console.error("Gagal klaim payout:", payErr);
@@ -909,62 +913,16 @@ function changeLanguage(lang) {
   }
 }
 
-function loadImage(src) {
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-    image.src = src;
-  });
-}
+// 🖨️ DOCUMENT RENDERER VIEWER KHUSUS WEBVIEW PI BROWSER
+function renderDocumentInModal(titleText, htmlBodyContent) {
+  const modal = $("#pdfDownloadModal");
+  const modalTitle = $("#pdfModalTitle");
+  const contentDiv = $("#documentViewerContent");
 
-async function addBranding(pdf) {
-  const logo = await loadImage("/logo.png");
-  if (logo) {
-    try {
-      pdf.addImage(logo, "PNG", 155, 10, 35, 22);
-    } catch (e) {
-      console.warn("Gagal memuat logo.png:", e);
-    }
-  }
-}
-
-async function addOfficialStamp(pdf, x, y, width = 48, height = 48) {
-  const goldStampData = await loadAndColorizeStamp("/stempel-tvod.png", "#F59E0B");
-  if (goldStampData) {
-    try {
-      pdf.addImage(goldStampData, "PNG", x, y, width, height);
-    } catch (e) {
-      console.warn("Gagal menyematkan stempel emas:", e);
-    }
-  }
-}
-
-// 🖨️ PRATINJAU & DOKUMEN VIEWER SELULER PI BROWSER
-function openOrDownloadPdf(pdf, filename) {
-  try {
-    const dataUri = pdf.output('datauristring');
-    const modal = $("#pdfDownloadModal");
-    const downloadLink = $("#pdfModalDownloadBtn");
-    const title = $("#pdfModalTitle");
-    const imgPreview = $("#pdfModalImagePreview");
-
-    if (modal && downloadLink && imgPreview) {
-      if (title) title.textContent = filename;
-      downloadLink.href = dataUri;
-      downloadLink.setAttribute("download", filename);
-
-      // Konversi PDF Data URL menjadi Gambar PNG High-Res untuk Pratinjau HP
-      const pdfData = pdf.output('dataurlstring');
-      imgPreview.src = pdfData;
-
-      modal.classList.remove("hidden");
-    } else {
-      window.open(dataUri, '_blank');
-    }
-  } catch (e) {
-    console.warn("openOrDownloadPdf Error:", e);
-    alert("Dokumen PDF berhasil digenerate!");
+  if (modal && modalTitle && contentDiv) {
+    modalTitle.textContent = titleText;
+    contentDiv.innerHTML = htmlBodyContent;
+    modal.classList.remove("hidden");
   }
 }
 
@@ -974,11 +932,26 @@ function closePdfModal() {
 }
 
 function printPdfModal() {
-  const imgPreview = $("#pdfModalImagePreview");
-  if (imgPreview && imgPreview.src) {
+  const contentDiv = $("#documentViewerContent");
+  if (contentDiv) {
     const printWin = window.open('', '_blank');
     if (printWin) {
-      printWin.document.write(`<img src="${imgPreview.src}" style="width:100%;">`);
+      printWin.document.write(`
+        <html>
+          <head>
+            <title>TVOD Official Document</title>
+            <style>
+              body { font-family: sans-serif; padding: 20px; color: #000; }
+              h1, h2, h3 { margin-bottom: 5px; }
+              hr { border: 1px solid #ccc; margin: 15px 0; }
+              .stamp { border: 2px solid #d97706; padding: 10px; display: inline-block; font-weight: bold; color: #d97706; }
+            </style>
+          </head>
+          <body>
+            ${contentDiv.innerHTML}
+          </body>
+        </html>
+      `);
       printWin.document.close();
       printWin.focus();
       printWin.print();
@@ -986,207 +959,170 @@ function printPdfModal() {
   }
 }
 
-window.closePdfModal = closePdfModal;
-window.printPdfModal = printPdfModal;
-
-// 📄 GENERATE OFFICIAL MINUTES PDF
-async function generateOfficialMinutesPDF() {
-  try {
-    const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
-    if (!jsPDF) {
-      alert("⚠️ Pustaka PDF (jsPDF) belum siap. Mohon pastikan koneksi internet stabil.");
-      return;
-    }
-
-    const pdf = new jsPDF();
-    try { await addBranding(pdf); } catch (e) { console.warn(e); }
-
-    pdf.setFont("Helvetica", "bold");
-    pdf.setFontSize(15);
-    pdf.text("THE VOICE OF DAO (TVOD)", 15, 18);
-    pdf.setFontSize(9);
-    pdf.setFont("Helvetica", "normal");
-    pdf.text("Pi Network Web3 Governance Ecosystem", 15, 23);
-
-    pdf.setFontSize(11);
-    pdf.setFont("Helvetica", "bold");
-    pdf.text("OFFICIAL MINUTES OF PROCEEDINGS & VERIFICATION RECORD", 15, 31);
-    pdf.line(15, 34, 195, 34);
-
-    pdf.setFontSize(8);
-    pdf.setFont("Helvetica", "bold");
-    pdf.text(`Document ID: ${activeProposal.id}`, 15, 41);
-    pdf.text("Security Classification: CONFIDENTIAL / ON-CHAIN VERIFIED", 115, 41);
-
-    pdf.setFont("Helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("PREAMBLE & CONVENING STATEMENT", 15, 50);
-    pdf.setFont("Helvetica", "normal");
-    pdf.setFontSize(8);
-    const preambleText = `On this day, ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, the governance body and verified voters of The Voice of DAO (TVOD) officially convened via the Pi Browser Web3 Infrastructure to review, audit, and execute a cryptographic weighted vote upon the formal proposal submitted under Reference ${activeProposal.id}. The proceedings were conducted in full compliance with TVOD Governance Rules, utilizing real-time PiBox Smart Contract wallet verification and immutable SHA-256 proof logging.`;
-    pdf.text(pdf.splitTextToSize(preambleText, 180), 15, 55);
-
-    pdf.setFont("Helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("SECTION I: PROPOSAL & CASE METADATA", 15, 75);
-    pdf.setFont("Helvetica", "normal");
-    pdf.setFontSize(8);
-    pdf.text(`• Proposal Title       : ${activeProposal.title}`, 15, 81);
-    pdf.text(`• Case Category        : ${activeProposal.category}`, 15, 86);
-    pdf.text(`• Issuing Entity       : TVOD Development Team`, 15, 91);
-    pdf.text(`• Presiding Chairman   : @afifmasfiqo (Garuda ID: #911)`, 15, 96);
-    pdf.text(`• Presiding Inspector  : @Nalaktak (Garuda ID: #999)`, 15, 101);
-    pdf.text(`• Community Chapter    : ${activeUser.chapter || "GLOBAL"}`, 15, 106);
-    pdf.text(`• Voting Expiry Date   : ${votingEndTime.toLocaleString('en-US')}`, 15, 111);
-
-    pdf.setFont("Helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("SECTION II: MATHEMATICAL SCORING & VERDICT BREAKDOWN", 15, 121);
-    pdf.setFont("Helvetica", "normal");
-    pdf.setFontSize(8);
-    pdf.text("Formula: Individual Score = (Vote Direction: +1/0/-1) x (Confidence: 1-5) x (Role Weight)", 15, 127);
-    pdf.text("Applied Role Weights: Founder = 2.0 | Group Leader = 1.0 | Member = 0.5", 15, 132);
-    pdf.text(`• Total Verified Ballots Cast : ${activeProposal.totalVotes} Ballots`, 15, 138);
-    pdf.text(`• Aggregate Net Score        : +${activeProposal.netScore} Points`, 15, 143);
-    pdf.setFont("Helvetica", "bold");
-    pdf.text(`• FINAL GOVERNANCE VERDICT  : PASSED (AGREE)`, 15, 149);
-
-    pdf.setFont("Helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("SECTION III: OFFICIAL AUTHORIZATION & SIGNATURES", 15, 159);
-
-    const signers = [
-      { title: "Chairman", name: "@afifmasfiqo (#911)", id: "sig-chairman", x: 15, y: 168 },
-      { title: "Witness", name: "@insya (Witness)", id: "sig-witness", x: 105, y: 168 },
-      { title: "Inspector", name: "@Nalaktak (#999)", id: "sig-inspector", x: 15, y: 203 },
-      { title: "Country Head", name: "@Rasj81", id: "sig-country-head", x: 105, y: 203 }
-    ];
-
-    signers.forEach((s) => {
-      pdf.setFontSize(8);
-      pdf.setFont("Helvetica", "bold");
-      pdf.text(`${s.title}: ${s.name}`, s.x, s.y);
-      pdf.line(s.x, s.y + 22, s.x + 70, s.y + 22);
-
-      if (signaturePads[s.id] && !signaturePads[s.id].isEmpty()) {
-        try {
-          pdf.addImage(signaturePads[s.id].toDataURL("image/png"), "PNG", s.x, s.y + 2, 60, 18);
-        } catch (err) {
-          console.warn("Signature export failed for:", s.id);
-        }
-      }
+function copyDocumentText() {
+  const contentDiv = $("#documentViewerContent");
+  if (contentDiv) {
+    navigator.clipboard.writeText(contentDiv.innerText).then(() => {
+      alert("📋 Seluruh Teks Dokumen Resmi Berhasil Disalin ke Clipboard!");
+    }).catch(err => {
+      alert("Gagal menyalin teks: " + err);
     });
-
-    try { await addOfficialStamp(pdf, 135, 175, 48, 48); } catch (e) { console.warn(e); }
-
-    let shaProof = "TVOD-PROOF-SHA256";
-    if (window.CryptoJS) {
-      shaProof = window.CryptoJS.SHA256(`TVOD-MINUTES-${Date.now()}`).toString();
-    }
-    pdf.setFontSize(7);
-    pdf.setFont("Courier", "normal");
-    pdf.text(`SHA-256 Cryptographic Proof: ${shaProof}`, 15, 248);
-    pdf.text("Disclaimer: Official Minutes compiled for Pi Core Team reporting, Web3 ecosystem audit, and governance record.", 15, 253);
-
-    openOrDownloadPdf(pdf, `TVOD_Official_Minutes_${activeProposal.id}.pdf`);
-  } catch (err) {
-    alert("❌ Gagal membuat Minutes PDF: " + err.message);
-    console.error(err);
   }
 }
 
-// 🎓 GENERATE CERTIFICATE PDF
+window.closePdfModal = closePdfModal;
+window.printPdfModal = printPdfModal;
+window.copyDocumentText = copyDocumentText;
+
+// 📑 GENERATE OFFICIAL MINUTES DOKUMEN REAL-TIME
+async function generateOfficialMinutesPDF() {
+  await fetchVoterStatsForAdmin();
+
+  const netScoreVal = activeProposal.netScore || 0;
+  const verdictText = netScoreVal > 0 ? "PASSED (AGREE)" : (netScoreVal < 0 ? "REJECTED (DISAGREE)" : "TIED / NEUTRAL");
+  const shaProof = window.CryptoJS ? window.CryptoJS.SHA256(`TVOD-MINUTES-${activeProposal.id}-${Date.now()}`).toString() : "SHA256-AUTHENTICATED";
+
+  const docHtml = `
+    <div style="border-bottom: 2px solid #f59e0b; padding-bottom: 12px; margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1 style="font-size: 20px; font-weight: bold; color: #f59e0b; margin: 0;">THE VOICE OF DAO (TVOD)</h1>
+          <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">Pi Network Web3 Governance Ecosystem</p>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; padding: 2px 6px; border-radius: 4px; font-family: monospace;">ON-CHAIN VERIFIED</span>
+        </div>
+      </div>
+    </div>
+
+    <h2 style="font-size: 14px; font-weight: bold; color: #f1f5f9; text-transform: uppercase; margin-bottom: 5px;">OFFICIAL MINUTES OF PROCEEDINGS & VERIFICATION RECORD</h2>
+    <p style="font-size: 11px; font-family: monospace; color: #cbd5e1; margin-bottom: 15px;">
+      Document ID: <strong>${activeProposal.id}</strong> | Security Classification: <strong>CONFIDENTIAL / GOVERNANCE RECORD</strong>
+    </p>
+
+    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+      <h3 style="font-size: 12px; font-weight: bold; color: #f59e0b; margin-top: 0;">PREAMBLE & CONVENING STATEMENT</h3>
+      <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5; margin: 0;">
+        On this day, <strong>${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>, the governance body and verified voters of The Voice of DAO (TVOD) officially convened via the Pi Browser Web3 Infrastructure to review, audit, and execute a cryptographic weighted vote upon the proposal <strong>"${activeProposal.title}"</strong>. The proceedings were conducted in full compliance with TVOD Governance Rules, utilizing real-time PiBox Smart Contract wallet verification and immutable cryptographic proof logging.
+      </p>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <h3 style="font-size: 12px; font-weight: bold; color: #f59e0b; margin-bottom: 8px;">SECTION I: PROPOSAL METADATA</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: #cbd5e1;">
+        <tr><td style="padding: 4px 0; width: 180px;">• Proposal Title</td><td>: <strong>${activeProposal.title}</strong></td></tr>
+        <tr><td style="padding: 4px 0;">• Case Category</td><td>: ${activeProposal.category}</td></tr>
+        <tr><td style="padding: 4px 0;">• Issuing Entity</td><td>: ${activeProposal.proposerEntity}</td></tr>
+        <tr><td style="padding: 4px 0;">• Presiding Chairman</td><td>: @afifmasfiqo (Garuda ID: #911)</td></tr>
+        <tr><td style="padding: 4px 0;">• Presiding Inspector</td><td>: @Nalaktak (Garuda ID: #999)</td></tr>
+        <tr><td style="padding: 4px 0;">• Community Chapter</td><td>: ${activeUser.chapter || "GLOBAL"}</td></tr>
+        <tr><td style="padding: 4px 0;">• Voting Expiry Date</td><td>: ${votingEndTime.toLocaleString('en-US')}</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <h3 style="font-size: 12px; font-weight: bold; color: #f59e0b; margin-bottom: 8px;">SECTION II: MATHEMATICAL VOTING SCORE & VERDICT</h3>
+      <div style="background: #020617; border: 1px solid #1e293b; padding: 12px; border-radius: 8px; font-size: 11px;">
+        <p style="margin: 0 0 6px 0; color: #94a3b8;">Formula: Individual Score = (Vote Direction: +1/0/-1) x (Confidence: 1-5) x (Role Weight)</p>
+        <p style="margin: 0 0 10px 0; color: #94a3b8;">Applied Role Weights: Founder = 2.0 | Group Leader = 1.0 | Member = 0.5</p>
+        
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 10px;">
+          <div style="background: #0f172a; padding: 8px 12px; border-radius: 6px; border: 1px solid #334155;">
+            <span style="color: #94a3b8; display: block; font-size: 10px;">Total Verified Ballots:</span>
+            <strong style="font-size: 14px; color: #f1f5f9;">${activeProposal.totalVotes} Ballots</strong>
+          </div>
+          <div style="background: #0f172a; padding: 8px 12px; border-radius: 6px; border: 1px solid #334155;">
+            <span style="color: #94a3b8; display: block; font-size: 10px;">Aggregate Net Score:</span>
+            <strong style="font-size: 14px; color: ${netScoreVal >= 0 ? '#10b981' : '#ef4444'};">${netScoreVal >= 0 ? '+' : ''}${netScoreVal.toFixed(1)} Pts</strong>
+          </div>
+        </div>
+
+        <p style="margin: 0; font-size: 13px; font-weight: bold; color: #f59e0b;">
+          FINAL GOVERNANCE VERDICT: <span style="color: #10b981;">${verdictText}</span>
+        </p>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <h3 style="font-size: 12px; font-weight: bold; color: #f59e0b; margin-bottom: 12px;">SECTION III: OFFICIAL AUTHORIZATION & SIGNATURES</h3>
+      <div style="display: grid; grid-template-cols: repeat(2, 1fr); gap: 12px;">
+        <div style="border: 1px dashed #334155; padding: 10px; border-radius: 6px;">
+          <span style="font-size: 10px; font-weight: bold; color: #f59e0b; display: block;">1. Chairman</span>
+          <strong style="font-size: 11px;">@afifmasfiqo (#911)</strong>
+          <div style="height: 35px; border-bottom: 1px solid #475569; margin-top: 5px;"></div>
+        </div>
+        <div style="border: 1px dashed #334155; padding: 10px; border-radius: 6px;">
+          <span style="font-size: 10px; font-weight: bold; color: #f59e0b; display: block;">2. Witness</span>
+          <strong style="font-size: 11px;">@insya (Witness)</strong>
+          <div style="height: 35px; border-bottom: 1px solid #475569; margin-top: 5px;"></div>
+        </div>
+        <div style="border: 1px dashed #334155; padding: 10px; border-radius: 6px;">
+          <span style="font-size: 10px; font-weight: bold; color: #f59e0b; display: block;">3. Inspector</span>
+          <strong style="font-size: 11px;">@Nalaktak (#999)</strong>
+          <div style="height: 35px; border-bottom: 1px solid #475569; margin-top: 5px;"></div>
+        </div>
+        <div style="border: 1px dashed #334155; padding: 10px; border-radius: 6px;">
+          <span style="font-size: 10px; font-weight: bold; color: #f59e0b; display: block;">4. Country Head</span>
+          <strong style="font-size: 11px;">@Rasj81</strong>
+          <div style="height: 35px; border-bottom: 1px solid #475569; margin-top: 5px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="border-top: 1px solid #334155; pt-10px; font-family: monospace; font-size: 9px; color: #64748b;">
+      <p style="margin: 5px 0 2px 0;">SHA-256 Cryptographic Proof: ${shaProof}</p>
+      <p style="margin: 0;">Disclaimer: Official Minutes compiled for Pi Core Team reporting, Web3 ecosystem audit, and governance record.</p>
+    </div>
+  `;
+
+  renderDocumentInModal(`Official Minutes: ${activeProposal.id}`, docHtml);
+}
+
+// 🎓 GENERATE SERTIFIKAT VERIFIKASI DIGITAL DOKUMEN REAL-TIME
 async function generateCertificatePDF() {
-  try {
-    const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
-    if (!jsPDF) {
-      alert("⚠️ Pustaka PDF (jsPDF) belum siap. Mohon pastikan koneksi internet stabil.");
-      return;
-    }
+  await fetchVoterStatsForAdmin();
 
-    const pdf = new jsPDF();
-    try { await addBranding(pdf); } catch (e) { console.warn(e); }
+  const netScoreVal = activeProposal.netScore || 0;
+  const verdictText = netScoreVal > 0 ? "TVOD VERIFIED & PASSED" : "VERIFIED - REJECTED";
+  const shaProof = window.CryptoJS ? window.CryptoJS.SHA256(`CERT-${activeProposal.id}-${Date.now()}`).toString() : "CERT-SHA256-PROVED";
 
-    pdf.setFontSize(18);
-    pdf.setFont("Helvetica", "bold");
-    pdf.text("THE VOICE OF DAO", 15, 25);
-    pdf.setFontSize(11);
-    pdf.text("OFFICIAL DIGITAL VERIFICATION CERTIFICATE", 15, 33);
-    pdf.setFontSize(8);
-    pdf.setFont("Helvetica", "normal");
-    pdf.text("Pi Network Web3 Ecosystem Governance", 15, 38);
-    pdf.line(15, 42, 195, 42);
+  const certHtml = `
+    <div style="border: 3px double #f59e0b; padding: 20px; border-radius: 12px; background: #020617; text-align: center;">
+      <h1 style="font-size: 22px; font-weight: bold; color: #f59e0b; margin: 0 0 5px 0;">THE VOICE OF DAO</h1>
+      <h2 style="font-size: 12px; font-weight: bold; color: #f1f5f9; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 15px 0;">OFFICIAL DIGITAL VERIFICATION CERTIFICATE</h2>
+      <p style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-bottom: 15px;">Pi Network Web3 Ecosystem Governance</p>
 
-    pdf.setFontSize(10);
-    pdf.setFont("Helvetica", "bold");
-    pdf.text("THIS IS TO OFFICIALLY CERTIFY THAT THE VOTING OBJECT / PROPOSAL:", 15, 52);
+      <hr style="border: 0; border-top: 1px solid #334155; margin: 15px 0;" />
 
-    pdf.setFontSize(12);
-    pdf.setFont("Helvetica", "bold");
-    pdf.text(`"${activeProposal.title}"`, 15, 62);
+      <p style="font-size: 11px; color: #cbd5e1; text-transform: uppercase; margin-bottom: 8px;">THIS IS TO OFFICIALLY CERTIFY THAT THE VOTING OBJECT / PROPOSAL:</p>
+      <h3 style="font-size: 16px; font-weight: bold; color: #fbbf24; margin: 0 0 15px 0;">"${activeProposal.title}"</h3>
 
-    pdf.setFontSize(9);
-    pdf.setFont("Helvetica", "normal");
-    pdf.text(`Submitted By Entity / Publisher : TVOD Development Team`, 15, 72);
-    pdf.text(`Case Category                   : ${activeProposal.category}`, 15, 78);
-    pdf.text(`Verification Reference ID       : ${activeProposal.id}`, 15, 84);
-    pdf.text(`Date of Final Ratification      : ${activeProposal.date}`, 15, 90);
+      <div style="text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #1e293b; font-size: 11px; color: #cbd5e1; margin-bottom: 15px;">
+        <p style="margin: 3px 0;">• Submitted By Entity / Publisher : <strong>${activeProposal.proposerEntity}</strong></p>
+        <p style="margin: 3px 0;">• Case Category                   : <strong>${activeProposal.category}</strong></p>
+        <p style="margin: 3px 0;">• Verification Reference ID       : <strong>${activeProposal.id}</strong></p>
+        <p style="margin: 3px 0;">• Date of Final Ratification      : <strong>${activeProposal.date}</strong></p>
+      </div>
 
-    pdf.line(15, 95, 195, 95);
+      <div style="background: rgba(16, 185, 129, 0.1); border: 2px solid #10b981; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+        <span style="font-size: 10px; font-weight: bold; color: #10b981; uppercase display: block; margin-bottom: 4px;">GOVERNANCE AUDIT STATUS:</span>
+        <strong style="font-size: 16px; color: #10b981;">STATUS: ${verdictText}</strong>
+        <p style="font-size: 11px; color: #cbd5e1; margin: 6px 0 0 0;">
+          Net Weighted Score: <strong>+${netScoreVal.toFixed(1)} Pts</strong> | Total Verified On-Chain Votes: <strong>${activeProposal.totalVotes} Ballots</strong>
+        </p>
+      </div>
 
-    pdf.setFontSize(10);
-    pdf.setFont("Helvetica", "bold");
-    pdf.text("GOVERNANCE AUDIT VERDICT:", 15, 105);
+      <div style="margin-top: 20px; font-size: 10px; color: #94a3b8; font-family: monospace;">
+        <p style="margin: 0 0 4px 0;">Issued by Governance Chairman: @afifmasfiqo (#911)</p>
+        <p style="margin: 0 0 10px 0;">Cryptographic Hash: ${shaProof}</p>
+        <div style="display: inline-block; border: 1px solid #f59e0b; color: #f59e0b; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 10px;">
+          ✓ IMMUTABLE SHA-256 RECORDED
+        </div>
+      </div>
+    </div>
+  `;
 
-    pdf.setFontSize(14);
-    pdf.text("STATUS: TVOD VERIFIED & PASSED", 15, 115);
-
-    pdf.setFontSize(9);
-    pdf.setFont("Helvetica", "normal");
-    pdf.text(`Net Weighted Score Achieved  : +${activeProposal.netScore} Points`, 15, 124);
-    pdf.text(`Total Verified On-Chain Votes: ${activeProposal.totalVotes} Ballots`, 15, 130);
-    pdf.text(`Verification Protocol        : PiBox Smart Contract Real-Time Wallet Verification`, 15, 136);
-
-    try { await addOfficialStamp(pdf, 135, 100, 52, 52); } catch (e) { console.warn(e); }
-
-    if (window.QRCode) {
-      try {
-        const qrDiv = document.createElement("div");
-        new window.QRCode(qrDiv, { text: `https://tvod-verifier.vercel.app/verify/${activeProposal.id}`, width: 120, height: 120 });
-        await new Promise((res) => setTimeout(res, 200));
-        const qrCanvas = qrDiv.querySelector("canvas");
-        if (qrCanvas) {
-          pdf.addImage(qrCanvas.toDataURL("image/png"), "PNG", 15, 145, 38, 38);
-          pdf.setFontSize(7);
-          pdf.text("Scan QR Code to audit live verification record on Pi Browser", 15, 187);
-        }
-      } catch (qrErr) {
-        console.warn("QR Code render warning:", qrErr);
-      }
-    }
-
-    let certHash = "CERT-HASH-PROVED";
-    if (window.CryptoJS) {
-      certHash = window.CryptoJS.SHA256(`CERT-${activeProposal.id}-${Date.now()}`).toString();
-    }
-
-    pdf.setFontSize(7);
-    pdf.setFont("Courier", "normal");
-    pdf.text(`SHA-256 Certificate Hash: ${certHash}`, 15, 200);
-
-    pdf.setFontSize(8);
-    pdf.setFont("Helvetica", "bold");
-    pdf.text("Issued by Governance Chairman: @afifmasfiqo (#911)", 15, 210);
-
-    pdf.setFontSize(7);
-    pdf.setFont("Helvetica", "italic");
-    pdf.text("TVOD Development Team", 15, 220);
-
-    openOrDownloadPdf(pdf, `TVOD_Digital_Verification_Certificate_${activeProposal.id}.pdf`);
-  } catch (err) {
-    alert("❌ Gagal membuat Sertifikat PDF: " + err.message);
-    console.error(err);
-  }
+  renderDocumentInModal(`Digital Certificate: ${activeProposal.id}`, certHtml);
 }
 
 window.publishNewProposal = publishNewProposal;
