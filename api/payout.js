@@ -7,6 +7,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const PI_HORIZON_URL = "https://api.testnet.minepi.com";
 const server = new Server(PI_HORIZON_URL);
+// Passphrase Resmi Pi Testnet Network
+const PI_NETWORK_PASSPHRASE = "Test Pi Network ; December 2019";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -21,9 +23,18 @@ export default async function handler(req, res) {
 
   const seed = process.env.PI_PAYOUT_SEED;
   if (!seed) {
+    await supabase.from('payout_queue').insert([{
+      username: username || 'Anonymous',
+      wallet_address: walletAddress,
+      amount: amount,
+      proposal_id: proposalId,
+      status: 'PENDING',
+      error_log: 'PI_PAYOUT_SEED belum dikonfigurasi di Environment Variables Vercel'
+    }]);
+
     return res.status(500).json({ 
       success: false, 
-      message: 'PI_PAYOUT_SEED belum aktif! Silakan klik REDEPLOY di Vercel Dashboard.' 
+      message: 'PI_PAYOUT_SEED belum aktif di Vercel! Silakan klik REDEPLOY di Vercel.' 
     });
   }
 
@@ -32,7 +43,7 @@ export default async function handler(req, res) {
     const sourceKeypair = Keypair.fromSecret(cleanSeed);
     const sourceAccount = await server.loadAccount(sourceKeypair.publicKey());
 
-    // Cek apakah wallet tujuan sudah terdaftar di ledger Horizon Testnet
+    // Cek apakah wallet tujuan sudah terdaftar di ledger Horizon
     let destinationExists = true;
     try {
       await server.loadAccount(walletAddress);
@@ -40,7 +51,6 @@ export default async function handler(req, res) {
       destinationExists = false;
     }
 
-    // Jika wallet belum pernah punya saldo, gunakan createAccount, jika sudah ada gunakan payment
     const paymentOp = destinationExists
       ? Operation.payment({
           destination: walletAddress,
@@ -54,7 +64,7 @@ export default async function handler(req, res) {
 
     const transaction = new TransactionBuilder(sourceAccount, {
       fee: "10000",
-      networkPassphrase: "Pi Testnet"
+      networkPassphrase: PI_NETWORK_PASSPHRASE
     })
       .addOperation(paymentOp)
       .setTimeout(30)
@@ -88,7 +98,6 @@ export default async function handler(req, res) {
       detailedError = `Horizon Error: ${JSON.stringify(codes)}`;
     }
 
-    // Catat transaksi gagal ke antrean PENDING
     await supabase.from('payout_queue').insert([{
       username: username || 'Anonymous',
       wallet_address: walletAddress,
