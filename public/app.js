@@ -1040,6 +1040,7 @@ function closePdfModal() {
   if (modal) modal.classList.add("hidden");
 }
 
+// PERBAIKAN PENGUNDUHAN PDF KHUSUS PI BROWSER SELULER
 function downloadPdfModal() {
   const element = document.getElementById("documentViewerContent");
   const modalTitle = document.getElementById("pdfModalTitle") ? document.getElementById("pdfModalTitle").textContent : "Official_Minutes";
@@ -1053,7 +1054,24 @@ function downloadPdfModal() {
       html2canvas:  { scale: 2, useCORS: true, logging: false },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
-    html2pdf().set(opt).from(element).save();
+
+    html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
+      const blob = pdf.output('blob');
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }).catch(err => {
+      console.warn("Fallback html2pdf save:", err);
+      try {
+        html2pdf().set(opt).from(element).save();
+      } catch (e) {
+        window.print();
+      }
+    });
   } else {
     window.print();
   }
@@ -1240,10 +1258,10 @@ async function generateOfficialMinutesPDF() {
         These Official Minutes have been prepared in good faith and may be used as required. All data refer to the TVOD Verifier System (TVOD Verifier dApp X Pi Network Ecosystem), which has been duly verified. This document is protected under the TVOD File Security System with Lock Editing Mode. Any unauthorized reproduction constitutes a security violation.
       </p>
 
-      <!-- AREA TANDA TANGAN 4 PEJABAT -->
+      <!-- AREA TANDA TANGAN 4 PEJABAT (STEMPEL DI-POSITIONING DI SUDUT ATAS AGAR TIDAK MENUTUPI WITNESS) -->
       <div style="position: relative; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px;">
         
-        <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; right: 20px; top: 10px; width: 110px; height: 110px; opacity: 0.85; pointer-events: none; z-index: 10;" />
+        <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; right: 10px; top: -5px; width: 90px; height: 90px; opacity: 0.65; pointer-events: none; z-index: 10;" />
 
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
           
