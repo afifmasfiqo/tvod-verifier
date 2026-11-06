@@ -15,6 +15,7 @@
   <!-- Pustaka Utility -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -22,7 +23,6 @@
     .rtl { direction: rtl; }
     canvas.signature-pad { touch-action: none; background-color: #020617; border: 1px solid #334155; border-radius: 0.5rem; }
 
-    /* STYLES KHUSUS CETAK / SIMPAN PDF HAPUS ELEMEN WEBPAGE KETIKA PRINT */
     @media print {
       body * {
         visibility: hidden !important;
@@ -108,7 +108,7 @@
       <div class="border-b border-slate-800 pb-3 mb-5">
         <span class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 1</span>
         <h2 class="text-2xl font-bold text-slate-100 mt-1">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
-        <p class="text-xs sm:text-sm text-slate-400 mt-1">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT PiBox secara On-Chain.</p>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3 mb-6 p-4 bg-slate-950 rounded-xl border border-slate-800">
@@ -489,8 +489,8 @@
       </div>
 
       <div class="flex flex-wrap gap-2.5 pt-2 border-t border-slate-800">
-        <button type="button" onclick="printPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2">
-          <span>🖨️</span> Simpan ke PDF / Cetak (Bawaan HP)
+        <button type="button" onclick="downloadPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2">
+          <span>📥</span> Download Berkas PDF (Langsung Simpan)
         </button>
         <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm border border-slate-700 transition">
           📋 Salin Teks Dokumen
