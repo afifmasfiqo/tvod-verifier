@@ -20,127 +20,167 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-// 2. MULTI-BAHASA (i18n DICTIONARY ENGINE)
+// 2. KAMUS TERJEMAHAN MULTI-BAHASA LENGKAP (i18n ENGINE)
 const i18nDictionary = {
   id: {
-    app_title: "WEB3 VERIFIKASI & APLIKASI VOTING",
-    sub_title: "TVOD Verifier dApp X Pi Network Ecosystem",
-    nav_home: "Beranda",
-    nav_proposal: "Proposal Aktif",
-    nav_verify: "Verifikasi Voter",
-    nav_admin: "Admin Suite",
-    voter_reg_title: "Pendaftaran & Verifikasi Voter",
-    label_username: "Username Pi Network",
-    label_wallet: "Alamat Wallet (G...)",
-    label_category: "Kategori Keanggotaan",
-    label_role: "Peran / Hak Suara",
-    label_chapter: "Wilayah / Chapter",
-    btn_register: "Simpan & Verifikasi Identitas",
-    prop_title: "Proposal Voting Aktif",
-    vote_agree: "Setuju (+1)",
-    vote_neutral: "Netral (0)",
-    vote_disagree: "Tidak Setuju (-1)",
-    confidence_label: "Tingkat Keyakinan Verifikasi:",
+    app_title: "THE VOICE OF DAO",
+    sub_title: "WEB3 VERIFIER & VOTING dAPP",
+    nav_home: "🔑 Onboarding & Wallet",
+    nav_proposal: "📄 Materi Voting",
+    nav_verify: "🗳️ Fast Voting",
+    nav_admin: "🛡️ Admin Suite",
+    step1_title: "Pendaftaran Pemilih & Verifikasi Pi Wallet",
+    step1_desc: "Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.",
+    label_wallet: "Pi Wallet Address (Public Key untuk Payout & Cek NFT)",
+    label_category: "Kategori Pemilih (Voter Category)",
+    cat_owner: "Pemilih Tetap (Pemilik NFT Garuda #1 - #1000)",
+    cat_delegator: "Delegator (NFT Halloween 1 Unit / NFT PiDay2026 3 Unit)",
+    cat_witness: "Saksi Luar (External Witness Bypass)",
+    label_chapter: "Wilayah Komunitas (Chapter)",
+    label_role: "Peran Tata Kelola (Governance Role)",
+    role_member: "Member (Bobot Suara: 0.5)",
+    role_leader: "Group Leader (Bobot Suara: 1.0)",
+    role_founder: "Founder (Bobot Suara: 2.0 - Garuda ID #999)",
+    btn_register: "Verifikasi Data & Buka Akses Voting",
+    prop_bg_title: "📄 LATAR BELAKANG & DESKRIPSI OBJEK",
+    prop_gallery_title: "📸 GALERI BUKTI FOTO & VIDEO OBJEK",
+    vote_step_title: "Modul Fast Voting",
+    vote_dir_label: "1. Arah Pilihan Suara Anda",
+    vote_agree: "👍 Setuju (+1)",
+    vote_neutral: "😐 Netral (0)",
+    vote_disagree: "👎 Tidak Setuju (-1)",
+    confidence_label: "2. Tingkat Keyakinan / Confidence (Skala 1 - 5)",
     btn_submit_vote: "Kirim Suara Terenkripsi & Klaim Insentif Pi",
-    btn_official_minutes: "📜 Generate Official Minutes (PDF)",
-    btn_digital_cert: "🎓 Generate Sertifikat Digital (PDF)",
+    admin_title: "🛡️ Admin Suite",
+    btn_publish_prop: "🚀 Terbitkan Proposal & Mulai Timer Voting",
+    btn_cancel_prop: "⛔ Batalkan / Tutup Proposal Aktif",
+    btn_retry_payouts: "🔄 Process Pending Payouts Queue",
+    btn_official_minutes: "📄 Generate Official Minutes Document (English)",
+    btn_digital_cert: "🎓 Generate Digital Verification Certificate",
     btn_print_pdf: "🖨️ Cetak / Simpan Berkas PDF",
+    btn_share_chrome: "🌐 Buka / Bagikan ke Chrome",
     btn_copy_text: "📋 Salin Teks Dokumen",
-    btn_close_modal: "Tutup Dokumen",
-    admin_title: "Panel Kontrol Admin TVOD",
-    btn_publish_prop: "Terbitkan Proposal Baru",
-    btn_cancel_prop: "Batalkan / Tutup Proposal Aktif",
-    btn_retry_payouts: "🔄 Process Pending Payouts Queue"
+    btn_close_modal: "Tutup Dokumen"
   },
   en: {
-    app_title: "WEB3 VERIFIER & VOTING dAPP",
-    sub_title: "TVOD Verifier dApp X Pi Network Ecosystem",
-    nav_home: "Home",
-    nav_proposal: "Active Proposal",
-    nav_verify: "Voter Verification",
-    nav_admin: "Admin Suite",
-    voter_reg_title: "Registration & Voter Verification",
-    label_username: "Pi Network Username",
-    label_wallet: "Wallet Address (G...)",
-    label_category: "Membership Category",
-    label_role: "Role / Voting Power",
-    label_chapter: "Region / Chapter",
-    btn_register: "Save & Verify Identity",
-    prop_title: "Active Voting Proposal",
-    vote_agree: "Agree (+1)",
-    vote_neutral: "Neutral (0)",
-    vote_disagree: "Disagree (-1)",
-    confidence_label: "Verification Confidence Level:",
+    app_title: "THE VOICE OF DAO",
+    sub_title: "WEB3 VERIFIER & VOTING dAPP",
+    nav_home: "🔑 Onboarding & Wallet",
+    nav_proposal: "📄 Voting Material",
+    nav_verify: "🗳️ Fast Voting",
+    nav_admin: "🛡️ Admin Suite",
+    step1_title: "Voter Registration & Pi Wallet Verification",
+    step1_desc: "Authenticate via Pi SDK and connect wallet to verify On-Chain NFT ownership.",
+    label_wallet: "Pi Wallet Address (Public Key for Payouts & NFT Check)",
+    label_category: "Voter Category",
+    cat_owner: "Regular Voter (Garuda NFT Owner #1 - #1000)",
+    cat_delegator: "Delegator (1 Unit Halloween NFT / 3 Units PiDay2026 NFT)",
+    cat_witness: "External Witness (External Witness Bypass)",
+    label_chapter: "Community Chapter / Region",
+    label_role: "Governance Role",
+    role_member: "Member (Vote Weight: 0.5)",
+    role_leader: "Group Leader (Vote Weight: 1.0)",
+    role_founder: "Founder (Vote Weight: 2.0 - Garuda ID #999)",
+    btn_register: "Verify Data & Enable Voting Access",
+    prop_bg_title: "📄 BACKGROUND & OBJECT DESCRIPTION",
+    prop_gallery_title: "📸 PHOTO & VIDEO PROOF GALLERY",
+    vote_step_title: "Fast Voting Module",
+    vote_dir_label: "1. Your Vote Direction",
+    vote_agree: "👍 Agree (+1)",
+    vote_neutral: "😐 Neutral (0)",
+    vote_disagree: "👎 Disagree (-1)",
+    confidence_label: "2. Verification Confidence Level (Scale 1 - 5)",
     btn_submit_vote: "Submit Encrypted Vote & Claim Pi Incentive",
-    btn_official_minutes: "📜 Generate Official Minutes (PDF)",
-    btn_digital_cert: "🎓 Generate Digital Certificate (PDF)",
-    btn_print_pdf: "🖨️ Print / Save Document PDF",
+    admin_title: "🛡️ Admin Suite",
+    btn_publish_prop: "🚀 Publish Proposal & Start Voting Timer",
+    btn_cancel_prop: "⛔ Cancel / Close Active Proposal",
+    btn_retry_payouts: "🔄 Process Pending Payouts Queue",
+    btn_official_minutes: "📄 Generate Official Minutes Document (English)",
+    btn_digital_cert: "🎓 Generate Digital Verification Certificate",
+    btn_print_pdf: "🖨️ Print / Save PDF Document",
+    btn_share_chrome: "🌐 Open / Share to Chrome",
     btn_copy_text: "📋 Copy Document Text",
-    btn_close_modal: "Close Document",
-    admin_title: "TVOD Admin Control Panel",
-    btn_publish_prop: "Publish New Proposal",
-    btn_cancel_prop: "Cancel / Close Active Proposal",
-    btn_retry_payouts: "🔄 Process Pending Payouts Queue"
+    btn_close_modal: "Close Document"
   },
   ar: {
-    app_title: "تطبيق التحقق والتصويت WEB3",
-    sub_title: "TVOD Verifier dApp X Pi Network Ecosystem",
-    nav_home: "الرئيسية",
-    nav_proposal: "الاقتراح النشط",
-    nav_verify: "التحقق من الناخب",
-    nav_admin: "جناح الإدارة",
-    voter_reg_title: "التسجيل والتحقق من الناخب",
-    label_username: "اسم المستخدم Pi Network",
-    label_wallet: "عنوان المحفظة (G...)",
-    label_category: "فئة العضوية",
-    label_role: "الدور / قوة التصويت",
-    label_chapter: "المنطقة / الفرع",
-    btn_register: "حفظ والتحقق من الهوية",
-    prop_title: "مقترح التصويت النشط",
-    vote_agree: "موافق (+1)",
-    vote_neutral: "محايد (0)",
-    vote_disagree: "غير موافق (-1)",
-    confidence_label: "مستوى الثقة في التحقق:",
+    app_title: "صوت منظمة DAO",
+    sub_title: "تطبيق التحقق والتصويت Web3",
+    nav_home: "🔑 التسجيل والمحفظة",
+    nav_proposal: "📄 مواد التصويت",
+    nav_verify: "🗳️ التصويت السريع",
+    nav_admin: "🛡️ جناح الإدارة",
+    step1_title: "تسجيل الناخبين والتحقق من محفظة Pi",
+    step1_desc: "مصادقة عبر Pi SDK وربط المحفظة للتحقق من ملكية NFT.",
+    label_wallet: "عنوان محفظة Pi (المفتاح العام للمكافآت)",
+    label_category: "فئة الناخب",
+    cat_owner: "ناخب دائم (مالك NFT Garuda #1 - #1000)",
+    cat_delegator: "مفوض (1 unit Halloween / 3 units PiDay2026)",
+    cat_witness: "شاهد خارجي (تجاوز الشاهد الخارجي)",
+    label_chapter: "منطقة المجتمع",
+    label_role: "دور الحوكمة",
+    role_member: "عضو (وزن الصوت: 0.5)",
+    role_leader: "قائد المجموعة (وزن الصوت: 1.0)",
+    role_founder: "مؤسس (وزن الصوت: 2.0 - Garuda #999)",
+    btn_register: "التحقق من البيانات وفتح الوصول للتصويت",
+    prop_bg_title: "📄 الخلفية ووصف الهدف",
+    prop_gallery_title: "📸 معرض الصور والفيديو للأدلة",
+    vote_step_title: "وحدة التصويت السريع",
+    vote_dir_label: "1. اتجاه صوتك",
+    vote_agree: "👍 موافق (+1)",
+    vote_neutral: "😐 محايد (0)",
+    vote_disagree: "👎 غير موافق (-1)",
+    confidence_label: "2. مستوى الثقة في التحقق (مقياس 1 - 5)",
     btn_submit_vote: "إرسال الصوت المشفر والمطالبة بالحافز",
-    btn_official_minutes: "📜 إنشاء المحضر الرسمي (PDF)",
-    btn_digital_cert: "🎓 إنشاء شهادة التحقق الرقمية (PDF)",
-    btn_print_pdf: "🖨️ طباعة / حفظ PDF",
+    admin_title: "🛡️ جناح الإدارة",
+    btn_publish_prop: "🚀 نشر اقتراح وبدء المؤقت",
+    btn_cancel_prop: "⛔ إلغاء / إغلاق الاقتراح النشط",
+    btn_retry_payouts: "🔄 معالجة صف المدفوعات المعلقة",
+    btn_official_minutes: "📄 إنشاء وثيقة المحضر الرسمي (PDF)",
+    btn_digital_cert: "🎓 إنشاء شهادة التحقق الرقمية",
+    btn_print_pdf: "🖨️ طباعة / حفظ وثيقة PDF",
+    btn_share_chrome: "🌐 فتح / مشاركة Chrome",
     btn_copy_text: "📋 نسخ نص الوثيقة",
-    btn_close_modal: "إغلاق الوثيقة",
-    admin_title: "لوحة تحكم المسؤول",
-    btn_publish_prop: "نشر اقتراح جديد",
-    btn_cancel_prop: "إلغاء / إغلاق الاقتراح النشط",
-    btn_retry_payouts: "🔄 معالجة المدفوعات المعلقة"
+    btn_close_modal: "إغلاق الوثيقة"
   },
   zh: {
-    app_title: "WEB3 验证与投票 dAPP",
-    sub_title: "TVOD Verifier dApp X Pi Network Ecosystem",
-    nav_home: "首页",
-    nav_proposal: "当前提案",
-    nav_verify: "选民验证",
-    nav_admin: "管理后台",
-    voter_reg_title: "选民注册与身份验证",
-    label_username: "Pi Network 用户名",
-    label_wallet: "钱包地址 (G...)",
-    label_category: "会员类别",
-    label_role: "角色 / 投票权重",
-    label_chapter: "区域 / 分会",
-    btn_register: "保存并验证身份",
-    prop_title: "进行中的投票提案",
-    vote_agree: "赞成 (+1)",
-    vote_neutral: "中立 (0)",
-    vote_disagree: "反对 (-1)",
-    confidence_label: "验证置信度等级：",
+    app_title: "THE VOICE OF DAO",
+    sub_title: "WEB3 验证与投票 dAPP",
+    nav_home: "🔑 入职与钱包",
+    nav_proposal: "📄 投票材料",
+    nav_verify: "🗳️ 快速投票",
+    nav_admin: "🛡️ 管理员套件",
+    step1_title: "选民注册与 Pi 钱包验证",
+    step1_desc: "通过 Pi SDK 进行身份验证并连接钱包以验证 On-Chain NFT 所有权。",
+    label_wallet: "Pi 钱包地址 (公钥用于支付与 NFT 检查)",
+    label_category: "选民类别",
+    cat_owner: "正式选民 (Garuda NFT 所有者 #1 - #1000)",
+    cat_delegator: "代表 (1个 Halloween NFT / 3个 PiDay2026 NFT)",
+    cat_witness: "外部证人 (外部旁路)",
+    label_chapter: "社区分会 / 区域",
+    label_role: "治理角色",
+    role_member: "成员 (投票权重: 0.5)",
+    role_leader: "组长 (投票权重: 1.0)",
+    role_founder: "创始人 (投票权重: 2.0 - Garuda ID #999)",
+    btn_register: "验证数据并开启投票权限",
+    prop_bg_title: "📄 背景与对象描述",
+    prop_gallery_title: "📸 照片与视频证明图库",
+    vote_step_title: "快速投票模块",
+    vote_dir_label: "1. 您的投票方向",
+    vote_agree: "👍 赞成 (+1)",
+    vote_neutral: "😐 中立 (0)",
+    vote_disagree: "👎 反对 (-1)",
+    confidence_label: "2. 验证置信度等级 (1 - 5 级)",
     btn_submit_vote: "提交加密投票并领取 Pi 奖励",
-    btn_official_minutes: "📜 生成官方会议纪要 (PDF)",
-    btn_digital_cert: "🎓 生成数字验证证书 (PDF)",
-    btn_print_pdf: "🖨️ 打印 / 保存 PDF 文件",
+    admin_title: "🛡️ 管理员套件",
+    btn_publish_prop: "🚀 发布提案并启动计时器",
+    btn_cancel_prop: "⛔ 取消 / 关闭当前提案",
+    btn_retry_payouts: "🔄 处理挂起的支付队列",
+    btn_official_minutes: "📄 生成官方会议纪要文档 (PDF)",
+    btn_digital_cert: "🎓 生成数字验证证书",
+    btn_print_pdf: "🖨️ 打印 / 保存 PDF 文档",
+    btn_share_chrome: "🌐 打开 / 分享至 Chrome",
     btn_copy_text: "📋 复制文档文本",
-    btn_close_modal: "关闭文档",
-    admin_title: "TVOD 管理员控制面板",
-    btn_publish_prop: "发布新提案",
-    btn_cancel_prop: "取消 / 关闭当前提案",
-    btn_retry_payouts: "🔄 处理挂起的支付队列"
+    btn_close_modal: "关闭文档"
   }
 };
 
@@ -173,6 +213,26 @@ function changeLanguage(lang) {
       }
     }
   });
+
+  if (dict) {
+    const optOwner = document.querySelector("#voterCategory option[value='owner']");
+    if (optOwner && dict.cat_owner) optOwner.textContent = dict.cat_owner;
+    
+    const optDelegator = document.querySelector("#voterCategory option[value='delegator']");
+    if (optDelegator && dict.cat_delegator) optDelegator.textContent = dict.cat_delegator;
+
+    const optWitness = document.querySelector("#voterCategory option[value='witness']");
+    if (optWitness && dict.cat_witness) optWitness.textContent = dict.cat_witness;
+
+    const optMember = document.querySelector("#userRole option[value='Member']");
+    if (optMember && dict.role_member) optMember.textContent = dict.role_member;
+
+    const optLeader = document.querySelector("#userRole option[value='Group Leader']");
+    if (optLeader && dict.role_leader) optLeader.textContent = dict.role_leader;
+
+    const optFounder = document.querySelector("#userRole option[value='Founder']");
+    if (optFounder && dict.role_founder) optFounder.textContent = dict.role_founder;
+  }
 }
 
 // Global State
@@ -220,7 +280,7 @@ let activeProposal = {
   status: "ACTIVE"
 };
 
-// ⚡ INISIALISASI PI SDK SATU KALI KHUSUS UNTUK PI BROWSER
+// ⚡ INISIALISASI PI SDK
 async function initPiSDK() {
   if (isPiSDKInitialized) return true;
   if (!window.Pi) return false;
@@ -469,7 +529,6 @@ async function checkAppWalletBalance() {
 async function initialize() {
   setConnection("● Ecosystem Ready", true);
 
-  // Inisialisasi Bahasa Tersimpan
   const savedLang = localStorage.getItem("tvod_lang") || "id";
   const langSelectEl = $("#langSelect");
   if (langSelectEl) {
@@ -478,7 +537,6 @@ async function initialize() {
   }
   changeLanguage(savedLang);
 
-  // Inisialisasi Canvas Tanda Tangan Latar Belakang Transparan
   ["sig-chairman", "sig-witness", "sig-inspector", "sig-country-head"].forEach((id) => {
     const canvas = $(`#${id}`);
     if (canvas && window.SignaturePad) {
@@ -970,6 +1028,18 @@ function getSignatureDataUrl(id) {
   return null;
 }
 
+function showPayoutBanner(message, isSuccess = true) {
+  const banner = $("#voteStatusBanner");
+  if (!banner) return;
+  banner.classList.remove("hidden", "bg-emerald-500/20", "text-emerald-300", "border-emerald-500/40", "bg-amber-500/20", "text-amber-300", "border-amber-500/40");
+  if (isSuccess) {
+    banner.classList.add("bg-emerald-500/20", "text-emerald-300", "border", "border-emerald-500/40");
+  } else {
+    banner.classList.add("bg-amber-500/20", "text-amber-300", "border", "border-amber-500/40");
+  }
+  banner.innerHTML = message;
+}
+
 async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -1016,7 +1086,7 @@ async function handleCastVote(e) {
           btn.innerText = "✅ Anda Sudah Mengirim Suara";
           btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
         }
-        alert("⛔ AKSES VOTING DITOLAK!\n\nAnda (@" + currentUsername + ") sudah memberikan suara untuk proposal ini.");
+        showPayoutBanner(`ℹ️ Suara Anda (@${currentUsername}) telah terdaftar sebelumnya.`, true);
         return;
       }
     } catch (err) {
@@ -1094,13 +1164,13 @@ async function handleCastVote(e) {
     const payoutData = await payoutRes.json();
 
     if (payoutRes.ok && payoutData.success) {
-      alert(`🎉 SUARA & PAYOUT SUCCESS!\n\nTx Hash: ${payoutData.txHash}\nStatus: ${payoutData.message}`);
+      showPayoutBanner(`🎉 SUARA & PAYOUT SUCCESS!<br><strong>Tx Hash:</strong> <span class="font-mono text-xs">${payoutData.txHash}</span><br>${payoutData.message}`, true);
     } else {
-      alert(`⚠️ HAK SUARA TERSIMPAN, TETAPI PAYOUT GAGAL:\n\nAlasan: ${payoutData.message || 'Koneksi Serverless'}\n\nCatatan: Insentif Anda telah dicatat ke antrean PENDING dan dapat dikirim ulang oleh Admin.`);
+      showPayoutBanner(`⚠️ Suara Berhasil Disimpan di Database.<br><strong>Status Payout:</strong> ${payoutData.message || 'Dipending di Antrean'}`, false);
     }
   } catch (payErr) {
     console.error("Gagal klaim payout:", payErr);
-    alert(`✅ Suara berhasil disimpan ke Database, namun koneksi payout terputus.`);
+    showPayoutBanner(`✅ Suara berhasil disimpan ke Database, namun koneksi payout ke serverless mengalami waktu tunggu.`, false);
   }
 
   if (btn) {
@@ -1121,7 +1191,6 @@ function savePayoutRate() {
   alert(`Rate insentif berhasil diperbarui menjadi ${rate} Pi / suara.`);
 }
 
-// FITUR RETRY PEMBAYARAN PENDING DARI ADMIN SUITE
 async function retryFailedPayouts() {
   if (!supabaseClient) return alert("Supabase Client belum siap.");
   
@@ -1186,17 +1255,59 @@ async function retryFailedPayouts() {
   }
 }
 
-// RENDER DOKUMEN MODAL
+// 🌐 FUNGSI HANDLER BUKA / SHARE KE GOOGLE CHROME EKSTERNAL
+async function shareToExternalBrowser() {
+  const currentUrl = window.location.href;
+  const proposalTitle = activeProposal ? activeProposal.title : "Dokumen Resmi TVOD";
+
+  // 1. Coba Web Share API bawaan sistem ponsel
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `Dokumen TVOD: ${proposalTitle}`,
+        text: `Buka dan unduh Dokumen Resmi / Sertifikat TVOD di Google Chrome:`,
+        url: currentUrl
+      });
+      return;
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.warn('Web Share API tidak merespon, beralih ke Fallback Intent:', err);
+      } else {
+        return;
+      }
+    }
+  }
+
+  // 2. Fallback Intent khusus Android untuk membuka Google Chrome
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  if (isAndroid) {
+    try {
+      const cleanHostPath = window.location.host + window.location.pathname + window.location.search + window.location.hash;
+      const chromeIntentUrl = `intent://${cleanHostPath}#intent;scheme=https;package=com.android.chrome;end;`;
+      window.location.href = chromeIntentUrl;
+      return;
+    } catch (e) {
+      console.warn("Gagal mentrigger Intent Chrome:", e);
+    }
+  }
+
+  // 3. Fallback menyalin tautan ke Clipboard
+  try {
+    await navigator.clipboard.writeText(currentUrl);
+    alert("📋 Link dApp berhasil disalin ke Clipboard!\n\nSilakan buka aplikasi Google Chrome, lalu Tempel (Paste) link tersebut di address bar.");
+  } catch (clipErr) {
+    alert("Silakan salin link berikut secara manual untuk dibuka di Chrome:\n\n" + currentUrl);
+  }
+}
+
 function renderDocumentInModal(titleText, htmlBodyContent) {
   const modal = $("#pdfDownloadModal");
   const modalTitle = $("#pdfModalTitle");
   const contentDiv = $("#documentViewerContent");
-  const printAreaDiv = $("#printArea");
 
   if (modal && modalTitle && contentDiv) {
     modalTitle.textContent = titleText;
     contentDiv.innerHTML = htmlBodyContent;
-    if (printAreaDiv) printAreaDiv.innerHTML = htmlBodyContent;
     modal.classList.remove("hidden");
   }
 }
@@ -1206,11 +1317,47 @@ function closePdfModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-// 🖨️ PERBAIKAN PENGUNDUHAN PDF KHUSUS PI BROWSER SELULER (ANTI CRASH)
-function downloadPdfModal() {
-  // Panggil Dialog Print OS (Pengguna dapat memilih 'Save as PDF' / 'Simpan sebagai PDF')
-  // Ini mencegah crash/reset WebView pada Pi Browser saat mengunduh Blob URL.
-  window.print();
+// 🖨️ RENDER DOKUMEN MENJADI GAMBAR PNG RESOLUSI TINGGI
+async function downloadPdfModal() {
+  const contentDiv = document.getElementById("documentViewerContent");
+  const btnDownload = document.getElementById("btnModalDownload");
+
+  if (!contentDiv) return;
+
+  if (btnDownload) {
+    btnDownload.disabled = true;
+    btnDownload.innerHTML = "⏳ Merender Gambar Dokumen...";
+  }
+
+  try {
+    if (window.html2canvas) {
+      const canvas = await window.html2canvas(contentDiv, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      });
+      const imgData = canvas.toDataURL("image/png");
+
+      contentDiv.innerHTML = `
+        <div style="text-align:center; padding:10px;">
+          <div style="background:#fef3c7; color:#92400e; padding:12px; border-radius:8px; margin-bottom:15px; font-weight:bold; font-size:12px; border: 1px solid #f59e0b;">
+            📌 GAMBAR DOKUMEN SIAP DISIMPAN:<br>
+            Tekan & tahan (long-press) gambar di bawah, lalu pilih <strong>"Simpan Gambar" / "Save Image"</strong> untuk menyimpan ke Galeri HP Anda.
+          </div>
+          <img src="${imgData}" style="width:100%; height:auto; border:1px solid #cbd5e1; border-radius:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+        </div>
+      `;
+    } else {
+      window.print();
+    }
+  } catch (err) {
+    alert("Gagal merender dokumen: " + err.message);
+  } finally {
+    if (btnDownload) {
+      btnDownload.disabled = false;
+      btnDownload.innerHTML = "<span>🖨️</span> Cetak / Simpan Berkas PDF";
+    }
+  }
 }
 
 function copyDocumentText() {
@@ -1226,6 +1373,7 @@ function copyDocumentText() {
 
 window.closePdfModal = closePdfModal;
 window.downloadPdfModal = downloadPdfModal;
+window.shareToExternalBrowser = shareToExternalBrowser;
 window.copyDocumentText = copyDocumentText;
 
 // 📄 GENERATE OFFICIAL MINUTES DOKUMEN
@@ -1254,7 +1402,6 @@ async function generateOfficialMinutesPDF() {
   const docHtml = `
     <div style="font-family: Arial, Helvetica, sans-serif; color: #111; max-width: 800px; margin: 0 auto; line-height: 1.4;">
       
-      <!-- HEADER LOGO & JUDUL DOKUMEN -->
       <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 55px; margin: 0 auto 5px auto; display: block;" />
         <h1 style="font-size: 20px; font-weight: bold; color: #1e3a8a; margin: 0; text-transform: uppercase;">OFFICIAL MINUTES</h1>
@@ -1262,7 +1409,6 @@ async function generateOfficialMinutesPDF() {
         <p style="font-size: 10px; color: #64748b; margin: 2px 0 0 0; font-family: monospace;">TVOD Verifier dApp X Pi Network Ecosystem</p>
       </div>
 
-      <!-- TABEL DOCUMENT CONTROL METADATA -->
       <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1;">
         <tr style="background: #f8fafc; border-bottom: 1px solid #cbd5e1;"><td colspan="2" style="padding: 5px 8px; font-weight: bold; color: #1e293b;">DOCUMENT CONTROL</td></tr>
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 4px 8px; font-weight: bold; width: 140px; background: #f1f5f9;">Document ID</td><td style="padding: 4px 8px; font-family: monospace;">${activeProposal.id}</td></tr>
@@ -1278,7 +1424,6 @@ async function generateOfficialMinutesPDF() {
         On this day, <strong>${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>, the Web3 Voting process for <strong>"${activeProposal.title}"</strong> was conducted under the following terms and conditions:
       </p>
 
-      <!-- I. ACTIVITY DETAILS -->
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">I. ACTIVITY DETAILS</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1;">
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 4px 8px; font-weight: bold; width: 140px; background: #f8fafc;">Activity Name</td><td style="padding: 4px 8px;">${activeProposal.title}</td></tr>
@@ -1288,7 +1433,6 @@ async function generateOfficialMinutesPDF() {
         <tr><td style="padding: 4px 8px; font-weight: bold; background: #f8fafc;">Scoring System</td><td style="padding: 4px 8px; font-family: monospace;">Score = Vote Direction × Confidence × Role Weight</td></tr>
       </table>
 
-      <!-- II. ROLE WEIGHTS -->
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">II. ROLE WEIGHTS</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center;">
         <tr style="background: #0f172a; color: #fff; font-weight: bold;">
@@ -1313,7 +1457,6 @@ async function generateOfficialMinutesPDF() {
         </tr>
       </table>
 
-      <!-- III. VOTE OPTIONS -->
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">III. VOTE OPTIONS</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center;">
         <tr style="background: #0f172a; color: #fff; font-weight: bold;">
@@ -1338,7 +1481,6 @@ async function generateOfficialMinutesPDF() {
         </tr>
       </table>
 
-      <!-- IV. VOTING RESULTS -->
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">IV. VOTING RESULTS</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center;">
         <tr style="background: #0f172a; color: #fff; font-weight: bold;">
@@ -1378,7 +1520,6 @@ async function generateOfficialMinutesPDF() {
         </tr>
       </table>
 
-      <!-- V. DECISION -->
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">V. DECISION</h3>
       <p style="font-size: 11px; color: #334155; margin-bottom: 6px;">
         Based on the weighted score calculation from the Web3 Voting system, it is hereby determined that the option with the highest Total Score is:
@@ -1388,19 +1529,16 @@ async function generateOfficialMinutesPDF() {
         <p style="font-size: 10px; color: #64748b; margin: 2px 0 0 0;">with a Total Score of +${netScoreVal.toFixed(2)} and an average Confidence level of ${avgConf}</p>
       </div>
 
-      <!-- VI. CLOSING & AUTHORIZATION -->
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">VI. CLOSING & AUTHORIZATION</h3>
       <p style="font-size: 10px; color: #64748b; margin-bottom: 15px; line-height: 1.4;">
         These Official Minutes have been prepared in good faith and may be used as required. All data refer to the TVOD Verifier System (TVOD Verifier dApp X Pi Network Ecosystem), which has been duly verified. This document is protected under the TVOD File Security System with Lock Editing Mode. Any unauthorized reproduction constitutes a security violation.
       </p>
 
-      <!-- AREA TANDA TANGAN 4 PEJABAT -->
       <div style="position: relative; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px;">
         <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; right: 10px; top: -5px; width: 90px; height: 90px; opacity: 0.65; pointer-events: none; z-index: 10;" />
 
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
           
-          <!-- 1. Chairman -->
           <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fafafa; min-height: 105px; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; display: block;">Chair / Person in Charge:</span>
             <div style="height: 50px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
@@ -1409,7 +1547,6 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px;">@afifmasfiqo (#911)</strong>
           </div>
 
-          <!-- 2. Witness -->
           <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fafafa; min-height: 105px; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; display: block;">Witness / Verifier:</span>
             <div style="height: 50px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
@@ -1418,7 +1555,6 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px;">@insya (Witness)</strong>
           </div>
 
-          <!-- 3. Inspector -->
           <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fafafa; min-height: 105px; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; display: block;">Inspector:</span>
             <div style="height: 50px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
@@ -1427,7 +1563,6 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px;">@Nalaktak (#999)</strong>
           </div>
 
-          <!-- 4. Country Head -->
           <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fafafa; min-height: 105px; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 10px; font-weight: bold; color: #1e3a8a; display: block;">Country Head:</span>
             <div style="height: 50px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
