@@ -10,7 +10,6 @@ const server = new Server(PI_HORIZON_URL);
 const PI_NETWORK_PASSPHRASE = "Test Pi Network ; December 2019";
 
 export default async function handler(req, res) {
-  // CORS Headers untuk kompatibilitas Pi Browser & WebView
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -46,7 +45,7 @@ export default async function handler(req, res) {
 
     return res.status(500).json({ 
       success: false, 
-      message: 'PI_PAYOUT_SEED belum aktif di Vercel! Silakan set Environment Variable PI_PAYOUT_SEED lalu REDEPLOY.' 
+      message: 'PI_PAYOUT_SEED belum aktif di Vercel. Pastikan Environment Variable PI_PAYOUT_SEED sudah diset di Vercel.' 
     });
   }
 
@@ -55,7 +54,6 @@ export default async function handler(req, res) {
     const sourceKeypair = Keypair.fromSecret(cleanSeed);
     const sourceAccount = await server.loadAccount(sourceKeypair.publicKey());
 
-    // Cek keberadaan wallet tujuan di ledger Horizon
     let destinationExists = true;
     try {
       await server.loadAccount(walletAddress);
@@ -85,7 +83,6 @@ export default async function handler(req, res) {
     transaction.sign(sourceKeypair);
     const result = await server.submitTransaction(transaction);
 
-    // Catat transaksi sukses ke Supabase
     await supabase.from('payout_queue').insert([{
       username: username || 'Anonymous',
       wallet_address: walletAddress,
@@ -106,8 +103,7 @@ export default async function handler(req, res) {
 
     let detailedError = error.message || 'Unknown Error';
     if (error?.response?.data?.extras?.result_codes) {
-      const codes = error.response.data.extras.result_codes;
-      detailedError = `Horizon Error: ${JSON.stringify(codes)}`;
+      detailedError = `Horizon Error: ${JSON.stringify(error.response.data.extras.result_codes)}`;
     } else if (error?.data?.extras?.result_codes) {
       detailedError = `Horizon Error: ${JSON.stringify(error.data.extras.result_codes)}`;
     }
