@@ -1341,7 +1341,49 @@ function closePdfModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-// 🖨️ RENDER DOKUMEN MENJADI GAMBAR PNG (TANPA MERUSAK TEKS ASLI)
+// 📥 DOWNLOAD PDF LANGSUNG (1-KLIK VIA HTML2PDF)
+async function downloadPdfDirect() {
+  const contentDiv = document.getElementById("documentViewerContent");
+  const btnDownload = document.getElementById("btnModalDownload");
+
+  if (!contentDiv) return;
+
+  if (btnDownload) {
+    btnDownload.disabled = true;
+    btnDownload.innerHTML = "⏳ Mengunduh Berkas PDF...";
+  }
+
+  try {
+    const docType = currentOpenedDocType || "dokumen";
+    const propId = (activeProposal && activeProposal.id) ? activeProposal.id : "TVOD";
+    const filename = `${docType.toUpperCase()}_${propId}.pdf`;
+
+    if (window.html2pdf) {
+      const opt = {
+        margin:       [8, 8, 8, 8],
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+      
+      await window.html2pdf().set(opt).from(contentDiv).save();
+    } else {
+      await downloadPdfModal();
+    }
+  } catch (err) {
+    console.error("html2pdf error:", err);
+    window.print();
+  } finally {
+    if (btnDownload) {
+      btnDownload.disabled = false;
+      btnDownload.innerHTML = "📥 Download PDF Directly (1-Klik)";
+    }
+  }
+}
+
+// 🖨️ RENDER DOKUMEN MENJADI GAMBAR PNG (FALLBACK PREVIEW)
 async function downloadPdfModal() {
   const contentDiv = document.getElementById("documentViewerContent");
   const btnDownload = document.getElementById("btnModalDownload");
@@ -1354,11 +1396,6 @@ async function downloadPdfModal() {
   }
 
   try {
-    if (!navigator.userAgent.includes("PiBrowser")) {
-      window.print();
-      return;
-    }
-
     if (window.html2canvas) {
       const canvas = await window.html2canvas(contentDiv, {
         scale: 2,
@@ -1393,7 +1430,7 @@ async function downloadPdfModal() {
   } finally {
     if (btnDownload) {
       btnDownload.disabled = false;
-      btnDownload.innerHTML = "<span>🖨️</span> Cetak / Simpan Berkas PDF";
+      btnDownload.innerHTML = "📥 Download PDF Directly (1-Klik)";
     }
   }
 }
@@ -1439,6 +1476,7 @@ function fallbackCopyText(text) {
 }
 
 window.closePdfModal = closePdfModal;
+window.downloadPdfDirect = downloadPdfDirect;
 window.downloadPdfModal = downloadPdfModal;
 window.shareToExternalBrowser = shareToExternalBrowser;
 window.copyDocumentText = copyDocumentText;
@@ -1468,7 +1506,7 @@ async function generateOfficialMinutesPDF() {
   const sigCountryHead = getSignatureDataUrl("sig-country-head");
 
   const docHtml = `
-    <div style="font-family: Arial, Helvetica, sans-serif; color: #111; max-width: 800px; margin: 0 auto; line-height: 1.4;">
+    <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #111; max-width: 800px; margin: 0 auto; line-height: 1.4; background: #ffffff;">
       
       <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 55px; margin: 0 auto 5px auto; display: block;" />
@@ -1477,7 +1515,7 @@ async function generateOfficialMinutesPDF() {
         <p style="font-size: 10px; color: #64748b; margin: 2px 0 0 0; font-family: monospace;">TVOD Verifier dApp X Pi Network Ecosystem</p>
       </div>
 
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1;">
+      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; page-break-inside: avoid;">
         <tr style="background: #f8fafc; border-bottom: 1px solid #cbd5e1;"><td colspan="2" style="padding: 5px 8px; font-weight: bold; color: #1e293b;">DOCUMENT CONTROL</td></tr>
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 4px 8px; font-weight: bold; width: 140px; background: #f1f5f9;">Document ID</td><td style="padding: 4px 8px; font-family: monospace;">${activeProposal.id}</td></tr>
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 4px 8px; font-weight: bold; background: #f1f5f9;">Integrity Hash</td><td style="padding: 4px 8px; font-family: monospace; color: #2563eb; font-weight: bold;">${integrityHash}</td></tr>
@@ -1493,7 +1531,7 @@ async function generateOfficialMinutesPDF() {
       </p>
 
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">I. ACTIVITY DETAILS</h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1;">
+      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; page-break-inside: avoid;">
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 4px 8px; font-weight: bold; width: 140px; background: #f8fafc;">Activity Name</td><td style="padding: 4px 8px;">${activeProposal.title}</td></tr>
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 4px 8px; font-weight: bold; background: #f8fafc;">Platform</td><td style="padding: 4px 8px;">TVOD Verifier X Pi Network Ecosystem</td></tr>
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 4px 8px; font-weight: bold; background: #f8fafc;">Voting Method</td><td style="padding: 4px 8px;">Weighted Voting (Role-based)</td></tr>
@@ -1502,7 +1540,7 @@ async function generateOfficialMinutesPDF() {
       </table>
 
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">II. ROLE WEIGHTS</h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center;">
+      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center; page-break-inside: avoid;">
         <tr style="background: #0f172a; color: #fff; font-weight: bold;">
           <td style="padding: 5px; border: 1px solid #334155;">Role</td>
           <td style="padding: 5px; border: 1px solid #334155;">Weight</td>
@@ -1526,7 +1564,7 @@ async function generateOfficialMinutesPDF() {
       </table>
 
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">III. VOTE OPTIONS</h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center;">
+      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center; page-break-inside: avoid;">
         <tr style="background: #0f172a; color: #fff; font-weight: bold;">
           <td style="padding: 5px; border: 1px solid #334155;">Option</td>
           <td style="padding: 5px; border: 1px solid #334155;">Direction Value</td>
@@ -1550,7 +1588,7 @@ async function generateOfficialMinutesPDF() {
       </table>
 
       <h3 style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 12px 0 6px 0;">IV. VOTING RESULTS</h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center;">
+      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; border: 1px solid #cbd5e1; text-align: center; page-break-inside: avoid;">
         <tr style="background: #0f172a; color: #fff; font-weight: bold;">
           <td style="padding: 5px; border: 1px solid #334155;">Category</td>
           <td style="padding: 5px; border: 1px solid #334155;">Count</td>
@@ -1592,7 +1630,7 @@ async function generateOfficialMinutesPDF() {
       <p style="font-size: 11px; color: #334155; margin-bottom: 6px;">
         Based on the weighted score calculation from the Web3 Voting system, it is hereby determined that the option with the highest Total Score is:
       </p>
-      <div style="text-align: center; padding: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 15px;">
+      <div class="avoid-break" style="text-align: center; padding: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 15px; page-break-inside: avoid;">
         <h2 style="font-size: 18px; font-weight: bold; color: #166534; margin: 0;">${verdictText}</h2>
         <p style="font-size: 10px; color: #64748b; margin: 2px 0 0 0;">with a Total Score of +${netScoreVal.toFixed(2)} and an average Confidence level of ${avgConf}</p>
       </div>
@@ -1602,7 +1640,7 @@ async function generateOfficialMinutesPDF() {
         These Official Minutes have been prepared in good faith and may be used as required. All data refer to the TVOD Verifier System (TVOD Verifier dApp X Pi Network Ecosystem), which has been duly verified. This document is protected under the TVOD File Security System with Lock Editing Mode. Any unauthorized reproduction constitutes a security violation.
       </p>
 
-      <div style="position: relative; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px;">
+      <div class="avoid-break" style="position: relative; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px; page-break-inside: avoid;">
         <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; right: 10px; top: -5px; width: 90px; height: 90px; opacity: 0.65; pointer-events: none; z-index: 10;" />
 
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
@@ -1660,7 +1698,7 @@ async function generateCertificatePDF() {
   const sigChairman = getSignatureDataUrl("sig-chairman");
 
   const certHtml = `
-    <div style="border: 3px double #f59e0b; padding: 25px; border-radius: 12px; background: #ffffff; color: #0f172a; text-align: center; position: relative;">
+    <div class="pdf-container avoid-break" style="border: 3px double #f59e0b; padding: 25px; border-radius: 12px; background: #ffffff; color: #0f172a; text-align: center; position: relative; page-break-inside: avoid;">
       
       <img src="/logo.png" alt="TVOD Logo" style="height: 60px; margin: 0 auto 10px auto; display: block;" />
       <h1 style="font-size: 22px; font-weight: bold; color: #1e3a8a; margin: 0 0 5px 0;">THE VOICE OF DAO</h1>
