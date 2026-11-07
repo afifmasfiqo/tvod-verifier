@@ -1,170 +1,91 @@
-import * as StellarSdk from 'stellar-sdk';
-import { createClient } from '@supabase/supabase-js';
+// api/payout.js
+const StellarSdk = require("@stellar/stellar-sdk");
 
-// 1. SUPABASE CLIENT
-const SUPABASE_URL = "https://tdtybxriphsdtojkrevp.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// URL Horizon & Network Passphrase resmi Pi Testnet
+const HORIZON_URL = "https://api.testnet.minepi.com";
+const PI_NETWORK_PASSPHRASE = "Pi Testnet"; 
 
-// 2. PI NETWORK TESTNET CONFIGURATION
-const PI_HORIZON_URL = "https://api.testnet.minepi.com";
-const PI_NETWORK_PASSPHRASE = "Pi Testnet";
+// Seed Private Key Wallet Kas App (Gunakan ENV Variable di Vercel demi keamanan)
+// Format Seed diawali huruf 'S...', contoh: "SDXXXXXXXXXXXXXX..."
+const APP_WALLET_SEED = process.env.PI_APP_SEED || "SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; 
 
-// Helper Inisialisasi Horizon Server Universal (Mencegah error 'Server is not a constructor')
-function getHorizonServer() {
-  const ServerClass = 
-    StellarSdk.Horizon?.Server || 
-    StellarSdk.Server || 
-    StellarSdk.default?.Horizon?.Server || 
-    StellarSdk.default?.Server;
-    
-  if (!ServerClass) {
-    throw new Error("Horizon Server constructor tidak ditemukan pada modul stellar-sdk.");
+/**
+ * Inisialisasi Horizon Server secara universal lintas versi SDK
+ */
+function createHorizonServer(url) {
+  if (StellarSdk.Horizon && typeof StellarSdk.Horizon.Server === "function") {
+    return new StellarSdk.Horizon.Server(url);
   }
-  return new ServerClass(PI_HORIZON_URL);
+  if (typeof StellarSdk.Server === "function") {
+    return new StellarSdk.Server(url);
+  }
+  if (StellarSdk.default && StellarSdk.default.Horizon && typeof StellarSdk.default.Horizon.Server === "function") {
+    return new StellarSdk.default.Horizon.Server(url);
+  }
+  if (StellarSdk.default && typeof StellarSdk.default.Server === "function") {
+    return new StellarSdk.default.Server(url);
+  }
+  throw new Error("StellarSdk Horizon Server constructor tidak ditemukan.");
 }
 
-// Helper Komponen Stellar SDK
-const Keypair = StellarSdk.Keypair || StellarSdk.default?.Keypair;
-const TransactionBuilder = StellarSdk.TransactionBuilder || StellarSdk.default?.TransactionBuilder;
-const Operation = StellarSdk.Operation || StellarSdk.default?.Operation;
-const Asset = StellarSdk.Asset || StellarSdk.default?.Asset;
-
-export default async function handler(req, res) {
-  // CORS Headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+module.exports = async function handler(req, res) {
+  // Hanya menerima HTTP POST
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, message: "Method Not Allowed" });
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
-  }
+  const { walletAddress, amount, username, proposalId } = req.body;
 
-  const { walletAddress, amount, username, proposalId } = req.body || {};
-
-  // Validasi Input
   if (!walletAddress || !amount) {
-    return res.status(400).json({ success: false, message: 'Wallet address dan amount wajib diisi.' });
-  }
-
-  // Validasi Environment Variable Seed (Mendukung PI_PAYOUT_SEED maupun PI_APP_SEED)
-  const seed = process.env.PI_PAYOUT_SEED || process.env.PI_APP_SEED;
-  if (!seed) {
-    await supabase.from('payout_queue').insert([{
-      username: username || 'Anonymous',
-      wallet_address: walletAddress,
-      amount: amount,
-      proposal_id: proposalId || 'TVOD-PROP',
-      status: 'PENDING',
-      error_log: 'PI_PAYOUT_SEED / PI_APP_SEED belum dikonfigurasi di Environment Variables Vercel.'
-    }]);
-
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Seed belum aktif di Vercel. Pastikan Environment Variable PI_PAYOUT_SEED atau PI_APP_SEED sudah di-set di Settings Vercel.' 
-    });
+    return res.status(400).json({ success: false, message: "Wallet Address dan Amount wajib diisi." });
   }
 
   try {
-    const server = getHorizonServer();
-    const cleanSeed = seed.trim();
-    const sourceKeypair = Keypair.fromSecret(cleanSeed);
+    const server = createHorizonServer(HORIZON_URL);
     
-    // Load Akun Pengirim (Wallet Kas App)
-    const sourceAccount = await server.loadAccount(sourceKeypair.publicKey());
+    // 1. Ekstrak Keypair dari Secret Seed
+    const sourceKeypair = StellarSdk.Keypair.fromSecret(APP_WALLET_SEED);
+    const sourcePublicKey = sourceKeypair.publicKey();
 
-    // Cek Keberadaan Akun Penerima (Wallet Voter)
-    let destinationExists = true;
-    try {
-      await server.loadAccount(walletAddress);
-    } catch (e) {
-      destinationExists = false;
-    }
+    // 2. Ambil Account Sequence terbaru dari Pi Horizon
+    const sourceAccount = await server.loadAccount(sourcePublicKey);
 
-    // Tentukan Operasi (Payment jika akun sudah aktif, CreateAccount jika akun baru)
-    const paymentOp = destinationExists
-      ? Operation.payment({
-          destination: walletAddress,
-          asset: Asset.native(),
-          amount: amount.toString()
-        })
-      : Operation.createAccount({
-          destination: walletAddress,
-          startingBalance: amount.toString()
-        });
-
-    // Ambil Fee Transaksi Dinamis
-    let feeVal = "10000";
-    try {
-      const feeStats = await server.fetchBaseFee();
-      if (feeStats) feeVal = feeStats.toString();
-    } catch (fErr) {
-      feeVal = "10000";
-    }
-
-    // Build Transaksi On-Chain
-    const transaction = new TransactionBuilder(sourceAccount, {
-      fee: feeVal,
-      networkPassphrase: PI_NETWORK_PASSPHRASE
+    // 3. Susun Transaksi Pembayaran Insentif Voter
+    const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
+      fee: StellarSdk.BASE_FEE || "10000",
+      networkPassphrase: PI_NETWORK_PASSPHRASE,
     })
-      .addOperation(paymentOp)
-      .setTimeout(180) // 180 detik (3 menit) untuk mencegah tx_too_late
+      .addOperation(
+        StellarSdk.Operation.payment({
+          destination: walletAddress,
+          asset: StellarSdk.Asset.native(),
+          amount: amount.toString(),
+        })
+      )
+      .setTimeout(30)
       .build();
 
-    // Tanda Tangan & Kirim ke Pi Testnet Blockchain
+    // 4. Tanda Tangani Transaksi Secara On-Chain
     transaction.sign(sourceKeypair);
-    const result = await server.submitTransaction(transaction);
 
-    // Catat Transaksi Berhasil ke Database Supabase
-    await supabase.from('payout_queue').insert([{
-      username: username || 'Anonymous',
-      wallet_address: walletAddress,
-      amount: amount,
-      proposal_id: proposalId || 'TVOD-PROP',
-      status: 'SUCCESS',
-      tx_hash: result.hash
-    }]);
+    // 5. Submit Transaksi ke Pi Horizon Network
+    const result = await server.submitTransaction(transaction);
 
     return res.status(200).json({
       success: true,
-      message: `BERHASIL ON-CHAIN! ${amount} Pi terkirim ke wallet voter.`,
-      txHash: result.hash
+      message: `Insentif ${amount} Testnet Pi berhasil dikirim ke @${username}!`,
+      txHash: result.hash,
     });
-
   } catch (error) {
-    console.error("Payout Error:", error);
-
-    // Ekstraksi Detail Error Horizon
-    let detailedError = error.message || 'Unknown Error';
-    if (error?.response?.data?.extras?.result_codes) {
-      detailedError = `Horizon Result Codes: ${JSON.stringify(error.response.data.extras.result_codes)}`;
-    } else if (error?.data?.extras?.result_codes) {
-      detailedError = `Horizon Result Codes: ${JSON.stringify(error.data.extras.result_codes)}`;
-    } else if (error?.response?.data?.detail) {
-      detailedError = `Horizon Detail: ${error.response.data.detail}`;
-    }
-
-    // Masukkan ke Antrean PENDING untuk Fitur Retry Admin
-    await supabase.from('payout_queue').insert([{
-      username: username || 'Anonymous',
-      wallet_address: walletAddress,
-      amount: amount,
-      proposal_id: proposalId || 'TVOD-PROP',
-      status: 'PENDING',
-      error_log: detailedError
-    }]);
+    console.error("Payout Processing Error:", error);
+    
+    const errDetail = error.response && error.response.data && error.response.data.extras 
+      ? JSON.stringify(error.response.data.extras.result_codes) 
+      : error.message;
 
     return res.status(500).json({
       success: false,
-      message: `Gagal On-Chain: ${detailedError}`
+      message: `Gagal memproses payout: ${errDetail}`,
     });
   }
-}
+};
