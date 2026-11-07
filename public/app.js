@@ -1255,48 +1255,52 @@ async function retryFailedPayouts() {
   }
 }
 
-// 🌐 FUNGSI HANDLER BUKA / SHARE KE GOOGLE CHROME EKSTERNAL
+// 🌐 HANDLER UNTUK BUKA / SHARE KE GOOGLE CHROME VIA URL BOX + COPY + INTENT
 async function shareToExternalBrowser() {
   const currentUrl = window.location.href;
-  const proposalTitle = activeProposal ? activeProposal.title : "Dokumen Resmi TVOD";
+  const linkInput = document.getElementById("externalLinkInput");
+  const linkContainer = document.getElementById("externalLinkContainer");
+  const statusEl = document.getElementById("shareStatusText");
 
-  // 1. Coba Web Share API bawaan sistem ponsel
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: `Dokumen TVOD: ${proposalTitle}`,
-        text: `Buka dan unduh Dokumen Resmi / Sertifikat TVOD di Google Chrome:`,
-        url: currentUrl
-      });
-      return;
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.warn('Web Share API tidak merespon, beralih ke Fallback Intent:', err);
-      } else {
-        return;
-      }
-    }
+  if (linkContainer) {
+    linkContainer.classList.remove("hidden");
   }
 
-  // 2. Fallback Intent khusus Android untuk membuka Google Chrome
+  if (linkInput) {
+    linkInput.value = currentUrl;
+    linkInput.focus();
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999);
+  }
+
+  let copied = false;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(currentUrl);
+      copied = true;
+    } else if (linkInput) {
+      document.execCommand("copy");
+      copied = true;
+    }
+  } catch (err) {
+    console.warn("Clipboard API dibatasi WebView:", err);
+  }
+
+  if (statusEl) {
+    statusEl.textContent = copied 
+      ? "✅ Link berhasil disalin! Silakan buka Google Chrome dan Tempel (Paste) link ini."
+      : "📋 Silakan tekan lama pada kolom teks di atas, lalu pilih Salin (Copy).";
+    statusEl.className = "text-xs font-semibold text-emerald-400 mt-1 block";
+  }
+
   const isAndroid = /Android/i.test(navigator.userAgent);
   if (isAndroid) {
     try {
       const cleanHostPath = window.location.host + window.location.pathname + window.location.search + window.location.hash;
-      const chromeIntentUrl = `intent://${cleanHostPath}#intent;scheme=https;package=com.android.chrome;end;`;
-      window.location.href = chromeIntentUrl;
-      return;
+      window.location.href = `intent://${cleanHostPath}#intent;scheme=https;package=com.android.chrome;end;`;
     } catch (e) {
-      console.warn("Gagal mentrigger Intent Chrome:", e);
+      console.warn("Intent diblokir WebView:", e);
     }
-  }
-
-  // 3. Fallback menyalin tautan ke Clipboard
-  try {
-    await navigator.clipboard.writeText(currentUrl);
-    alert("📋 Link dApp berhasil disalin ke Clipboard!\n\nSilakan buka aplikasi Google Chrome, lalu Tempel (Paste) link tersebut di address bar.");
-  } catch (clipErr) {
-    alert("Silakan salin link berikut secara manual untuk dibuka di Chrome:\n\n" + currentUrl);
   }
 }
 
