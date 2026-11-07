@@ -1179,6 +1179,8 @@ async function handleCastVote(e) {
     voteHash = window.CryptoJS.SHA256(rawPayload).toString();
   }
 
+  const activeSig = getSignatureDataUrl("sig-chairman");
+
   if (btn) btn.innerText = "Menyimpan Suara Terenkripsi...";
   await saveVoteToSupabase({
     proposal_id: activeProposal.id,
@@ -1189,7 +1191,7 @@ async function handleCastVote(e) {
     role_weight: roleWeight,
     weighted_score: individualScore,
     vote_hash: voteHash,
-    voter_signature_base64: getSignatureDataUrl("sig-chairman")
+    voter_signature_base64: activeSig
   });
 
   await fetchVoterStatsForAdmin();
@@ -1389,6 +1391,25 @@ async function downloadPdfDirect() {
   if (fallbackContainer) fallbackContainer.classList.add("hidden");
 
   try {
+    // 1. Tunggu seluruh elemen gambar (stempel & tanda tangan Base64) selesai dimuat di DOM
+    const images = Array.from(contentDiv.querySelectorAll("img"));
+    await Promise.all(
+      images.map(
+        (img) =>
+          new Promise((resolve) => {
+            if (img.complete && img.naturalHeight !== 0) {
+              resolve();
+            } else {
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+            }
+          })
+      )
+    );
+
+    // 2. Beri jeda kecil agar layout browser tuntas di-render
+    await new Promise((r) => setTimeout(r, 200));
+
     const docType = currentOpenedDocType || "dokumen";
     const propId = (activeProposal && activeProposal.id) ? activeProposal.id : "TVOD";
     const filename = `${docType.toUpperCase()}_${propId}.pdf`;
@@ -1541,6 +1562,40 @@ async function generateOfficialMinutesPDF() {
   currentOpenedDocType = "minutes";
   await fetchVoterStatsForAdmin();
 
+  // 1. Ambil tanda tangan dari Kanvas / LocalStorage
+  let sigChairman = getSignatureDataUrl("sig-chairman");
+  let sigWitness = getSignatureDataUrl("sig-witness");
+  let sigInspector = getSignatureDataUrl("sig-inspector");
+  let sigCountryHead = getSignatureDataUrl("sig-country-head");
+
+  // 2. Fallback untuk Google Chrome: Jika LocalStorage Chrome belum ada, ambil tanda tangan dari database Supabase
+  if ((!sigChairman || !sigWitness) && supabaseClient && activeProposal.id) {
+    try {
+      const { data: voteRows } = await supabaseClient
+        .from('votes')
+        .select('voter_signature_base64, username')
+        .eq('proposal_id', activeProposal.id)
+        .not('voter_signature_base64', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (voteRows && voteRows.length > 0) {
+        voteRows.forEach((v) => {
+          if (v.voter_signature_base64) {
+            if (!sigChairman && (v.username === 'afifmasfiqo' || v.username.toLowerCase().includes('afif'))) {
+              sigChairman = v.voter_signature_base64;
+              localStorage.setItem('tvod_sig_sig-chairman', sigChairman);
+            } else if (!sigChairman) {
+              sigChairman = v.voter_signature_base64;
+              localStorage.setItem('tvod_sig_sig-chairman', sigChairman);
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.warn("Gagal mengambil fallback tanda tangan dari Supabase:", err);
+    }
+  }
+
   const totalCount = activeProposal.totalVotes || 0;
   const netScoreVal = activeProposal.netScore || 0;
   const agreeCount = activeProposal.agreeCount || 0;
@@ -1554,11 +1609,6 @@ async function generateOfficialMinutesPDF() {
 
   const verdictText = netScoreVal > 0 ? "AGREE" : (netScoreVal < 0 ? "DISAGREE" : "NEUTRAL / TIED");
   const integrityHash = window.CryptoJS ? window.CryptoJS.SHA256(`TVOD-HASH-${activeProposal.id}`).toString().substring(0, 16).toUpperCase() : "8F97D023B35F5C67";
-
-  const sigChairman = getSignatureDataUrl("sig-chairman");
-  const sigWitness = getSignatureDataUrl("sig-witness");
-  const sigInspector = getSignatureDataUrl("sig-inspector");
-  const sigCountryHead = getSignatureDataUrl("sig-country-head");
 
   const docHtml = `
     <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 12px 10px; box-sizing: border-box; line-height: 1.45; background: #ffffff;">
@@ -1590,7 +1640,7 @@ async function generateOfficialMinutesPDF() {
       <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 14px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">I. ACTIVITY & GOVERNANCE DETAILS</h3>
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1px solid #cbd5e1; page-break-inside: avoid;">
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; width: 150px; background: #f8fafc; color: #475569;">Activity Name</td><td style="padding: 7px 10px; font-weight: 600; color: #0f172a;">${activeProposal.title}</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Platform / Protocol</td><td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp X Pi Network Testnet 2</td></tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Platform / Protocol</td><td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp X Pi Network</td></tr>
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Voting Method</td><td style="padding: 7px 10px; font-weight: 600;">On-Chain NFT Verification & Weighted Role Voting</td></tr>
         <tr><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Scoring Formula</td><td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #b45309;">Score = Direction × Confidence × Role Weight</td></tr>
       </table>
@@ -1642,15 +1692,16 @@ async function generateOfficialMinutesPDF() {
         <p style="font-size: 11px; color: #475569; margin: 4px 0 0 0; font-weight: 600;">Net Weighted Score: +${netScoreVal.toFixed(2)} | Average Confidence Scale: ${avgConf} / 5.0</p>
       </div>
 
-      <!-- SEKSI 4: TANDA TANGAN DIGITAL PEJABAT TVOD -->
+      <!-- SEKSI 4: TANDA TANGAN DIGITAL PEJABAT TVOD DENGAN STEMPEL DI TENGAH -->
       <div class="avoid-break" style="position: relative; margin-top: 20px; border-top: 2px solid #cbd5e1; padding-top: 12px; page-break-inside: avoid;">
-        <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; right: 15px; top: -10px; width: 105px; height: 105px; opacity: 0.75; pointer-events: none; z-index: 10;" />
+        <!-- STEMPEL RESMI TVOD DIBESARKAN (140px) & DIPOSISIKAN PERSISI DI TENGAH ANTARA CHAIRPERSON & WITNESS -->
+        <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; left: 50%; transform: translateX(-50%); top: 25px; width: 140px; height: 140px; opacity: 0.75; pointer-events: none; z-index: 10;" />
 
         <h4 style="font-size: 12px; font-weight: bold; color: #1e3a8a; margin: 0 0 10px 0; text-transform: uppercase;">OFFICIAL RATIFICATION SIGNATURES</h4>
 
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
           
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; position: relative;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">1. Chairperson:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
               ${sigChairman ? `<img src="${sigChairman}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Belum Ditandatangani]</span>`}
@@ -1658,7 +1709,7 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@afifmasfiqo (#911)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; position: relative;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">2. Witness:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
               ${sigWitness ? `<img src="${sigWitness}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Belum Ditandatangani]</span>`}
@@ -1666,7 +1717,7 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@insya (Witness)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; position: relative;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">3. Inspector:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
               ${sigInspector ? `<img src="${sigInspector}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Belum Ditandatangani]</span>`}
@@ -1674,7 +1725,7 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@Nalaktak (#999)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; position: relative;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">4. Country Head:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
               ${sigCountryHead ? `<img src="${sigCountryHead}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Belum Ditandatangani]</span>`}
@@ -1696,11 +1747,28 @@ async function generateCertificatePDF() {
   currentOpenedDocType = "certificate";
   await fetchVoterStatsForAdmin();
 
+  let sigChairman = getSignatureDataUrl("sig-chairman");
+
+  if (!sigChairman && supabaseClient && activeProposal.id) {
+    try {
+      const { data: voteRows } = await supabaseClient
+        .from('votes')
+        .select('voter_signature_base64')
+        .eq('proposal_id', activeProposal.id)
+        .not('voter_signature_base64', 'is', null)
+        .limit(1);
+
+      if (voteRows && voteRows.length > 0 && voteRows[0].voter_signature_base64) {
+        sigChairman = voteRows[0].voter_signature_base64;
+      }
+    } catch (err) {
+      console.warn("Gagal mengambil fallback tanda tangan sertifikat:", err);
+    }
+  }
+
   const netScoreVal = activeProposal.netScore || 0;
   const verdictText = netScoreVal > 0 ? "TVOD VERIFIED & PASSED" : "VERIFIED - REJECTED";
   const shaProof = window.CryptoJS ? window.CryptoJS.SHA256(`CERT-${activeProposal.id}-${Date.now()}`).toString() : "CERT-SHA256-PROVED";
-
-  const sigChairman = getSignatureDataUrl("sig-chairman");
 
   const certHtml = `
     <div class="pdf-container avoid-break" style="border: 3px double #f59e0b; padding: 20px 14px; border-radius: 12px; background: #ffffff; color: #0f172a; text-align: center; position: relative; width: 100%; box-sizing: border-box; page-break-inside: avoid;">
