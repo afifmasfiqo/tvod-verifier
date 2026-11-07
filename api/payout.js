@@ -48,7 +48,7 @@ module.exports = async function handler(req, res) {
   }
 
   // 1. Ambil & Sanitasi Secret Seed dari Vercel Environment Variables
-  const rawSeed = process.env.PI_PAYOUT_SEED || process.env.PI_APP_SEED;
+  const rawSeed = process.env.PI_APP_WALLET_SEED || process.env.PI_PAYOUT_SEED || process.env.PI_APP_SEED;
   if (!rawSeed) {
     await supabase.from('payout_queue').insert([{
       username: username || 'Anonymous',
@@ -56,12 +56,12 @@ module.exports = async function handler(req, res) {
       amount: amount,
       proposal_id: proposalId || 'TVOD-PROP',
       status: 'PENDING',
-      error_log: 'PI_PAYOUT_SEED / PI_APP_SEED belum dikonfigurasi di Environment Variables Vercel.'
+      error_log: 'PI_APP_WALLET_SEED belum dikonfigurasi di Environment Variables Vercel.'
     }]);
 
     return res.status(500).json({ 
       success: false, 
-      message: 'Seed belum aktif di Vercel. Pastikan Environment Variable PI_PAYOUT_SEED atau PI_APP_SEED sudah di-set di Settings Vercel.' 
+      message: 'Seed belum aktif di Vercel. Pastikan Environment Variable PI_APP_WALLET_SEED sudah di-set di Settings Vercel.' 
     });
   }
 
@@ -75,7 +75,7 @@ module.exports = async function handler(req, res) {
   try {
     sourceKeypair = Keypair.fromSecret(cleanSeed);
   } catch (seedErr) {
-    const errorMsg = `Format Secret Seed di Vercel tidak valid (${seedErr.message}). Pastikan string Seed berawalan huruf 'S', berjumlah 56 karakter, tanpa spasi atau tanda petik.`;
+    const errorMsg = `Format Secret Seed di Vercel tidak valid (${seedErr.message}). Pastikan nilai PI_APP_WALLET_SEED diawali huruf 'S' (56 karakter) tanpa tanda petik.`;
     
     await supabase.from('payout_queue').insert([{
       username: username || 'Anonymous',
