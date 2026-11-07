@@ -1640,7 +1640,7 @@ async function generateOfficialMinutesPDF() {
       <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 14px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">I. ACTIVITY & GOVERNANCE DETAILS</h3>
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1px solid #cbd5e1; page-break-inside: avoid;">
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; width: 150px; background: #f8fafc; color: #475569;">Activity Name</td><td style="padding: 7px 10px; font-weight: 600; color: #0f172a;">${activeProposal.title}</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Platform / Protocol</td><td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp X Pi Network</td></tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; width: 150px; background: #f8fafc; color: #475569;">Platform</td><td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp</td></tr>
         <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Voting Method</td><td style="padding: 7px 10px; font-weight: 600;">On-Chain NFT Verification & Weighted Role Voting</td></tr>
         <tr><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Scoring Formula</td><td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #b45309;">Score = Direction × Confidence × Role Weight</td></tr>
       </table>
