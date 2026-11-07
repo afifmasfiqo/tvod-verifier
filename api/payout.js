@@ -1,4 +1,4 @@
-import { Keypair, Server, TransactionBuilder, Operation, Asset } from 'stellar-sdk';
+import * as StellarSdk from 'stellar-sdk';
 import { createClient } from '@supabase/supabase-js';
 
 // 1. SUPABASE CLIENT
@@ -8,8 +8,27 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 2. PI NETWORK TESTNET CONFIGURATION
 const PI_HORIZON_URL = "https://api.testnet.minepi.com";
-const server = new Server(PI_HORIZON_URL);
-const PI_NETWORK_PASSPHRASE = "Test Pi Network ; December 2019";
+const PI_NETWORK_PASSPHRASE = "Pi Testnet";
+
+// Helper Inisialisasi Horizon Server Universal (Mencegah error 'Server is not a constructor')
+function getHorizonServer() {
+  const ServerClass = 
+    StellarSdk.Horizon?.Server || 
+    StellarSdk.Server || 
+    StellarSdk.default?.Horizon?.Server || 
+    StellarSdk.default?.Server;
+    
+  if (!ServerClass) {
+    throw new Error("Horizon Server constructor tidak ditemukan pada modul stellar-sdk.");
+  }
+  return new ServerClass(PI_HORIZON_URL);
+}
+
+// Helper Komponen Stellar SDK
+const Keypair = StellarSdk.Keypair || StellarSdk.default?.Keypair;
+const TransactionBuilder = StellarSdk.TransactionBuilder || StellarSdk.default?.TransactionBuilder;
+const Operation = StellarSdk.Operation || StellarSdk.default?.Operation;
+const Asset = StellarSdk.Asset || StellarSdk.default?.Asset;
 
 export default async function handler(req, res) {
   // CORS Headers
@@ -36,8 +55,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, message: 'Wallet address dan amount wajib diisi.' });
   }
 
-  // Validasi Environment Variable Seed Wallet Kas TVOD
-  const seed = process.env.PI_PAYOUT_SEED;
+  // Validasi Environment Variable Seed (Mendukung PI_PAYOUT_SEED maupun PI_APP_SEED)
+  const seed = process.env.PI_PAYOUT_SEED || process.env.PI_APP_SEED;
   if (!seed) {
     await supabase.from('payout_queue').insert([{
       username: username || 'Anonymous',
@@ -45,16 +64,17 @@ export default async function handler(req, res) {
       amount: amount,
       proposal_id: proposalId || 'TVOD-PROP',
       status: 'PENDING',
-      error_log: 'PI_PAYOUT_SEED belum dikonfigurasi di Environment Variables Vercel.'
+      error_log: 'PI_PAYOUT_SEED / PI_APP_SEED belum dikonfigurasi di Environment Variables Vercel.'
     }]);
 
     return res.status(500).json({ 
       success: false, 
-      message: 'PI_PAYOUT_SEED belum aktif di Vercel. Pastikan Environment Variable PI_PAYOUT_SEED sudah di-set di Settings Vercel.' 
+      message: 'Seed belum aktif di Vercel. Pastikan Environment Variable PI_PAYOUT_SEED atau PI_APP_SEED sudah di-set di Settings Vercel.' 
     });
   }
 
   try {
+    const server = getHorizonServer();
     const cleanSeed = seed.trim();
     const sourceKeypair = Keypair.fromSecret(cleanSeed);
     
