@@ -15,54 +15,19 @@
   <!-- Pustaka Utility -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     .rtl { direction: rtl; }
     canvas.signature-pad { touch-action: none; background-color: #020617; border: 1px solid #334155; border-radius: 0.5rem; }
-
-    /* CSS CETAK UTUK PI BROWSER (ANTI-CRASH WEBVIEW) */
-    @media print {
-      body > *:not(#pdfDownloadModal) {
-        display: none !important;
-      }
-      #pdfDownloadModal {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        background: #ffffff !important;
-        color: #000000 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        display: block !important;
-      }
-      #pdfDownloadModal > div {
-        max-width: 100% !important;
-        box-shadow: none !important;
-        border: none !important;
-        padding: 0 !important;
-      }
-      #documentViewerContent {
-        border: none !important;
-        box-shadow: none !important;
-        padding: 10px !important;
-      }
-      .no-print {
-        display: none !important;
-      }
-    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans text-sm sm:text-base">
 
-  <!-- Area Rahasia Khusus Output Cetak PDF Native -->
-  <div id="printArea" class="hidden"></div>
-
   <!-- Topbar Header -->
-  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 py-3.5 no-print">
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 py-3.5">
     <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
       <a class="flex items-center gap-3" href="/" aria-label="TVOD home">
         <img id="appLogo" src="/logo.png" alt="TVOD Logo" class="h-11 w-11 object-contain rounded">
@@ -73,7 +38,6 @@
       </a>
 
       <div class="flex items-center gap-3 flex-wrap">
-        <!-- Selector Bahasa Multi-i18n -->
         <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-slate-800 border border-slate-700 text-xs rounded-lg px-3 py-1.5 text-slate-200 outline-none cursor-pointer">
           <option value="id">Indonesian (ID)</option>
           <option value="en">English (EN)</option>
@@ -97,16 +61,16 @@
   </header>
 
   <!-- Dashboard Navigation -->
-  <nav class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5 overflow-x-auto no-print">
+  <nav class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5 overflow-x-auto">
     <div class="max-w-7xl mx-auto flex gap-2.5 text-xs sm:text-sm font-medium whitespace-nowrap">
-      <a href="#section-auth" class="px-4 py-2 rounded-lg bg-slate-800 text-amber-400 hover:bg-slate-700 transition" data-i18n="nav_verify">🔑 Onboarding & Wallet</a>
+      <a href="#section-auth" class="px-4 py-2 rounded-lg bg-slate-800 text-amber-400 hover:bg-slate-700 transition" data-i18n="nav_home">🔑 Onboarding & Wallet</a>
       <a href="#section-material" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-i18n="nav_proposal">📄 Materi Voting</a>
-      <a href="#section-voting" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-i18n="nav_home">🗳️ Fast Voting</a>
+      <a href="#section-voting" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-i18n="nav_verify">🗳️ Fast Voting</a>
       <a href="#section-admin" id="nav-admin-link" class="hidden px-4 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition" data-i18n="nav_admin">🛡️ Admin Suite</a>
     </div>
   </nav>
 
-  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6 no-print">
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
     <!-- Ethics Violation Banner -->
     <div id="banBanner" class="hidden bg-red-950/90 border border-red-600 text-red-200 p-4 rounded-xl text-center font-medium text-sm shadow-xl">
@@ -117,8 +81,8 @@
     <section id="section-auth" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-xl">
       <div class="border-b border-slate-800 pb-3 mb-5">
         <span class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 1</span>
-        <h2 class="text-2xl font-bold text-slate-100 mt-1" data-i18n="voter_reg_title">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
-        <p class="text-xs sm:text-sm text-slate-400 mt-1">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.</p>
+        <h2 class="text-2xl font-bold text-slate-100 mt-1" data-i18n="step1_title">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1" data-i18n="step1_desc">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3 mb-6 p-4 bg-slate-950 rounded-xl border border-slate-800">
@@ -227,14 +191,14 @@
             </span>
           </div>
         </div>
-        <h2 id="displayPropTitle" class="text-2xl font-extrabold text-slate-100 leading-tight" data-i18n="prop_title">
+        <h2 id="displayPropTitle" class="text-2xl font-extrabold text-slate-100 leading-tight">
           Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD
         </h2>
         <p class="text-xs sm:text-sm text-slate-400 font-mono mt-1.5">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400 font-semibold">TVOD Development Team</span> | Tanggal: <span id="displayPropDate">30 Okt 2026</span></p>
       </div>
 
       <div class="mb-6">
-        <h3 class="text-xs sm:text-sm font-bold text-amber-400 uppercase tracking-wider mb-2">📄 LATAR BELAKANG & DESKRIPSI OBJEK</h3>
+        <h3 class="text-xs sm:text-sm font-bold text-amber-400 uppercase tracking-wider mb-2" data-i18n="prop_bg_title">📄 LATAR BELAKANG & DESKRIPSI OBJEK</h3>
         <div id="displayPropDescription" class="bg-slate-950 border border-slate-800 rounded-xl p-4 sm:p-5 text-sm sm:text-base text-slate-200 leading-relaxed whitespace-pre-line shadow-inner">
           Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.
           Harap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.
@@ -242,7 +206,7 @@
       </div>
 
       <div>
-        <h3 class="text-xs sm:text-sm font-bold text-amber-400 uppercase tracking-wider mb-3">📸 GALERI BUKTI FOTO & VIDEO OBJEK</h3>
+        <h3 class="text-xs sm:text-sm font-bold text-amber-400 uppercase tracking-wider mb-3" data-i18n="prop_gallery_title">📸 GALERI BUKTI FOTO & VIDEO OBJEK</h3>
         <div class="space-y-5">
           <div id="mediaGalleryContainer" class="flex flex-col gap-5"></div>
           
@@ -264,13 +228,15 @@
     <section id="section-voting" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-xl">
       <div class="border-b border-slate-800 pb-3 mb-5">
         <span class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 2</span>
-        <h2 class="text-2xl font-bold text-slate-100 mt-1">Modul Fast Voting</h2>
+        <h2 class="text-2xl font-bold text-slate-100 mt-1" data-i18n="vote_step_title">Modul Fast Voting</h2>
         <p class="text-xs sm:text-sm text-slate-400 mt-1">Sistem memverifikasi keberadaan NFT di wallet secara On-Chain sebelum menyimpan suara Anda.</p>
       </div>
 
+      <div id="voteStatusBanner" class="hidden p-4 rounded-xl text-xs sm:text-sm font-medium mb-4 shadow"></div>
+
       <form id="votingForm" class="space-y-6">
         <div>
-          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-2">1. Arah Pilihan Suara Anda</label>
+          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-2" data-i18n="vote_dir_label">1. Arah Pilihan Suara Anda</label>
           <div class="grid grid-cols-3 gap-3 text-sm font-semibold">
             <label class="cursor-pointer">
               <input type="radio" name="voteValue" value="1" required class="peer hidden">
@@ -319,7 +285,6 @@
         <span class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded font-mono font-semibold">RESTRICTED ACCESS</span>
       </div>
 
-      <!-- STATISTIK KAS WALLET & TOTAL VOTER AKTIF -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-slate-950 p-4 sm:p-5 rounded-xl border border-amber-500/30 flex flex-col justify-between gap-3">
           <div>
@@ -360,7 +325,6 @@
             <input type="number" id="payoutRate" step="0.1" min="0.8" max="100" value="1.0" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm font-mono">
             <button type="button" onclick="savePayoutRate()" class="bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm">Simpan</button>
           </div>
-          <!-- Tombol Retry Payout Pendings -->
           <button type="button" id="btnRetryPayouts" onclick="retryFailedPayouts()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-xs sm:text-sm transition shadow" data-i18n="btn_retry_payouts">
             🔄 Process Pending Payouts Queue
           </button>
@@ -487,8 +451,8 @@
 
   </main>
 
-  <!-- MODAL DOCUMENT VIEWER SELULER KHUSUS PI BROWSER (ANTI-CRASH) -->
-  <div id="pdfDownloadModal" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-5 overflow-y-auto no-print">
+  <!-- MODAL DOCUMENT VIEWER SELULER KHUSUS PI BROWSER -->
+  <div id="pdfDownloadModal" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
     <div class="bg-slate-900 border border-amber-500/50 rounded-2xl p-4 sm:p-6 max-w-4xl w-full shadow-2xl space-y-4 my-auto max-h-[95vh] flex flex-col">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <h3 class="text-base sm:text-lg font-bold text-amber-400 flex items-center gap-2" id="pdfModalTitle">
@@ -497,15 +461,19 @@
         <button type="button" onclick="closePdfModal()" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button>
       </div>
 
-      <!-- Styled HTML Responsive Document Viewer Container -->
       <div id="documentViewerContent" class="flex-1 overflow-y-auto bg-white p-4 sm:p-8 rounded-xl border border-slate-300 text-slate-900 text-xs sm:text-sm font-sans space-y-4 shadow-inner">
-        <!-- Rendered Live Document Content -->
       </div>
 
       <div class="flex flex-wrap gap-2.5 pt-2 border-t border-slate-800">
-        <button type="button" onclick="downloadPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2" data-i18n="btn_print_pdf">
+        <button type="button" id="btnModalDownload" onclick="downloadPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2" data-i18n="btn_print_pdf">
           <span>🖨️</span> Cetak / Simpan Berkas PDF
         </button>
+
+        <!-- Tombol Perintah Buka / Bagikan ke Chrome -->
+        <button type="button" onclick="shareToExternalBrowser()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow" data-i18n="btn_share_chrome">
+          🌐 Buka / Bagikan ke Chrome
+        </button>
+
         <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm border border-slate-700 transition" data-i18n="btn_copy_text">
           📋 Salin Teks Dokumen
         </button>
@@ -516,7 +484,7 @@
     </div>
   </div>
 
-  <footer class="border-t border-slate-800 py-6 text-center text-xs sm:text-sm text-slate-500 no-print">
+  <footer class="border-t border-slate-800 py-6 text-center text-xs sm:text-sm text-slate-500">
     <p>THE VOICE OF DAO (TVOD) · Web3 Verification & Voting Infrastructure</p>
     <p class="text-xs text-slate-600 mt-1">TVOD Development Team</p>
   </footer>
