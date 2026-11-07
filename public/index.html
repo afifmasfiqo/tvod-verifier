@@ -12,16 +12,40 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Pustaka Utility -->
+  <!-- Pustaka Utility & Direct PDF Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     .rtl { direction: rtl; }
     canvas.signature-pad { touch-action: none; background-color: #020617; border: 1px solid #334155; border-radius: 0.5rem; }
+
+    /* Aturan Cetak & PDF Resolusi Tinggi */
+    @media print {
+      body * { visibility: hidden; }
+      #pdfDownloadModal, #pdfDownloadModal * { visibility: visible; }
+      #pdfDownloadModal { position: absolute; left: 0; top: 0; width: 100%; background: #ffffff !important; color: #000000 !important; }
+      .no-print { display: none !important; }
+      #documentViewerContent { padding: 0 !important; margin: 0 !important; max-width: 100% !important; box-shadow: none !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+
+    /* Pengunci Tata Letak Halaman PDF */
+    .pdf-container {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      box-sizing: border-box;
+      padding: 20px;
+    }
+    .avoid-break {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans text-sm sm:text-base">
@@ -286,6 +310,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Kas Wallet App -->
         <div class="bg-slate-950 p-4 sm:p-5 rounded-xl border border-amber-500/30 flex flex-col justify-between gap-3">
           <div>
             <h3 class="font-bold text-amber-400 uppercase text-xs sm:text-sm">💰 Saldo Wallet App TVOD (Kas Payout)</h3>
@@ -297,211 +322,182 @@
           </button>
         </div>
 
+        <!-- Total Voter Stats -->
         <div class="bg-slate-950 p-4 sm:p-5 rounded-xl border border-emerald-500/30 flex flex-col justify-between gap-3">
           <div>
-            <h3 class="font-bold text-emerald-400 uppercase text-xs sm:text-sm">👥 Total Voter Aktif (Suara Masuk)</h3>
+            <h3 class="font-bold text-emerald-400 uppercase text-xs sm:text-sm">🗳️ Total Voter Terdaftar pada Proposal</h3>
             <p id="adminVoterCountDisplay" class="text-xl font-mono font-bold text-slate-100 mt-1">0 Voter Aktif</p>
-            <span class="text-xs font-mono text-slate-400 block mt-0.5">Jumlah partisipan terverifikasi pada proposal ini</span>
+            <span class="text-xs text-slate-400 block mt-0.5">Data terverifikasi otomatis dari Supabase On-Chain Logs.</span>
           </div>
-          <button type="button" onclick="fetchVoterStatsForAdmin()" class="self-start bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs sm:text-sm transition shadow">
-            🔄 Refresh Statistik Voter
+          <button type="button" onclick="fetchVoterStatsForAdmin()" class="self-start bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs sm:text-sm transition shadow">
+            🔄 Refresh Stats Voter
           </button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
-        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <h3 class="font-bold text-slate-300 uppercase mb-2">Code of Ethics Ban & Reinstatement</h3>
-          <input type="text" id="targetUser" placeholder="Username Pi Target (@user)" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 mb-3 text-sm">
-          <div class="flex gap-2">
-            <button type="button" onclick="toggleUserBan(true)" class="flex-1 bg-red-600 hover:bg-red-700 font-bold py-2 rounded-lg text-white">Ban / Revoke</button>
-            <button type="button" onclick="toggleUserBan(false)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-2 rounded-lg text-white">Reinstate</button>
-          </div>
-        </div>
-
-        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <h3 class="font-bold text-slate-300 uppercase mb-2">Atur Rate Insentif Pi / Suara</h3>
-          <div class="flex gap-2 mb-3">
-            <input type="number" id="payoutRate" step="0.1" min="0.8" max="100" value="1.0" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm font-mono">
-            <button type="button" onclick="savePayoutRate()" class="bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm">Simpan</button>
-          </div>
-          <button type="button" id="btnRetryPayouts" onclick="retryFailedPayouts()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-xs sm:text-sm transition shadow" data-i18n="btn_retry_payouts">
-            🔄 Process Pending Payouts Queue
-          </button>
-        </div>
-      </div>
-
-      <!-- PUBLISH SUITE PROPOSAL BARU -->
-      <div class="bg-slate-950 p-5 rounded-xl border border-amber-500/30 space-y-4">
-        <div class="border-b border-slate-800 pb-2">
-          <h3 class="font-bold text-amber-400 uppercase text-sm sm:text-base">📝 Publish Suite Proposal Baru</h3>
-          <p class="text-xs text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, atau batalkan proposal yang sedang berjalan.</p>
-        </div>
-
-        <div class="space-y-4 text-xs sm:text-sm">
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Judul Proposal / Objek Voting</label>
-            <input type="text" id="inputPropTitle" placeholder="Contoh: Ratifikasi Hasil Verifikasi DAO" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-slate-300 font-semibold mb-1">Kategori Objek</label>
-              <select id="inputPropCategory" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
-                <option value="Verifikasi Objek / Kasus">Verifikasi Objek / Kasus</option>
-                <option value="Pengesahan Proposal Regional">Pengesahan Proposal Regional</option>
-                <option value="Pelanggaran Kode Etik">Pelanggaran Kode Etik</option>
-                <option value="Pengajuan Hibah / Reward">Pengajuan Hibah / Reward</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-slate-300 font-semibold mb-1">Durasi Voting (Dalam Jam, contoh: 0.08 = 5 Menit)</label>
-              <input type="number" id="inputPropDuration" value="24" min="0.01" step="0.01" placeholder="Contoh: 0.08" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 font-mono text-sm">
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Latar Belakang & Deskripsi Objek Voting</label>
-            <textarea id="inputPropDesc" rows="4" placeholder="Jelaskan detail proyek / objek verifikasi secara lengkap..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm"></textarea>
-          </div>
-
-          <div class="border-t border-slate-800 pt-3">
-            <label class="block text-amber-300 font-bold mb-2">📷 GALERI MEDIA & BUKTI FOTO / VIDEO</label>
-            <div class="space-y-3">
-              <div>
-                <label class="block text-slate-300 text-xs font-semibold mb-1">📱 Upload Foto dari Galeri HP / Laptop</label>
-                <input type="file" id="inputPropFileImages" accept="image/*" multiple class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-300 text-xs cursor-pointer">
-                <span id="galleryFilesCount" class="text-xs text-amber-400 font-mono mt-1 block"></span>
-              </div>
-
-              <div>
-                <label class="block text-slate-400 text-xs mb-1">Link Foto Eksternal (Pisahkan koma)</label>
-                <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg, https://domain.com/foto2.jpg" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
-              </div>
-
-              <div>
-                <label class="block text-slate-400 text-xs mb-1">URL Video Bukti (YouTube Embed / Link Direct MP4)</label>
-                <input type="text" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
-              </div>
-            </div>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-3 mt-3">
-            <button type="button" onclick="publishNewProposal(event)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3.5 rounded-xl text-sm transition shadow-lg cursor-pointer" data-i18n="btn_publish_prop">
-              🚀 Terbitkan Proposal & Mulai Timer Voting
-            </button>
-            <button type="button" onclick="cancelActiveProposal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-5 rounded-xl text-sm transition shadow-lg cursor-pointer" data-i18n="btn_cancel_prop">
-              ⛔ Batalkan / Tutup Proposal Aktif
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- TANDA TANGAN DIGITAL PEJABAT TVOD -->
-      <div id="section-signatures" class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
-        <div class="border-b border-slate-800 pb-2">
-          <h3 class="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">✍️ Tanda Tangan Digital Pejabat TVOD</h3>
-          <p class="text-xs text-slate-400 mt-0.5">Tanda tangan pada kanvas di bawah akan otomatis terpasang pada Official Minutes & Sertifikat.</p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs sm:text-sm font-semibold text-amber-400 mb-1">1. Chairman (@afifmasfiqo #911)</label>
-            <canvas id="sig-chairman" class="signature-pad w-full h-32"></canvas>
-            <button type="button" onclick="clearOfficerSig('sig-chairman')" class="text-xs text-red-400 hover:underline mt-1">Clear Tanda Tangan</button>
-          </div>
-          <div>
-            <label class="block text-xs sm:text-sm font-semibold text-amber-400 mb-1">2. Witness (@insya)</label>
-            <canvas id="sig-witness" class="signature-pad w-full h-32"></canvas>
-            <button type="button" onclick="clearOfficerSig('sig-witness')" class="text-xs text-red-400 hover:underline mt-1">Clear Tanda Tangan</button>
-          </div>
-          <div>
-            <label class="block text-xs sm:text-sm font-semibold text-amber-400 mb-1">3. Inspector (@Nalaktak #999)</label>
-            <canvas id="sig-inspector" class="signature-pad w-full h-32"></canvas>
-            <button type="button" onclick="clearOfficerSig('sig-inspector')" class="text-xs text-red-400 hover:underline mt-1">Clear Tanda Tangan</button>
-          </div>
-          <div>
-            <label class="block text-xs sm:text-sm font-semibold text-amber-400 mb-1">4. Country Head (@Rasj81)</label>
-            <canvas id="sig-country-head" class="signature-pad w-full h-32"></canvas>
-            <button type="button" onclick="clearOfficerSig('sig-country-head')" class="text-xs text-red-400 hover:underline mt-1">Clear Tanda Tangan</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- GENERATOR DOKUMEN PDF & SERTIFIKAT -->
-      <div id="section-bap" class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
-        <div class="border-b border-slate-800 pb-2">
-          <h3 class="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">📑 Generator Dokumen Resmi & Sertifikat</h3>
-          <p class="text-xs text-slate-400 mt-0.5">Merender dokumen resmi sesuai data real-time voting dari Supabase.</p>
+      <!-- Form Penerbitan Proposal Baru -->
+      <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+        <h3 class="font-bold text-amber-400 text-sm uppercase">🚀 Terbitkan Materi Proposal Baru</h3>
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Judul Proposal</label>
+          <input type="text" id="inputPropTitle" placeholder="Masukkan Judul Proposal..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow" data-i18n="btn_official_minutes">
-            <span class="text-3xl">📄</span>
-            <span>Generate Official Minutes Document (English)</span>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Kategori Proposal</label>
+            <select id="inputPropCategory" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100">
+              <option value="Verifikasi Objek / Kasus">Verifikasi Objek / Kasus</option>
+              <option value="Ratifikasi Kebijakan Komunitas">Ratifikasi Kebijakan Komunitas</option>
+              <option value="Alokasi Dana & Reward">Alokasi Dana & Reward</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Durasi Voting (Jam)</label>
+            <input type="number" id="inputPropDuration" value="24" min="1" max="168" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100 font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Deskripsi & Latar Belakang</label>
+          <textarea id="inputPropDesc" rows="4" placeholder="Tuliskan detail latar belakang proposal..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Unggah Bukti Foto Galeri</label>
+            <input type="file" id="inputPropFileImages" multiple accept="image/*" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300">
+            <span id="galleryFilesCount" class="text-xs text-amber-400 mt-1 block"></span>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">URL Foto Utama (Opsional Opsional)</label>
+            <input type="text" id="inputPropImages" placeholder="https://..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100 font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">URL Video Bukti (MP4 / Direct Link / YouTube)</label>
+          <input type="text" id="inputPropVideo" placeholder="https://..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100 font-mono">
+        </div>
+
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button type="button" onclick="publishNewProposal(event)" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-3 rounded-lg text-sm transition shadow" data-i18n="btn_publish_prop">
+            🚀 Terbitkan Proposal & Mulai Timer Voting
           </button>
-          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow" data-i18n="btn_digital_cert">
-            <span class="text-3xl">🎓</span>
-            <span>Generate Digital Verification Certificate</span>
+          <button type="button" onclick="cancelActiveProposal()" class="bg-red-600/20 border border-red-500/40 hover:bg-red-600/30 text-red-300 font-bold px-5 py-3 rounded-lg text-sm transition" data-i18n="btn_cancel_prop">
+            ⛔ Batalkan / Tutup Proposal Aktif
           </button>
         </div>
       </div>
 
+      <!-- Digital Signatures Kanvas Pejabat -->
+      <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+        <h3 class="font-bold text-amber-400 text-sm uppercase">✍️ Tanda Tangan Digital Pejabat Governance (BAP & Cert)</h3>
+        <p class="text-xs text-slate-400">Tanda tangan di bawah akan disematkan secara otomatis ke dalam dokumen Official Minutes & Sertifikat Digital.</p>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Chairperson (@afifmasfiqo #911)</label>
+            <canvas id="sig-chairman" class="signature-pad w-full h-24"></canvas>
+            <button type="button" onclick="clearOfficerSig('sig-chairman')" class="mt-1 text-xs text-red-400 hover:underline">Hapus Tanda Tangan</button>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Witness (@insya)</label>
+            <canvas id="sig-witness" class="signature-pad w-full h-24"></canvas>
+            <button type="button" onclick="clearOfficerSig('sig-witness')" class="mt-1 text-xs text-red-400 hover:underline">Hapus Tanda Tangan</button>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Inspector (@Nalaktak #999)</label>
+            <canvas id="sig-inspector" class="signature-pad w-full h-24"></canvas>
+            <button type="button" onclick="clearOfficerSig('sig-inspector')" class="mt-1 text-xs text-red-400 hover:underline">Hapus Tanda Tangan</button>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Country Head (@Rasj81)</label>
+            <canvas id="sig-country-head" class="signature-pad w-full h-24"></canvas>
+            <button type="button" onclick="clearOfficerSig('sig-country-head')" class="mt-1 text-xs text-red-400 hover:underline">Hapus Tanda Tangan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modul Kontrol Admin Payout & Generasi Dokumen -->
+      <div class="flex flex-wrap items-center gap-3 pt-2">
+        <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-3 rounded-lg text-sm transition shadow" data-i18n="btn_official_minutes">
+          📄 Generate Official Minutes Document (English)
+        </button>
+        <button type="button" onclick="generateCertificatePDF()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-3 rounded-lg text-sm transition shadow" data-i18n="btn_digital_cert">
+          🎓 Generate Digital Verification Certificate
+        </button>
+        <button type="button" id="btnRetryPayouts" onclick="retryFailedPayouts()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 font-semibold px-4 py-3 rounded-lg text-sm transition" data-i18n="btn_retry_payouts">
+          🔄 Process Pending Payouts Queue
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-800 pt-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Atur Rate Reward (Pi per Suara)</label>
+          <div class="flex gap-2">
+            <input type="number" id="payoutRate" value="1.0" step="0.1" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm font-mono text-slate-100">
+            <button type="button" onclick="savePayoutRate()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-2 rounded-lg text-xs">Simpan</button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Ban / Restriksi Username Voter</label>
+          <div class="flex gap-2">
+            <input type="text" id="targetUser" placeholder="@username" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-100">
+            <button type="button" onclick="toggleUserBan(true)" class="bg-red-600 text-white font-bold px-3 py-2 rounded-lg text-xs">BAN</button>
+            <button type="button" onclick="toggleUserBan(false)" class="bg-emerald-600 text-slate-950 font-bold px-3 py-2 rounded-lg text-xs">UNBAN</button>
+          </div>
+        </div>
+      </div>
     </section>
 
   </main>
 
-  <!-- MODAL DOCUMENT VIEWER SELULER KHUSUS PI BROWSER -->
-  <div id="pdfDownloadModal" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-    <div class="bg-slate-900 border border-amber-500/50 rounded-2xl p-4 sm:p-6 max-w-4xl w-full shadow-2xl space-y-4 my-auto max-h-[95vh] flex flex-col">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="text-base sm:text-lg font-bold text-amber-400 flex items-center gap-2" id="pdfModalTitle">
-          📄 Dokumen Resmi TVOD Ready
+  <!-- MODAL PENAMPIL DOKUMEN & ACTION TOOLBAR -->
+  <div id="pdfDownloadModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 sm:p-6 flex flex-col items-center justify-start">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col my-auto">
+      
+      <!-- Toolbar Modal Header -->
+      <div class="no-print bg-slate-950 border-b border-slate-800 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 id="pdfModalTitle" class="text-base sm:text-lg font-bold text-amber-400 font-mono">
+          Dokumen Resmi TVOD
         </h3>
-        <button type="button" onclick="closePdfModal()" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button>
-      </div>
-
-      <div id="documentViewerContent" class="flex-1 overflow-y-auto bg-white p-4 sm:p-8 rounded-xl border border-slate-300 text-slate-900 text-xs sm:text-sm font-sans space-y-4 shadow-inner">
-      </div>
-
-      <!-- KOTAK ACCESS LINK & FALLBACK SALIN URL KHUSUS CHROME -->
-      <div id="externalLinkContainer" class="hidden bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
-        <label class="block text-xs font-semibold text-amber-400">🔗 Link Akses Dokumen untuk Google Chrome:</label>
-        <div class="flex gap-2">
-          <input type="text" id="externalLinkInput" readonly class="w-full bg-slate-900 border border-slate-700 text-amber-300 text-xs font-mono p-2.5 rounded-lg outline-none select-all">
-          <button type="button" onclick="shareToExternalBrowser()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs whitespace-nowrap shadow">
-            📋 Salin Link
+        
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" id="btnModalDownload" onclick="downloadPdfDirect()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs sm:text-sm transition flex items-center gap-1.5 shadow">
+            📥 Download PDF Directly (1-Klik)
+          </button>
+          <button type="button" onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-3 py-2 rounded-lg text-xs sm:text-sm transition">
+            🖨️ Cetak
+          </button>
+          <button type="button" onclick="shareToExternalBrowser()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-2 rounded-lg text-xs sm:text-sm transition" data-i18n="btn_share_chrome">
+            🌐 Salin Link Chrome
+          </button>
+          <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-3 py-2 rounded-lg text-xs sm:text-sm transition" data-i18n="btn_copy_text">
+            📋 Salin Teks
+          </button>
+          <button type="button" onclick="closePdfModal()" class="bg-red-600/20 hover:bg-red-600/40 text-red-300 font-bold px-3 py-2 rounded-lg text-xs sm:text-sm transition" data-i18n="btn_close_modal">
+            ✕ Tutup
           </button>
         </div>
-        <span id="shareStatusText" class="text-xs text-slate-400 block"></span>
       </div>
 
-      <div class="flex flex-wrap gap-2.5 pt-2 border-t border-slate-800">
-        <button type="button" id="btnModalDownload" onclick="downloadPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2" data-i18n="btn_print_pdf">
-          <span>🖨️</span> Cetak / Simpan Berkas PDF
-        </button>
-
-        <!-- Tombol Perintah Buka / Bagikan ke Chrome -->
-        <button type="button" onclick="shareToExternalBrowser()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow" data-i18n="btn_share_chrome">
-          🌐 Buka / Bagikan ke Chrome
-        </button>
-
-        <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm border border-slate-700 transition" data-i18n="btn_copy_text">
-          📋 Salin Teks Dokumen
-        </button>
-        <button type="button" onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm transition" data-i18n="btn_close_modal">
-          Tutup Dokumen
-        </button>
+      <!-- Area Tautan Chrome (Jika Dibuka dari Share) -->
+      <div id="externalLinkContainer" class="no-print hidden bg-slate-950 border-b border-slate-800 px-5 py-3">
+        <label class="block text-xs font-semibold text-amber-400 mb-1">🔗 Link Dokumen Spesifik untuk Google Chrome:</label>
+        <input type="text" id="externalLinkInput" readonly class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs font-mono text-amber-300 outline-none select-all">
+        <span id="shareStatusText" class="text-xs font-semibold text-emerald-400 mt-1 block"></span>
       </div>
+
+      <!-- Kontainer Isi Dokumen Resmi (Format Cetak A4 Render) -->
+      <div id="documentViewerContent" class="pdf-container p-6 sm:p-10 bg-white text-slate-950 overflow-x-auto min-h-[500px]">
+        <!-- Isi Dokumen Di-inject melalui JS -->
+      </div>
+
     </div>
   </div>
 
-  <footer class="border-t border-slate-800 py-6 text-center text-xs sm:text-sm text-slate-500">
-    <p>THE VOICE OF DAO (TVOD) · Web3 Verification & Voting Infrastructure</p>
-    <p class="text-xs text-slate-600 mt-1">TVOD Development Team</p>
-  </footer>
-
   <script src="/app.js"></script>
-
 </body>
 </html>
