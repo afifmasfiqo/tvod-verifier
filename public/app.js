@@ -58,7 +58,7 @@ const i18nDictionary = {
     btn_official_minutes: "📄 Generate Official Minutes Document (English)",
     btn_digital_cert: "🎓 Generate Digital Verification Certificate",
     btn_print_pdf: "🖨️ Cetak / Simpan Berkas PDF",
-    btn_share_chrome: "🌐 Buka / Bagikan ke Chrome",
+    btn_share_chrome: "🌐 Salin Link Dokumen untuk Chrome",
     btn_copy_text: "📋 Salin Teks Dokumen",
     btn_close_modal: "Tutup Dokumen"
   },
@@ -98,7 +98,7 @@ const i18nDictionary = {
     btn_official_minutes: "📄 Generate Official Minutes Document (English)",
     btn_digital_cert: "🎓 Generate Digital Verification Certificate",
     btn_print_pdf: "🖨️ Print / Save PDF Document",
-    btn_share_chrome: "🌐 Open / Share to Chrome",
+    btn_share_chrome: "🌐 Copy Document Link for Chrome",
     btn_copy_text: "📋 Copy Document Text",
     btn_close_modal: "Close Document"
   },
@@ -238,6 +238,7 @@ function changeLanguage(lang) {
 // Global State
 let isPiSDKInitialized = false;
 let currentUser = null;
+let currentOpenedDocType = null; // Menandai tipe dokumen yang sedang dibuka ('minutes' / 'certificate')
 let activeUser = {
   username: "",
   walletAddress: "",
@@ -570,6 +571,22 @@ async function initialize() {
   checkSavedSession();
 
   await fetchActiveProposalFromSupabase();
+
+  // 🔍 AUTO-OPEN DOKUMEN JIKA DIBUKA DARI LINK SHARE CHROME EXTERNAL
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedDocType = urlParams.get("docType");
+  const requestedPropId = urlParams.get("propId");
+
+  if (requestedDocType) {
+    if (requestedPropId) {
+      activeProposal.id = requestedPropId;
+    }
+    if (requestedDocType === "minutes") {
+      await generateOfficialMinutesPDF();
+    } else if (requestedDocType === "certificate" || requestedDocType === "cert") {
+      await generateCertificatePDF();
+    }
+  }
 }
 
 function compressAndResizeImage(file, maxWidth = 1000, quality = 0.8) {
@@ -1255,9 +1272,12 @@ async function retryFailedPayouts() {
   }
 }
 
-// 🌐 HANDLER UNTUK BUKA / SHARE KE GOOGLE CHROME VIA URL BOX + COPY + INTENT
+// 🌐 HANDLER UNTUK SALIN LINK SPESIFIK DOKUMEN UNTUK GOOGLE CHROME
 async function shareToExternalBrowser() {
-  const currentUrl = window.location.href;
+  const docType = currentOpenedDocType || "minutes";
+  const propId = (activeProposal && activeProposal.id) ? activeProposal.id : "";
+  const docShareUrl = `${window.location.origin}${window.location.pathname}?docType=${docType}&propId=${encodeURIComponent(propId)}`;
+
   const linkInput = document.getElementById("externalLinkInput");
   const linkContainer = document.getElementById("externalLinkContainer");
   const statusEl = document.getElementById("shareStatusText");
@@ -1267,7 +1287,7 @@ async function shareToExternalBrowser() {
   }
 
   if (linkInput) {
-    linkInput.value = currentUrl;
+    linkInput.value = docShareUrl;
     linkInput.focus();
     linkInput.select();
     linkInput.setSelectionRange(0, 99999);
@@ -1276,7 +1296,7 @@ async function shareToExternalBrowser() {
   let copied = false;
   try {
     if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(currentUrl);
+      await navigator.clipboard.writeText(docShareUrl);
       copied = true;
     } else if (linkInput) {
       document.execCommand("copy");
@@ -1288,7 +1308,7 @@ async function shareToExternalBrowser() {
 
   if (statusEl) {
     statusEl.textContent = copied 
-      ? "✅ Link berhasil disalin! Silakan buka Google Chrome dan Tempel (Paste) link ini."
+      ? `✅ Link khusus dokumen (${docType.toUpperCase()}) berhasil disalin! Buka Chrome lalu Tempel (Paste) link ini.`
       : "📋 Silakan tekan lama pada kolom teks di atas, lalu pilih Salin (Copy).";
     statusEl.className = "text-xs font-semibold text-emerald-400 mt-1 block";
   }
@@ -1296,7 +1316,7 @@ async function shareToExternalBrowser() {
   const isAndroid = /Android/i.test(navigator.userAgent);
   if (isAndroid) {
     try {
-      const cleanHostPath = window.location.host + window.location.pathname + window.location.search + window.location.hash;
+      const cleanHostPath = window.location.host + window.location.pathname + `?docType=${docType}&propId=${encodeURIComponent(propId)}`;
       window.location.href = `intent://${cleanHostPath}#intent;scheme=https;package=com.android.chrome;end;`;
     } catch (e) {
       console.warn("Intent diblokir WebView:", e);
@@ -1321,7 +1341,7 @@ function closePdfModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-// 🖨️ RENDER DOKUMEN MENJADI GAMBAR PNG RESOLUSI TINGGI
+// 🖨️ RENDER DOKUMEN MENJADI GAMBAR PNG (TANPA MERUSAK TEKS ASLI)
 async function downloadPdfModal() {
   const contentDiv = document.getElementById("documentViewerContent");
   const btnDownload = document.getElementById("btnModalDownload");
@@ -1334,6 +1354,11 @@ async function downloadPdfModal() {
   }
 
   try {
+    if (!navigator.userAgent.includes("PiBrowser")) {
+      window.print();
+      return;
+    }
+
     if (window.html2canvas) {
       const canvas = await window.html2canvas(contentDiv, {
         scale: 2,
@@ -1342,15 +1367,24 @@ async function downloadPdfModal() {
       });
       const imgData = canvas.toDataURL("image/png");
 
-      contentDiv.innerHTML = `
-        <div style="text-align:center; padding:10px;">
-          <div style="background:#fef3c7; color:#92400e; padding:12px; border-radius:8px; margin-bottom:15px; font-weight:bold; font-size:12px; border: 1px solid #f59e0b;">
-            📌 GAMBAR DOKUMEN SIAP DISIMPAN:<br>
-            Tekan & tahan (long-press) gambar di bawah, lalu pilih <strong>"Simpan Gambar" / "Save Image"</strong> untuk menyimpan ke Galeri HP Anda.
+      let imgPreviewArea = document.getElementById("pngPreviewArea");
+      if (!imgPreviewArea) {
+        imgPreviewArea = document.createElement("div");
+        imgPreviewArea.id = "pngPreviewArea";
+        contentDiv.appendChild(imgPreviewArea);
+      }
+
+      imgPreviewArea.innerHTML = `
+        <div style="text-align:center; padding:10px; margin-top:20px; border-top:2px dashed #cbd5e1;">
+          <div style="background:#fef3c7; color:#92400e; padding:12px; border-radius:8px; margin-bottom:12px; font-weight:bold; font-size:12px; border: 1px solid #f59e0b;">
+            📌 GAMBAR HASIL RENDER (SIAP DISIMPAN):<br>
+            Tekan & tahan (long-press) gambar di bawah, lalu pilih <strong>"Simpan Gambar" / "Save Image"</strong> ke Galeri HP Anda.
           </div>
           <img src="${imgData}" style="width:100%; height:auto; border:1px solid #cbd5e1; border-radius:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
         </div>
       `;
+
+      imgPreviewArea.scrollIntoView({ behavior: 'smooth' });
     } else {
       window.print();
     }
@@ -1365,14 +1399,43 @@ async function downloadPdfModal() {
 }
 
 function copyDocumentText() {
-  const contentDiv = $("#documentViewerContent");
-  if (contentDiv) {
-    navigator.clipboard.writeText(contentDiv.innerText).then(() => {
-      alert("📋 Seluruh Teks Dokumen Resmi Berhasil Disalin ke Clipboard!");
-    }).catch(err => {
-      alert("Gagal menyalin teks: " + err);
-    });
+  const contentDiv = document.getElementById("documentViewerContent");
+  if (!contentDiv) return;
+
+  const clone = contentDiv.cloneNode(true);
+  const previewArea = clone.querySelector("#pngPreviewArea");
+  if (previewArea) {
+    previewArea.remove();
   }
+
+  const textToCopy = clone.innerText.trim();
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      alert("📋 Seluruh Teks Dokumen Resmi Berhasil Disalin!");
+    }).catch(() => {
+      fallbackCopyText(textToCopy);
+    });
+  } else {
+    fallbackCopyText(textToCopy);
+  }
+}
+
+function fallbackCopyText(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    document.execCommand("copy");
+    alert("📋 Seluruh Teks Dokumen Resmi Berhasil Disalin!");
+  } catch (err) {
+    alert("Gagal menyalin teks dokumen.");
+  }
+  document.body.removeChild(textarea);
 }
 
 window.closePdfModal = closePdfModal;
@@ -1382,6 +1445,7 @@ window.copyDocumentText = copyDocumentText;
 
 // 📄 GENERATE OFFICIAL MINUTES DOKUMEN
 async function generateOfficialMinutesPDF() {
+  currentOpenedDocType = "minutes";
   await fetchVoterStatsForAdmin();
 
   const totalCount = activeProposal.totalVotes || 0;
@@ -1586,6 +1650,7 @@ async function generateOfficialMinutesPDF() {
 
 // 🎓 GENERATE SERTIFIKAT VERIFIKASI DIGITAL REAL-TIME
 async function generateCertificatePDF() {
+  currentOpenedDocType = "certificate";
   await fetchVoterStatsForAdmin();
 
   const netScoreVal = activeProposal.netScore || 0;
