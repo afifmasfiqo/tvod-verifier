@@ -464,6 +464,18 @@
       <div id="documentViewerContent" class="flex-1 overflow-y-auto bg-white p-4 sm:p-8 rounded-xl border border-slate-300 text-slate-900 text-xs sm:text-sm font-sans space-y-4 shadow-inner">
       </div>
 
+      <!-- KOTAK ACCESS LINK & FALLBACK SALIN URL KHUSUS CHROME -->
+      <div id="externalLinkContainer" class="hidden bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
+        <label class="block text-xs font-semibold text-amber-400">🔗 Link Akses Dokumen untuk Google Chrome:</label>
+        <div class="flex gap-2">
+          <input type="text" id="externalLinkInput" readonly class="w-full bg-slate-900 border border-slate-700 text-amber-300 text-xs font-mono p-2.5 rounded-lg outline-none select-all">
+          <button type="button" onclick="shareToExternalBrowser()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs whitespace-nowrap shadow">
+            📋 Salin Link
+          </button>
+        </div>
+        <span id="shareStatusText" class="text-xs text-slate-400 block"></span>
+      </div>
+
       <div class="flex flex-wrap gap-2.5 pt-2 border-t border-slate-800">
         <button type="button" id="btnModalDownload" onclick="downloadPdfModal()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2" data-i18n="btn_print_pdf">
           <span>🖨️</span> Cetak / Simpan Berkas PDF
