@@ -123,8 +123,8 @@
 
       <form id="onboardingForm" class="space-y-4">
         <div>
-          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5" data-i18n="label_wallet">Pi Wallet Address (Public Key untuk Payout & Cek NFT)</label>
-          <input type="text" id="walletAddress" placeholder="G..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-amber-300 font-mono focus:border-amber-500 outline-none">
+          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5" data-i18n="label_wallet">Pi Wallet Address (Awalan G / M, 56 Karakter untuk Payout & Cek NFT)</label>
+          <input type="text" id="walletAddress" placeholder="Contoh: GBBIFANY...3TDQ3WL atau M..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-amber-300 font-mono focus:border-amber-500 outline-none">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -461,12 +461,18 @@
           <p class="text-xs text-slate-400 mt-0.5">Merender dokumen resmi sesuai data real-time voting dari Supabase.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow" data-i18n="btn_official_minutes">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center justify-center text-center gap-2 shadow" data-i18n="btn_official_minutes">
             <span class="text-3xl">📄</span>
             <span>Generate Official Minutes Document (English)</span>
           </button>
-          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center gap-2 shadow" data-i18n="btn_digital_cert">
+          
+          <button type="button" onclick="generateVoterAuditLogPDF()" class="bg-purple-950/80 hover:bg-purple-900/80 border border-purple-500/40 text-purple-200 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center justify-center text-center gap-2 shadow">
+            <span class="text-3xl">📊</span>
+            <span>Individual Voter Audit Log (PDF & Excel Format)</span>
+          </button>
+
+          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 sm:p-5 rounded-xl text-sm transition flex flex-col items-center justify-center text-center gap-2 shadow" data-i18n="btn_digital_cert">
             <span class="text-3xl">🎓</span>
             <span>Generate Digital Verification Certificate</span>
           </button>
