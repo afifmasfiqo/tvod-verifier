@@ -419,36 +419,63 @@ async function saveVoteToSupabase(voteData) {
   }
 }
 
+// 🛡️ PERBAIKAN: LOGIKA KETAT UNTUK PENCEGAHAN OVERWRITE / DATA TERTUKAR
 async function fetchVoterProfileFromSupabase(username) {
   if (!supabaseClient || !username) return;
   try {
-    const { data, error } = await supabaseClient.from('voters').select('*').eq('username', username).single();
-    if (error) return;
-    if (data) {
-      activeUser.walletAddress = data.wallet_address || "";
-      activeUser.category = data.category || "owner";
-      activeUser.role = data.role || "Member";
-      activeUser.chapter = data.chapter || "GLOBAL";
-      activeUser.garudaId = data.garuda_id;
-      activeUser.garudaHash = data.garuda_hash;
-      activeUser.ownerUsername = data.owner_username;
-      activeUser.delegatedNftType = data.delegated_nft_type;
-      activeUser.delegatedHashes = data.delegated_hashes || [];
+    const { data, error } = await supabaseClient
+      .from('voters')
+      .select('*')
+      .eq('username', username)
+      .maybeSingle(); // 🛑 Menggunakan maybeSingle agar tidak ambil data acak jika tak ditemukan
 
-      if ($("#walletAddress")) $("#walletAddress").value = data.wallet_address || "";
-      if ($("#voterCategory")) {
-        $("#voterCategory").value = data.category === 'owner' ? 'owner' : 'delegator';
-        toggleCategoryFields();
-      }
-      if ($("#communityChapter")) $("#communityChapter").value = data.chapter;
-      if ($("#userRole")) $("#userRole").value = data.role;
-      if ($("#garudaId")) $("#garudaId").value = data.garuda_id || "";
-      if ($("#garudaHash")) $("#garudaHash").value = data.garuda_hash || "";
+    if (error || !data) {
+      console.warn(`Profil untuk username @${username} belum terdaftar di Supabase.`);
+      // Kosongkan form lokal agar tidak menampilkan/menimpa data user lain
+      activeUser.walletAddress = "";
+      activeUser.garudaId = null;
+      activeUser.garudaHash = null;
+      activeUser.ownerUsername = null;
+      activeUser.delegatedNftType = null;
+      activeUser.delegatedHashes = [];
+
+      if ($("#walletAddress")) $("#walletAddress").value = "";
+      if ($("#garudaId")) $("#garudaId").value = "";
+      if ($("#garudaHash")) $("#garudaHash").value = "";
+      if ($("#ownerUsername")) $("#ownerUsername").value = "";
+      if ($("#delegatorHashes")) $("#delegatorHashes").value = "";
 
       const displayGaruda = $("#displayGaruda");
-      if (displayGaruda) {
-        displayGaruda.textContent = data.garuda_id ? `#${data.garuda_id}` : `DELEGATE (${(data.category || 'owner').toUpperCase()})`;
-      }
+      if (displayGaruda) displayGaruda.textContent = "BELUM VERIFIKASI";
+      return;
+    }
+
+    // Hanya terapkan data jika username BENAR-BENAR MATCH
+    activeUser.walletAddress = data.wallet_address || "";
+    activeUser.category = data.category || "owner";
+    activeUser.role = data.role || "Member";
+    activeUser.chapter = data.chapter || "GLOBAL";
+    activeUser.garudaId = data.garuda_id;
+    activeUser.garudaHash = data.garuda_hash;
+    activeUser.ownerUsername = data.owner_username;
+    activeUser.delegatedNftType = data.delegated_nft_type;
+    activeUser.delegatedHashes = data.delegated_hashes || [];
+
+    if ($("#walletAddress")) $("#walletAddress").value = data.wallet_address || "";
+    if ($("#voterCategory")) {
+      $("#voterCategory").value = data.category === 'owner' ? 'owner' : 'delegator';
+      toggleCategoryFields();
+    }
+    if ($("#communityChapter")) $("#communityChapter").value = data.chapter;
+    if ($("#userRole")) $("#userRole").value = data.role;
+    if ($("#garudaId")) $("#garudaId").value = data.garuda_id || "";
+    if ($("#garudaHash")) $("#garudaHash").value = data.garuda_hash || "";
+    if ($("#ownerUsername")) $("#ownerUsername").value = data.owner_username || "";
+    if ($("#delegatorHashes")) $("#delegatorHashes").value = (data.delegated_hashes || []).join(", ");
+
+    const displayGaruda = $("#displayGaruda");
+    if (displayGaruda) {
+      displayGaruda.textContent = data.garuda_id ? `#${data.garuda_id}` : `DELEGATE (${(data.category || 'owner').toUpperCase()})`;
     }
   } catch (err) {
     console.error("Fetch Profile Error:", err);
