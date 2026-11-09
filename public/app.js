@@ -14,6 +14,14 @@ function ensureHttps(url) {
   return cleanUrl;
 }
 
+// 🛑 VALIDASI ALAMAT WALLET PI (Mendukung awalan 'G' Pi Browser & 'M' PiBox/PiPet, 56 Karakter)
+function isValidPiWalletAddress(address) {
+  if (!address) return false;
+  const cleanAddr = address.trim();
+  const piWalletRegex = /^[GM][A-Z2-7]{55}$/i;
+  return piWalletRegex.test(cleanAddr);
+}
+
 // 1. SUPABASE CLIENT
 const SUPABASE_URL = "https://tdtybxriphsdtojkrevp.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkdHlieHJpcGhzZHRvamtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1NjQ1MjgsImV4cCI6MjEwOTE0MDUyOH0.yUCGB3vMRcIHpO8uesxp5Tho4T0mTZF0ZwWpHsg04GI";
@@ -379,13 +387,31 @@ function checkSavedSession() {
 }
 
 async function saveVoterToSupabase(voterData) {
-  if (!supabaseClient) return;
+  if (!supabaseClient) return false;
   try {
-    const { data, error } = await supabaseClient.from('voters').upsert([voterData], { onConflict: 'username' });
-    if (error) console.error("Gagal menyimpan data voter ke Supabase:", error);
-    else console.log("✅ Data voter tersimpan di Supabase:", data);
+    const { data, error } = await supabaseClient
+      .from('voters')
+      .upsert([voterData], { onConflict: 'username' });
+
+    if (error) {
+      console.error("Gagal menyimpan data voter ke Supabase:", error);
+      if (error.code === '23505' || error.message.includes('unique_garuda_id')) {
+        alert(`⛔ REGISTRASI DITOLAK!\n\nNomor Garuda #${voterData.garuda_id} sudah terdaftar atas nama username lain.`);
+        return false;
+      }
+      if (error.code === '23505' || error.message.includes('unique_wallet_address')) {
+        alert("⛔ REGISTRASI DITOLAK!\n\nAlamat Pi Wallet ini sudah terdaftar atas nama username lain. Satu wallet hanya dapat terikat pada 1 akun Pi Network.");
+        return false;
+      }
+      alert("⚠️ Gagal menyimpan profil ke Database: " + error.message);
+      return false;
+    }
+
+    console.log("✅ Data voter tersimpan di Supabase:", data);
+    return true;
   } catch (err) {
     console.error("Supabase Voter Error:", err);
+    return false;
   }
 }
 
@@ -627,6 +653,8 @@ async function initialize() {
     }
     if (requestedDocType === "minutes") {
       await generateOfficialMinutesPDF();
+    } else if (requestedDocType === "audit_log" || requestedDocType === "audit") {
+      await generateVoterAuditLogPDF();
     } else if (requestedDocType === "certificate" || requestedDocType === "cert") {
       await generateCertificatePDF();
     }
@@ -807,13 +835,25 @@ function updateDelegatorHint() {
   }
 }
 
-function handleOnboarding(e) {
+async function handleOnboarding(e) {
   e.preventDefault();
+
+  const username = currentUser ? currentUser.username : activeUser.username;
+  if (!username) {
+    alert("⚠️ Silakan login via Pi SDK / Demo Login terlebih dahulu.");
+    return;
+  }
 
   const category = $("#voterCategory").value;
   const role = $("#userRole").value;
   const wallet = $("#walletAddress").value.trim();
   const chapter = $("#communityChapter") ? $("#communityChapter").value : "GLOBAL";
+
+  // Validasi format wallet (Mendukung G dari Pi Browser & M dari PiBox/PiPet, 56 karakter)
+  if (!isValidPiWalletAddress(wallet)) {
+    alert("⛔ ALAMAT WALLET TIDAK VALID!\n\nPastikan Anda memasukkan Public Key Alamat Wallet Pi yang sah (Pi Browser, PiPet, atau PiBox).\n\nCiri wallet sah:\n- Diawali huruf kapital 'G' atau 'M'\n- Memiliki panjang tepat 56 karakter");
+    return;
+  }
 
   if (category === "owner") {
     const gId = parseInt($("#garudaId").value || "0");
@@ -859,6 +899,7 @@ function handleOnboarding(e) {
     activeUser.delegatedHashes = hashList;
   }
 
+  activeUser.username = username;
   activeUser.walletAddress = wallet;
   activeUser.category = category;
   activeUser.role = role;
@@ -869,12 +910,12 @@ function handleOnboarding(e) {
     displayGaruda.textContent = activeUser.garudaId ? `#${activeUser.garudaId}` : `DELEGATE (${category.toUpperCase()})`;
   }
 
-  saveVoterToSupabase({
-    username: activeUser.username || `voter_${Date.now()}`,
-    wallet_address: activeUser.walletAddress,
-    category: activeUser.category,
-    chapter: activeUser.chapter,
-    role: activeUser.role,
+  const savedSuccess = await saveVoterToSupabase({
+    username: username,
+    wallet_address: wallet,
+    category: category,
+    chapter: chapter,
+    role: role,
     garuda_id: activeUser.garudaId,
     garuda_hash: activeUser.garudaHash,
     owner_username: activeUser.ownerUsername,
@@ -882,8 +923,10 @@ function handleOnboarding(e) {
     delegated_hashes: activeUser.delegatedHashes
   });
 
-  checkAppWalletBalance();
-  alert(`✅ Registrasi Berhasil!\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}\nData tersimpan ke Supabase Database.`);
+  if (savedSuccess) {
+    checkAppWalletBalance();
+    alert(`✅ Registrasi & Binding Wallet Berhasil!\n\nUsername: @${username}\nWallet: ${wallet.substring(0, 8)}...${wallet.substring(48)}\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}`);
+  }
 }
 
 function renderProposalMaterials() {
@@ -1113,12 +1156,12 @@ async function handleCastVote(e) {
   const currentUsername = activeUser.username || "Anonymous";
   const currentWallet = activeUser.walletAddress || "";
 
-  if (!currentWallet) {
+  if (!currentWallet || !isValidPiWalletAddress(currentWallet)) {
     if (btn) {
       btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
       btn.disabled = false;
     }
-    alert("⚠️ Alamat Wallet belum diisi! Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu.");
+    alert("⚠️ Alamat Wallet belum diisi atau tidak valid! Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu.");
     return;
   }
 
@@ -1209,7 +1252,9 @@ async function handleCastVote(e) {
         walletAddress: currentWallet,
         amount: baseReward,
         username: currentUsername,
-        proposalId: activeProposal.id
+        proposalId: activeProposal.id,
+        category: activeUser.category,
+        ownerUsername: activeUser.ownerUsername
       })
     });
 
@@ -1391,7 +1436,6 @@ async function downloadPdfDirect() {
   if (fallbackContainer) fallbackContainer.classList.add("hidden");
 
   try {
-    // 1. Tunggu seluruh elemen gambar (stempel & tanda tangan Base64) selesai dimuat di DOM
     const images = Array.from(contentDiv.querySelectorAll("img"));
     await Promise.all(
       images.map(
@@ -1407,7 +1451,6 @@ async function downloadPdfDirect() {
       )
     );
 
-    // 2. Beri jeda kecil agar layout browser tuntas di-render
     await new Promise((r) => setTimeout(r, 200));
 
     const docType = currentOpenedDocType || "dokumen";
@@ -1557,18 +1600,16 @@ window.downloadPdfModal = downloadPdfModal;
 window.shareToExternalBrowser = shareToExternalBrowser;
 window.copyDocumentText = copyDocumentText;
 
-// 📄 GENERATE OFFICIAL MINUTES DOKUMEN (FULL-WIDTH & FULL-A4 HIGH RESOLUTION)
+// 📄 1. GENERATE OFFICIAL MINUTES DOKUMEN (STANDALONE OFFICIAL RATIFICATION REPORT)
 async function generateOfficialMinutesPDF() {
   currentOpenedDocType = "minutes";
   await fetchVoterStatsForAdmin();
 
-  // 1. Ambil tanda tangan dari Kanvas / LocalStorage
   let sigChairman = getSignatureDataUrl("sig-chairman");
   let sigWitness = getSignatureDataUrl("sig-witness");
   let sigInspector = getSignatureDataUrl("sig-inspector");
   let sigCountryHead = getSignatureDataUrl("sig-country-head");
 
-  // 2. Fallback untuk Google Chrome: Jika LocalStorage Chrome belum ada, ambil tanda tangan dari database Supabase
   if ((!sigChairman || !sigWitness) && supabaseClient && activeProposal.id) {
     try {
       const { data: voteRows } = await supabaseClient
@@ -1582,9 +1623,6 @@ async function generateOfficialMinutesPDF() {
         voteRows.forEach((v) => {
           if (v.voter_signature_base64) {
             if (!sigChairman && (v.username === 'afifmasfiqo' || v.username.toLowerCase().includes('afif'))) {
-              sigChairman = v.voter_signature_base64;
-              localStorage.setItem('tvod_sig_sig-chairman', sigChairman);
-            } else if (!sigChairman) {
               sigChairman = v.voter_signature_base64;
               localStorage.setItem('tvod_sig_sig-chairman', sigChairman);
             }
@@ -1611,124 +1649,155 @@ async function generateOfficialMinutesPDF() {
   const integrityHash = window.CryptoJS ? window.CryptoJS.SHA256(`TVOD-HASH-${activeProposal.id}`).toString().substring(0, 16).toUpperCase() : "8F97D023B35F5C67";
 
   const docHtml = `
-    <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 12px 10px; box-sizing: border-box; line-height: 1.45; background: #ffffff;">
+    <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 16px 14px; box-sizing: border-box; line-height: 1.5; background: #ffffff;">
       
-      <!-- HEADER LOGO & JUDUL -->
+      <!-- HEADER LOGO & TITLE -->
       <div style="text-align: center; border-bottom: 3px double #1e3a8a; padding-bottom: 12px; margin-bottom: 16px;">
-        <img src="/logo.png" alt="TVOD Logo" style="height: 60px; margin: 0 auto 6px auto; display: block;" />
-        <h1 style="font-size: 22px; font-weight: 800; color: #1e3a8a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">OFFICIAL MINUTES</h1>
-        <h2 style="font-size: 14px; font-weight: 700; color: #2563eb; margin: 4px 0 0 0; text-transform: uppercase;">WEB3 VOTING — ${activeProposal.title}</h2>
+        <img src="/logo.png" alt="TVOD Logo" style="height: 65px; margin: 0 auto 6px auto; display: block;" />
+        <h1 style="font-size: 22px; font-weight: 800; color: #1e3a8a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">OFFICIAL MINUTES REPORT</h1>
+        <h2 style="font-size: 14px; font-weight: 700; color: #2563eb; margin: 4px 0 0 0; text-transform: uppercase;">WEB3 RATIFICATION — ${activeProposal.title}</h2>
         <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
       </div>
 
-      <!-- TABEL DOKUMEN CONTROL -->
+      <!-- DOCUMENT CONTROL RECORD -->
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1.5px solid #cbd5e1; page-break-inside: avoid;">
-        <tr style="background: #1e293b; color: #ffffff;"><td colspan="2" style="padding: 7px 10px; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">DOCUMENT CONTROL RECORD</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; width: 150px; background: #f1f5f9; color: #334155;">Document ID</td><td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #0f172a; word-break: break-all;">${activeProposal.id}</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Integrity Hash</td><td style="padding: 7px 10px; font-family: monospace; color: #2563eb; font-weight: bold; word-break: break-all;">${integrityHash}</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Classification</td><td style="padding: 7px 10px; color: #dc2626; font-weight: bold;">RESTRICTED — Official DAO Verification Record</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Generated Date</td><td style="padding: 7px 10px; font-family: monospace; font-weight: bold;">${new Date().toISOString().replace('T', ' ').substring(0, 16)} UTC</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Subject</td><td style="padding: 7px 10px; font-weight: 600;">Conduct and Final Verdict of Web3 Voting — ${activeProposal.title}</td></tr>
-        <tr><td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Source / Chapter</td><td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp / ${activeUser.chapter || "GLOBAL"}</td></tr>
+        <tr style="background: #1e293b; color: #ffffff;">
+          <td colspan="2" style="padding: 8px 10px; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">DOCUMENT CONTROL RECORD</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; width: 160px; background: #f1f5f9; color: #334155;">Document ID</td>
+          <td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #0f172a; word-break: break-all;">${activeProposal.id}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Integrity Hash</td>
+          <td style="padding: 7px 10px; font-family: monospace; color: #2563eb; font-weight: bold; word-break: break-all;">${integrityHash}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Classification</td>
+          <td style="padding: 7px 10px; color: #dc2626; font-weight: bold;">RESTRICTED — Official DAO Ratification Minutes</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Generated Date</td>
+          <td style="padding: 7px 10px; font-family: monospace; font-weight: bold;">${new Date().toISOString().replace('T', ' ').substring(0, 16)} UTC</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Proposal Subject</td>
+          <td style="padding: 7px 10px; font-weight: 600;">${activeProposal.title}</td>
+        </tr>
+        <tr>
+          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Voting System</td>
+          <td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp / ${activeUser.chapter || "GLOBAL"}</td>
+        </tr>
       </table>
 
-      <p style="font-size: 12.5px; color: #334155; margin-bottom: 14px; line-height: 1.5;">
-        On this day, <strong>${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>, the Web3 Voting process for <strong>"${activeProposal.title}"</strong> was officially conducted and cryptographic records were committed under the following governance parameters:
-      </p>
-
-      <!-- SEKSI 1: DETAIL KEGIATAN -->
-      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 14px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">I. ACTIVITY & GOVERNANCE DETAILS</h3>
+      <!-- SECTION I: GOVERNANCE DETAILS -->
+      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">I. GOVERNANCE & PROTOCOL SUMMARY</h3>
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1px solid #cbd5e1; page-break-inside: avoid;">
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; width: 150px; background: #f8fafc; color: #475569;">Activity Name</td><td style="padding: 7px 10px; font-weight: 600; color: #0f172a;">${activeProposal.title}</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; width: 150px; background: #f8fafc; color: #475569;">Platform</td><td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp</td></tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Voting Method</td><td style="padding: 7px 10px; font-weight: 600;">On-Chain NFT Verification & Weighted Role Voting</td></tr>
-        <tr><td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Scoring Formula</td><td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #b45309;">Score = Direction × Confidence × Role Weight</td></tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; width: 160px; background: #f8fafc; color: #475569;">Proposal Category</td>
+          <td style="padding: 7px 10px; font-weight: 600; color: #0f172a;">${activeProposal.category}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Proposing Entity</td>
+          <td style="padding: 7px 10px; font-weight: 600;">${activeProposal.proposerEntity}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Verification Logic</td>
+          <td style="padding: 7px 10px; font-weight: 600;">On-Chain NFT Balance Validation & Dynamic Weight Allocation</td>
+        </tr>
+        <tr>
+          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Scoring Formula</td>
+          <td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #b45309;">Individual Score = Direction × Confidence × Weight</td>
+        </tr>
       </table>
 
-      <!-- SEKSI 2: HASIL PERHITUNGAN SUARA -->
-      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 14px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">II. VOTING RESULTS & WEIGHTED METRICS</h3>
+      <!-- SECTION II: VOTING RESULTS -->
+      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">II. AGGREGATED VOTING METRICS</h3>
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1.5px solid #cbd5e1; text-align: center; page-break-inside: avoid;">
-        <tr style="background: #0f172a; color: #ffffff; font-weight: bold;">
-          <td style="padding: 8px; border: 1px solid #334155;">Category</td>
-          <td style="padding: 8px; border: 1px solid #334155;">Ballots Count</td>
-          <td style="padding: 8px; border: 1px solid #334155;">% Total Votes</td>
-          <td style="padding: 8px; border: 1px solid #334155;">Weighted Score</td>
-          <td style="padding: 8px; border: 1px solid #334155;">Avg Confidence</td>
-        </tr>
-        <tr style="background: #dcfce7; border-bottom: 1px solid #cbd5e1;">
-          <td style="padding: 7px; font-weight: bold; color: #166534;">Agree (+1)</td>
-          <td style="padding: 7px; font-weight: 600;">${agreeCount}</td>
-          <td style="padding: 7px; font-weight: 600;">${agreePct}%</td>
-          <td style="padding: 7px; font-weight: bold; color: #15803d;">+${(agreeCount * avgConf).toFixed(2)}</td>
-          <td style="padding: 7px;">${avgConf}</td>
-        </tr>
-        <tr style="background: #fef9c3; border-bottom: 1px solid #cbd5e1;">
-          <td style="padding: 7px; font-weight: bold; color: #854d0e;">Neutral (0)</td>
-          <td style="padding: 7px; font-weight: 600;">${neutralCount}</td>
-          <td style="padding: 7px; font-weight: 600;">${neutralPct}%</td>
-          <td style="padding: 7px;">0.00</td>
-          <td style="padding: 7px;">${avgConf}</td>
-        </tr>
-        <tr style="background: #fee2e2; border-bottom: 1px solid #cbd5e1;">
-          <td style="padding: 7px; font-weight: bold; color: #991b1b;">Disagree (-1)</td>
-          <td style="padding: 7px; font-weight: 600;">${disagreeCount}</td>
-          <td style="padding: 7px; font-weight: 600;">${disagreePct}%</td>
-          <td style="padding: 7px; font-weight: bold; color: #b91c1c;">0.00</td>
-          <td style="padding: 7px;">0.00</td>
-        </tr>
-        <tr style="background: #1e293b; color: #ffffff; font-weight: bold;">
-          <td style="padding: 8px;">FINAL TOTAL</td>
-          <td style="padding: 8px; font-size: 13px;">${totalCount}</td>
-          <td style="padding: 8px; font-size: 13px;">100%</td>
-          <td style="padding: 8px; font-size: 14px; color: #fbbf24;">+${netScoreVal.toFixed(2)} Pts</td>
-          <td style="padding: 8px; font-size: 13px;">${avgConf}</td>
-        </tr>
+        <thead>
+          <tr style="background: #0f172a; color: #ffffff; font-weight: bold;">
+            <th style="padding: 8px; border: 1px solid #334155;">Vote Option</th>
+            <th style="padding: 8px; border: 1px solid #334155;">Ballots Count</th>
+            <th style="padding: 8px; border: 1px solid #334155;">% Total Votes</th>
+            <th style="padding: 8px; border: 1px solid #334155;">Weighted Score</th>
+            <th style="padding: 8px; border: 1px solid #334155;">Avg Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background: #dcfce7; border-bottom: 1px solid #cbd5e1;">
+            <td style="padding: 8px; font-weight: bold; color: #166534;">Agree (+1)</td>
+            <td style="padding: 8px; font-weight: 600;">${agreeCount}</td>
+            <td style="padding: 8px; font-weight: 600;">${agreePct}%</td>
+            <td style="padding: 8px; font-weight: bold; color: #15803d;">+${(agreeCount * avgConf).toFixed(2)}</td>
+            <td style="padding: 8px;">${avgConf}</td>
+          </tr>
+          <tr style="background: #fef9c3; border-bottom: 1px solid #cbd5e1;">
+            <td style="padding: 8px; font-weight: bold; color: #854d0e;">Neutral (0)</td>
+            <td style="padding: 8px; font-weight: 600;">${neutralCount}</td>
+            <td style="padding: 8px; font-weight: 600;">${neutralPct}%</td>
+            <td style="padding: 8px;">0.00</td>
+            <td style="padding: 8px;">${avgConf}</td>
+          </tr>
+          <tr style="background: #fee2e2; border-bottom: 1px solid #cbd5e1;">
+            <td style="padding: 8px; font-weight: bold; color: #991b1b;">Disagree (-1)</td>
+            <td style="padding: 8px; font-weight: 600;">${disagreeCount}</td>
+            <td style="padding: 8px; font-weight: 600;">${disagreePct}%</td>
+            <td style="padding: 8px; font-weight: bold; color: #b91c1c;">0.00</td>
+            <td style="padding: 8px;">0.00</td>
+          </tr>
+          <tr style="background: #1e293b; color: #ffffff; font-weight: bold;">
+            <td style="padding: 9px;">TOTAL METRICS</td>
+            <td style="padding: 9px; font-size: 13px;">${totalCount}</td>
+            <td style="padding: 9px; font-size: 13px;">100%</td>
+            <td style="padding: 9px; font-size: 14px; color: #fbbf24;">+${netScoreVal.toFixed(2)} Pts</td>
+            <td style="padding: 9px; font-size: 13px;">${avgConf}</td>
+          </tr>
+        </tbody>
       </table>
 
-      <!-- SEKSI 3: KEPUTUSAN FINAL -->
-      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 14px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">III. OFFICIAL VERDICT</h3>
-      <div class="avoid-break" style="text-align: center; padding: 12px; background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 18px; page-break-inside: avoid;">
+      <!-- SECTION III: FINAL VERDICT -->
+      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">III. OFFICIAL RATIFICATION VERDICT</h3>
+      <div class="avoid-break" style="text-align: center; padding: 14px; background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid;">
         <h2 style="font-size: 20px; font-weight: 800; color: #166534; margin: 0; letter-spacing: 1px;">RATIFICATION VERDICT: ${verdictText}</h2>
-        <p style="font-size: 11px; color: #475569; margin: 4px 0 0 0; font-weight: 600;">Net Weighted Score: +${netScoreVal.toFixed(2)} | Average Confidence Scale: ${avgConf} / 5.0</p>
+        <p style="font-size: 11px; color: #475569; margin: 6px 0 0 0; font-weight: 600;">Net Weighted Score: +${netScoreVal.toFixed(2)} | Average Confidence Scale: ${avgConf} / 5.0</p>
       </div>
 
-      <!-- SEKSI 4: TANDA TANGAN DIGITAL PEJABAT TVOD DENGAN STEMPEL DI TENGAH -->
-      <div class="avoid-break" style="position: relative; margin-top: 20px; border-top: 2px solid #cbd5e1; padding-top: 12px; page-break-inside: avoid;">
-        <!-- STEMPEL RESMI TVOD DIBESARKAN (140px) & DIPOSISIKAN PERSISI DI TENGAH ANTARA CHAIRPERSON & WITNESS -->
-        <img src="/stempel-tvod.png" alt="Stempel Resmi TVOD" style="position: absolute; left: 50%; transform: translateX(-50%); top: 25px; width: 140px; height: 140px; opacity: 0.75; pointer-events: none; z-index: 10;" />
+      <!-- SECTION IV: OFFICIAL SIGNATURES & STAMP -->
+      <div class="avoid-break" style="position: relative; margin-top: 24px; border-top: 2px solid #cbd5e1; padding-top: 14px; page-break-inside: avoid;">
+        <img src="/stempel-tvod.png" alt="Official TVOD Stamp" style="position: absolute; left: 50%; transform: translateX(-50%); top: 30px; width: 140px; height: 140px; opacity: 0.75; pointer-events: none; z-index: 10;" />
 
-        <h4 style="font-size: 12px; font-weight: bold; color: #1e3a8a; margin: 0 0 10px 0; text-transform: uppercase;">OFFICIAL RATIFICATION SIGNATURES</h4>
+        <h4 style="font-size: 12px; font-weight: bold; color: #1e3a8a; margin: 0 0 12px 0; text-transform: uppercase;">OFFICIAL RATIFICATION SIGNATURES</h4>
 
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
           
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; position: relative;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">1. Chairperson:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
-              ${sigChairman ? `<img src="${sigChairman}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Belum Ditandatangani]</span>`}
+              ${sigChairman ? `<img src="${sigChairman}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
             </div>
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@afifmasfiqo (#911)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; position: relative;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">2. Witness:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
-              ${sigWitness ? `<img src="${sigWitness}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Belum Ditandatangani]</span>`}
+              ${sigWitness ? `<img src="${sigWitness}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
             </div>
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@insya (Witness)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; position: relative;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">3. Inspector:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
-              ${sigInspector ? `<img src="${sigInspector}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Belum Ditandatangani]</span>`}
+              ${sigInspector ? `<img src="${sigInspector}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
             </div>
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@Nalaktak (#999)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; position: relative;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">4. Country Head:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
-              ${sigCountryHead ? `<img src="${sigCountryHead}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Belum Ditandatangani]</span>`}
+              ${sigCountryHead ? `<img src="${sigCountryHead}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
             </div>
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@Rasj81</strong>
           </div>
@@ -1742,7 +1811,172 @@ async function generateOfficialMinutesPDF() {
   renderDocumentInModal(`Official Minutes: ${activeProposal.id}`, docHtml);
 }
 
-// 🎓 GENERATE SERTIFIKAT VERIFIKASI DIGITAL (FULL-WIDTH RESPONSIF)
+// 📊 2. GENERATE INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT (STANDALONE EXCEL AUDIT MATCH)
+async function generateVoterAuditLogPDF() {
+  currentOpenedDocType = "audit_log";
+  await fetchVoterStatsForAdmin();
+
+  let sigChairman = getSignatureDataUrl("sig-chairman");
+  let sigInspector = getSignatureDataUrl("sig-inspector");
+
+  let voterLogRowsHtml = "";
+
+  if (supabaseClient && activeProposal.id) {
+    try {
+      const { data: voteData } = await supabaseClient
+        .from('votes')
+        .select('*')
+        .eq('proposal_id', activeProposal.id)
+        .order('created_at', { ascending: true });
+
+      const { data: voterProfiles } = await supabaseClient
+        .from('voters')
+        .select('*');
+
+      const profileMap = {};
+      if (voterProfiles) {
+        voterProfiles.forEach(p => { profileMap[p.username] = p; });
+      }
+
+      if (voteData && voteData.length > 0) {
+        const rowList = voteData.map((v, idx) => {
+          const prof = profileMap[v.username] || {};
+          const garudaDisplay = prof.garuda_id ? `#${prof.garuda_id}` : (prof.category === 'delegator' ? `DELEGATE (${(prof.delegated_nft_type || 'NFT').toUpperCase()})` : '-');
+          const communityDisplay = prof.chapter || 'GLOBAL';
+          const voteDirectionText = v.vote_direction === 1 ? 'Agree (+1)' : (v.vote_direction === 0 ? 'Neutral (0)' : 'Disagree (-1)');
+          const voteBgColor = v.vote_direction === 1 ? '#dcfce7' : (v.vote_direction === 0 ? '#fef9c3' : '#fee2e2');
+          const voteTextColor = v.vote_direction === 1 ? '#166534' : (v.vote_direction === 0 ? '#854d0e' : '#991b1b');
+          const scoreVal = (parseFloat(v.weighted_score) || 0);
+          const noteText = prof.category === 'owner' ? `Verified On-Chain (Garuda #${prof.garuda_id || ''})` : (prof.category === 'delegator' ? `Delegator (@${prof.owner_username || 'Garuda Owner'})` : 'External Witness');
+
+          return `
+            <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
+              <td style="padding: 6px 4px; font-weight: bold; background: #f8fafc; text-align: center;">${idx + 1}</td>
+              <td style="padding: 6px 6px; font-weight: bold; text-align: left; color: #0f172a;">@${v.username}</td>
+              <td style="padding: 6px 4px; font-family: monospace; font-weight: bold; color: #1e3a8a; text-align: center;">${garudaDisplay}</td>
+              <td style="padding: 6px 4px; font-weight: 600; text-align: center;">${communityDisplay}</td>
+              <td style="padding: 6px 4px; text-align: center;">${prof.role || 'Member'}</td>
+              <td style="padding: 6px 4px; font-weight: bold; text-align: center;">${v.role_weight || 0.5}</td>
+              <td style="padding: 6px 4px; font-weight: 600; color: #2563eb; text-align: center;">TVOD Verifier dApp</td>
+              <td style="padding: 6px 4px; font-weight: bold; text-align: center; background: ${voteBgColor}; color: ${voteTextColor};">${voteDirectionText}</td>
+              <td style="padding: 6px 4px; font-weight: bold; text-align: center;">${v.confidence || 3}</td>
+              <td style="padding: 6px 4px; font-weight: bold; text-align: center; color: ${scoreVal >= 0 ? '#15803d' : '#b91c1c'};">${scoreVal >= 0 ? '+' : ''}${scoreVal.toFixed(1)}</td>
+              <td style="padding: 6px 6px; text-align: left; font-size: 9px; color: #475569;">${noteText}</td>
+            </tr>
+          `;
+        });
+        voterLogRowsHtml = rowList.join('');
+      }
+    } catch (err) {
+      console.warn("Gagal membaca voter log Supabase:", err);
+    }
+  }
+
+  if (!voterLogRowsHtml) {
+    voterLogRowsHtml = `
+      <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
+        <td style="padding: 6px 4px; font-weight: bold; background: #f8fafc; text-align: center;">1</td>
+        <td style="padding: 6px 6px; font-weight: bold; text-align: left; color: #0f172a;">@afifmasfiqo</td>
+        <td style="padding: 6px 4px; font-family: monospace; font-weight: bold; color: #1e3a8a; text-align: center;">#911</td>
+        <td style="padding: 6px 4px; font-weight: 600; text-align: center;">GLOBAL</td>
+        <td style="padding: 6px 4px; text-align: center;">Founder</td>
+        <td style="padding: 6px 4px; font-weight: bold; text-align: center;">2.0</td>
+        <td style="padding: 6px 4px; font-weight: 600; color: #2563eb; text-align: center;">TVOD Verifier dApp</td>
+        <td style="padding: 6px 4px; font-weight: bold; text-align: center; background: #dcfce7; color: #166534;">Agree (+1)</td>
+        <td style="padding: 6px 4px; font-weight: bold; text-align: center;">5</td>
+        <td style="padding: 6px 4px; font-weight: bold; text-align: center; color: #15803d;">+10.0</td>
+        <td style="padding: 6px 6px; text-align: left; font-size: 9px; color: #475569;">Verified On-Chain (Garuda #911)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
+        <td style="padding: 6px 4px; font-weight: bold; background: #f8fafc; text-align: center;">2</td>
+        <td style="padding: 6px 6px; font-weight: bold; text-align: left; color: #0f172a;">@Nalaktak</td>
+        <td style="padding: 6px 4px; font-family: monospace; font-weight: bold; color: #1e3a8a; text-align: center;">#999</td>
+        <td style="padding: 6px 4px; font-weight: 600; text-align: center;">GLOBAL</td>
+        <td style="padding: 6px 4px; text-align: center;">Inspector</td>
+        <td style="padding: 6px 4px; font-weight: bold; text-align: center;">2.0</td>
+        <td style="padding: 6px 4px; font-weight: 600; color: #2563eb; text-align: center;">TVOD Verifier dApp</td>
+        <td style="padding: 6px 4px; font-weight: bold; text-align: center; background: #dcfce7; color: #166534;">Agree (+1)</td>
+        <td style="padding: 6px 4px; font-weight: bold; text-align: center;">5</td>
+        <td style="padding: 6px 4px; font-weight: bold; text-align: center; color: #15803d;">+10.0</td>
+        <td style="padding: 6px 6px; text-align: left; font-size: 9px; color: #475569;">Verified On-Chain (Garuda #999)</td>
+      </tr>
+    `;
+  }
+
+  const docHtml = `
+    <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 14px 10px; box-sizing: border-box; line-height: 1.45; background: #ffffff;">
+      
+      <!-- HEADER LOGO & TITLE -->
+      <div style="text-align: center; border-bottom: 3px double #4c1d95; padding-bottom: 10px; margin-bottom: 14px;">
+        <img src="/logo.png" alt="TVOD Logo" style="height: 60px; margin: 0 auto 6px auto; display: block;" />
+        <h1 style="font-size: 20px; font-weight: 800; color: #4c1d95; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT</h1>
+        <h2 style="font-size: 13px; font-weight: 700; color: #6b21a8; margin: 4px 0 0 0; text-transform: uppercase;">PROPOSAL: ${activeProposal.title}</h2>
+        <p style="font-size: 10.5px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
+      </div>
+
+      <!-- CONTROL BANNER -->
+      <div style="background: #1e1b4b; color: #ffffff; text-align: center; padding: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; border-radius: 4px;">
+        ⚠️ RESTRICTED · CONTROLLED AUDIT LOG DOCUMENT · AUTHORIZED PERSONNEL ONLY
+      </div>
+
+      <!-- AUDIT DATA TABLE (EXCEL FORMAT MATCH) -->
+      <div style="overflow-x: auto; margin-bottom: 18px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1.5px solid #4c1d95; text-align: center;">
+          <thead>
+            <tr style="background: #4c1d95; color: #ffffff; font-weight: bold;">
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8; width: 25px;">No.</th>
+              <th style="padding: 7px 6px; border: 1px solid #6b21a8; text-align: left;">Name</th>
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Garuda ID</th>
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Community</th>
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Role</th>
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Weight</th>
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Voting Source</th>
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Vote</th>
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Confidence</th>
+              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Score</th>
+              <th style="padding: 7px 6px; border: 1px solid #6b21a8; text-align: left;">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${voterLogRowsHtml}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- VERIFICATION FOOTER & SIGNATURES -->
+      <div class="avoid-break" style="position: relative; margin-top: 18px; border-top: 2px solid #cbd5e1; padding-top: 10px; page-break-inside: avoid;">
+        <img src="/stempel-tvod.png" alt="Official TVOD Stamp" style="position: absolute; right: 20px; top: 15px; width: 90px; height: 90px; opacity: 0.75; pointer-events: none;" />
+
+        <h4 style="font-size: 11px; font-weight: bold; color: #4c1d95; margin: 0 0 8px 0; text-transform: uppercase;">AUDIT TRAIL VERIFICATION SIGNATURES</h4>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 75%;">
+          
+          <div style="border: 1px solid #cbd5e1; padding: 6px; border-radius: 6px; background: #fafafa; min-height: 90px; display: flex; flex-direction: column; justify-content: space-between;">
+            <span style="font-size: 10px; font-weight: bold; color: #4c1d95; display: block;">Governance Chairman:</span>
+            <div style="height: 45px; display: flex; align-items: center; justify-content: center; margin: 2px 0;">
+              ${sigChairman ? `<img src="${sigChairman}" style="max-height: 42px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 9px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
+            </div>
+            <strong style="font-size: 10px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 2px; text-align: center;">@afifmasfiqo (#911)</strong>
+          </div>
+
+          <div style="border: 1px solid #cbd5e1; padding: 6px; border-radius: 6px; background: #fafafa; min-height: 90px; display: flex; flex-direction: column; justify-content: space-between;">
+            <span style="font-size: 10px; font-weight: bold; color: #4c1d95; display: block;">Audit Inspector:</span>
+            <div style="height: 45px; display: flex; align-items: center; justify-content: center; margin: 2px 0;">
+              ${sigInspector ? `<img src="${sigInspector}" style="max-height: 42px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 9px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
+            </div>
+            <strong style="font-size: 10px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 2px; text-align: center;">@Nalaktak (#999)</strong>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  renderDocumentInModal(`Voter Audit Log: ${activeProposal.id}`, docHtml);
+}
+
+// 🎓 3. GENERATE SERTIFIKAT VERIFIKASI DIGITAL
 async function generateCertificatePDF() {
   currentOpenedDocType = "certificate";
   await fetchVoterStatsForAdmin();
@@ -1829,6 +2063,7 @@ window.savePayoutRate = savePayoutRate;
 window.retryFailedPayouts = retryFailedPayouts;
 window.changeLanguage = changeLanguage;
 window.generateOfficialMinutesPDF = generateOfficialMinutesPDF;
+window.generateVoterAuditLogPDF = generateVoterAuditLogPDF;
 window.generateCertificatePDF = generateCertificatePDF;
 
 if (document.readyState === "loading") {
