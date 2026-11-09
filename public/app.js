@@ -43,7 +43,6 @@ const i18nDictionary = {
     label_category: "Kategori Pemilih (Voter Category)",
     cat_owner: "Pemilih Tetap (Pemilik NFT Garuda #1 - #1000)",
     cat_delegator: "Delegator (NFT Halloween 1 Unit / NFT PiDay2026 3 Unit)",
-    cat_witness: "Saksi Luar (External Witness Bypass)",
     label_chapter: "Wilayah Komunitas (Chapter)",
     label_role: "Peran Tata Kelola (Governance Role)",
     role_member: "Member (Bobot Suara: 0.5)",
@@ -83,7 +82,6 @@ const i18nDictionary = {
     label_category: "Voter Category",
     cat_owner: "Regular Voter (Garuda NFT Owner #1 - #1000)",
     cat_delegator: "Delegator (1 Unit Halloween NFT / 3 Units PiDay2026 NFT)",
-    cat_witness: "External Witness (External Witness Bypass)",
     label_chapter: "Community Chapter / Region",
     label_role: "Governance Role",
     role_member: "Member (Vote Weight: 0.5)",
@@ -123,7 +121,6 @@ const i18nDictionary = {
     label_category: "فئة الناخب",
     cat_owner: "ناخب دائم (مالك NFT Garuda #1 - #1000)",
     cat_delegator: "مفوض (1 unit Halloween / 3 units PiDay2026)",
-    cat_witness: "شاهد خارجي (تجاوز الشاهد الخارجي)",
     label_chapter: "منطقة المجتمع",
     label_role: "دور الحوكمة",
     role_member: "عضو (وزن الصوت: 0.5)",
@@ -163,7 +160,6 @@ const i18nDictionary = {
     label_category: "选民类别",
     cat_owner: "正式选民 (Garuda NFT 所有者 #1 - #1000)",
     cat_delegator: "代表 (1个 Halloween NFT / 3个 PiDay2026 NFT)",
-    cat_witness: "外部证人 (外部旁路)",
     label_chapter: "社区分会 / 区域",
     label_role: "治理角色",
     role_member: "成员 (投票权重: 0.5)",
@@ -228,9 +224,6 @@ function changeLanguage(lang) {
     
     const optDelegator = document.querySelector("#voterCategory option[value='delegator']");
     if (optDelegator && dict.cat_delegator) optDelegator.textContent = dict.cat_delegator;
-
-    const optWitness = document.querySelector("#voterCategory option[value='witness']");
-    if (optWitness && dict.cat_witness) optWitness.textContent = dict.cat_witness;
 
     const optMember = document.querySelector("#userRole option[value='Member']");
     if (optMember && dict.role_member) optMember.textContent = dict.role_member;
@@ -444,7 +437,7 @@ async function fetchVoterProfileFromSupabase(username) {
 
       if ($("#walletAddress")) $("#walletAddress").value = data.wallet_address || "";
       if ($("#voterCategory")) {
-        $("#voterCategory").value = data.category;
+        $("#voterCategory").value = data.category === 'owner' ? 'owner' : 'delegator';
         toggleCategoryFields();
       }
       if ($("#communityChapter")) $("#communityChapter").value = data.chapter;
@@ -454,7 +447,7 @@ async function fetchVoterProfileFromSupabase(username) {
 
       const displayGaruda = $("#displayGaruda");
       if (displayGaruda) {
-        displayGaruda.textContent = data.garuda_id ? `#${data.garuda_id}` : `DELEGATE (${data.category.toUpperCase()})`;
+        displayGaruda.textContent = data.garuda_id ? `#${data.garuda_id}` : `DELEGATE (${(data.category || 'owner').toUpperCase()})`;
       }
     }
   } catch (err) {
@@ -1093,8 +1086,6 @@ async function cancelActiveProposal() {
 }
 
 async function verifyOnChainNftOwnership() {
-  if (activeUser.category === "witness") return true;
-
   if (activeUser.category === "owner") {
     return !!(activeUser.walletAddress && (activeUser.garudaHash || activeUser.garudaId));
   }
@@ -1107,7 +1098,7 @@ async function verifyOnChainNftOwnership() {
       return activeUser.delegatedHashes && activeUser.delegatedHashes.length === 3;
     }
   }
-  return true;
+  return false;
 }
 
 function setConfidence(val) {
@@ -1841,13 +1832,13 @@ async function generateVoterAuditLogPDF() {
       if (voteData && voteData.length > 0) {
         const rowList = voteData.map((v, idx) => {
           const prof = profileMap[v.username] || {};
-          const garudaDisplay = prof.garuda_id ? `#${prof.garuda_id}` : (prof.category === 'delegator' ? `DELEGATE (${(prof.delegated_nft_type || 'NFT').toUpperCase()})` : '-');
+          const garudaDisplay = prof.garuda_id ? `#${prof.garuda_id}` : `DELEGATE (${(prof.delegated_nft_type || 'NFT').toUpperCase()})`;
           const communityDisplay = prof.chapter || 'GLOBAL';
           const voteDirectionText = v.vote_direction === 1 ? 'Agree (+1)' : (v.vote_direction === 0 ? 'Neutral (0)' : 'Disagree (-1)');
           const voteBgColor = v.vote_direction === 1 ? '#dcfce7' : (v.vote_direction === 0 ? '#fef9c3' : '#fee2e2');
           const voteTextColor = v.vote_direction === 1 ? '#166534' : (v.vote_direction === 0 ? '#854d0e' : '#991b1b');
           const scoreVal = (parseFloat(v.weighted_score) || 0);
-          const noteText = prof.category === 'owner' ? `Verified On-Chain (Garuda #${prof.garuda_id || ''})` : (prof.category === 'delegator' ? `Delegator (@${prof.owner_username || 'Garuda Owner'})` : 'External Witness');
+          const noteText = prof.category === 'owner' ? `Verified On-Chain (Garuda #${prof.garuda_id || ''})` : `Delegator (@${prof.owner_username || 'Garuda Owner'})`;
 
           return `
             <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
