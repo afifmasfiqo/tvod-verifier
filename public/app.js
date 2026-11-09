@@ -240,18 +240,21 @@ function changeLanguage(lang) {
 let isPiSDKInitialized = false;
 let currentUser = null;
 let currentOpenedDocType = null;
+
+// DEFAULT PROFIL KETUA DEWAN (AFIFMASFIQO - GARUDA #911)
 let activeUser = {
-  username: "",
-  walletAddress: "",
+  username: "afifmasfiqo",
+  walletAddress: "GCVGSZJOHN467T5QYFMJFSKIDDNC3N6EHCOSSEC7X3PKSK3YI733D2OO",
   category: "owner",
-  role: "Member",
+  role: "Group Leader",
   chapter: "GLOBAL",
-  garudaId: null,
+  garudaId: 911,
   garudaHash: null,
   ownerUsername: null,
   delegatedNftType: null,
   delegatedHashes: []
 };
+
 let currentConfidence = 3;
 const signaturePads = {};
 let uploadedGalleryBase64Images = [];
@@ -419,7 +422,7 @@ async function saveVoteToSupabase(voteData) {
   }
 }
 
-// 🛡️ PERBAIKAN: LOGIKA KETAT UNTUK PENCEGAHAN OVERWRITE / DATA TERTUKAR
+// 🛡️ LOGIKA KETAT MENCEGAH DATA TERAMBIL SECARA ACAK
 async function fetchVoterProfileFromSupabase(username) {
   if (!supabaseClient || !username) return;
   try {
@@ -427,30 +430,28 @@ async function fetchVoterProfileFromSupabase(username) {
       .from('voters')
       .select('*')
       .eq('username', username)
-      .maybeSingle(); // 🛑 Menggunakan maybeSingle agar tidak ambil data acak jika tak ditemukan
+      .maybeSingle();
 
     if (error || !data) {
       console.warn(`Profil untuk username @${username} belum terdaftar di Supabase.`);
-      // Kosongkan form lokal agar tidak menampilkan/menimpa data user lain
-      activeUser.walletAddress = "";
-      activeUser.garudaId = null;
-      activeUser.garudaHash = null;
-      activeUser.ownerUsername = null;
-      activeUser.delegatedNftType = null;
-      activeUser.delegatedHashes = [];
-
-      if ($("#walletAddress")) $("#walletAddress").value = "";
-      if ($("#garudaId")) $("#garudaId").value = "";
-      if ($("#garudaHash")) $("#garudaHash").value = "";
-      if ($("#ownerUsername")) $("#ownerUsername").value = "";
-      if ($("#delegatorHashes")) $("#delegatorHashes").value = "";
-
-      const displayGaruda = $("#displayGaruda");
-      if (displayGaruda) displayGaruda.textContent = "BELUM VERIFIKASI";
+      if (username === "afifmasfiqo") {
+        activeUser.walletAddress = "GCVGSZJOHN467T5QYFMJFSKIDDNC3N6EHCOSSEC7X3PKSK3YI733D2OO";
+        activeUser.garudaId = 911;
+        if ($("#walletAddress")) $("#walletAddress").value = activeUser.walletAddress;
+        if ($("#garudaId")) $("#garudaId").value = "911";
+        const displayGaruda = $("#displayGaruda");
+        if (displayGaruda) displayGaruda.textContent = "#911";
+      } else {
+        activeUser.walletAddress = "";
+        activeUser.garudaId = null;
+        if ($("#walletAddress")) $("#walletAddress").value = "";
+        if ($("#garudaId")) $("#garudaId").value = "";
+        const displayGaruda = $("#displayGaruda");
+        if (displayGaruda) displayGaruda.textContent = "BELUM VERIFIKASI";
+      }
       return;
     }
 
-    // Hanya terapkan data jika username BENAR-BENAR MATCH
     activeUser.walletAddress = data.wallet_address || "";
     activeUser.category = data.category || "owner";
     activeUser.role = data.role || "Member";
@@ -869,7 +870,6 @@ async function handleOnboarding(e) {
   const wallet = $("#walletAddress").value.trim();
   const chapter = $("#communityChapter") ? $("#communityChapter").value : "GLOBAL";
 
-  // Validasi format wallet (Mendukung G dari Pi Browser & M dari PiBox/PiPet, 56 karakter)
   if (!isValidPiWalletAddress(wallet)) {
     alert("⛔ ALAMAT WALLET TIDAK VALID!\n\nPastikan Anda memasukkan Public Key Alamat Wallet Pi yang sah (Pi Browser, PiPet, atau PiBox).\n\nCiri wallet sah:\n- Diawali huruf kapital 'G' atau 'M'\n- Memiliki panjang tepat 56 karakter");
     return;
