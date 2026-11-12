@@ -100,7 +100,7 @@
 
     <!-- Ethics Violation Banner -->
     <div id="banBanner" class="hidden bg-red-950/90 border border-red-600 text-red-200 p-4 rounded-xl text-center font-medium text-sm shadow-xl">
-      ⚠️ <span id="banReason">Akses akun Anda dibatasi karena Pelanggaran Kode Etik. Proses voting ditolak.</span>
+      ⚠️ <span id="banReason">Akses akun Anda dibatasi karena Pelanggaran Kode Etik / Garuda ID Dibekukan. Proses voting ditolak.</span>
     </div>
 
     <!-- SECTION 1: ONBOARDING & WALLET BINDING -->
@@ -205,7 +205,7 @@
       <div class="border-b border-slate-800 pb-4 mb-5">
         <div class="flex flex-wrap items-center justify-between gap-2.5 mb-2">
           <span id="displayPropCategory" class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs px-3 py-1 rounded font-mono uppercase font-semibold">
-            🏷️ Kategori: Verifikasi Objek / Kasus
+            🏷️ Category: Community Voting
           </span>
           <div class="flex items-center gap-2">
             <span id="countdownDisplay" class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs px-3 py-1 rounded-full font-mono font-bold">
@@ -334,13 +334,19 @@
         </div>
       </div>
 
+      <!-- MODUL BAN / BLACKLIST VOTER & ID GARUDA -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
-        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <h3 class="font-bold text-slate-300 uppercase mb-2">Code of Ethics Ban & Reinstatement</h3>
-          <input type="text" id="targetUser" placeholder="Username Pi Target (@user)" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 mb-3 text-sm">
-          <div class="flex gap-2">
-            <button type="button" onclick="toggleUserBan(true)" class="flex-1 bg-red-600 hover:bg-red-700 font-bold py-2 rounded-lg text-white">Ban / Revoke</button>
-            <button type="button" onclick="toggleUserBan(false)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-2 rounded-lg text-white">Reinstate</button>
+        <div class="bg-slate-950 p-4 rounded-xl border border-red-500/30">
+          <h3 class="font-bold text-red-400 uppercase mb-2">🚫 Blacklist & Pembekuan ID Garuda</h3>
+          <p class="text-xs text-slate-400 mb-3">Membekukan nomor Garuda ID secara publik agar tidak bisa melakukan voting/onboarding.</p>
+          
+          <div class="space-y-2">
+            <input type="number" id="targetGarudaId" min="1" max="1000" placeholder="Garuda ID (#1 - #1000)" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm font-mono text-slate-100">
+            <input type="text" id="targetBanReason" placeholder="Alasan Pembekuan / Pelanggaran Kode Etik" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100">
+            <div class="flex gap-2 pt-1">
+              <button type="button" onclick="toggleGarudaBan(true)" class="flex-1 bg-red-600 hover:bg-red-700 font-bold py-2 rounded-lg text-white">🔒 Bekukan ID Garuda</button>
+              <button type="button" onclick="toggleGarudaBan(false)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-2 rounded-lg text-white">🔓 Buka Pembekuan</button>
+            </div>
           </div>
         </div>
 
@@ -366,17 +372,17 @@
         <div class="space-y-4 text-xs sm:text-sm">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Judul Proposal / Objek Voting</label>
-            <input type="text" id="inputPropTitle" placeholder="Contoh: Ratifikasi Hasil Verifikasi DAO" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
+            <input type="text" id="inputPropTitle" placeholder="Contoh: Voting test - Europe Community" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-slate-300 font-semibold mb-1">Kategori Objek</label>
-              <select id="inputPropCategory" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
-                <option value="Verifikasi Objek / Kasus">Verifikasi Objek / Kasus</option>
-                <option value="Pengesahan Proposal Regional">Pengesahan Proposal Regional</option>
-                <option value="Pelanggaran Kode Etik">Pelanggaran Kode Etik</option>
-                <option value="Pengajuan Hibah / Reward">Pengajuan Hibah / Reward</option>
+              <label class="block text-slate-300 font-semibold mb-1">Kategori Objek (Bahasa Inggris)</label>
+              <select id="inputPropCategory" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm font-semibold">
+                <option value="Community Voting">Community Voting</option>
+                <option value="NFT Voting">NFT Voting</option>
+                <option value="Dispute Case Voting">Dispute Case Voting</option>
+                <option value="Custom Proposal">Custom Proposal (Optional)</option>
               </select>
             </div>
             <div>
