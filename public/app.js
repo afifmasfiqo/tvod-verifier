@@ -39,7 +39,7 @@ const i18nDictionary = {
     nav_admin: "🛡️ Admin Suite",
     step1_title: "Pendaftaran Pemilih & Verifikasi Pi Wallet",
     step1_desc: "Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.",
-    label_wallet: "Pi Wallet Address (Public Key untuk Payout & Cek NFT)",
+    label_wallet: "Pi Wallet Address (Awalan G / M, 56 Karakter untuk Payout & Cek NFT)",
     label_category: "Kategori Pemilih (Voter Category)",
     cat_owner: "Pemilih Tetap (Pemilik NFT Garuda #1 - #1000)",
     cat_delegator: "Delegator (NFT Halloween 1 Unit / NFT PiDay2026 3 Unit)",
@@ -47,15 +47,15 @@ const i18nDictionary = {
     label_role: "Peran Tata Kelola (Governance Role)",
     role_member: "Member (Bobot Suara: 0.5)",
     role_leader: "Group Leader (Bobot Suara: 1.0)",
-    role_founder: "Founder (Bobot Suara: 2.0 - Garuda ID #999)",
+    role_founder: "Founder (STRICT: Khusus Garuda ID #999)",
     btn_register: "Verifikasi Data & Buka Akses Voting",
     prop_bg_title: "📄 LATAR BELAKANG & DESKRIPSI OBJEK",
     prop_gallery_title: "📸 GALERI BUKTI FOTO & VIDEO OBJEK",
     vote_step_title: "Modul Fast Voting",
     vote_dir_label: "1. Arah Pilihan Suara Anda",
-    vote_agree: "👍 Setuju (+1)",
-    vote_neutral: "😐 Netral (0)",
-    vote_disagree: "👎 Tidak Setuju (-1)",
+    vote_agree: "👍 Agree (+1)",
+    vote_neutral: "😐 Neutral (0)",
+    vote_disagree: "👎 Disagree (-1)",
     confidence_label: "2. Tingkat Keyakinan / Confidence (Skala 1 - 5)",
     btn_submit_vote: "Kirim Suara Terenkripsi & Klaim Insentif Pi",
     admin_title: "🛡️ Admin Suite",
@@ -64,10 +64,10 @@ const i18nDictionary = {
     btn_retry_payouts: "🔄 Process Pending Payouts Queue",
     btn_official_minutes: "📄 Generate Official Minutes Document (English)",
     btn_digital_cert: "🎓 Generate Digital Verification Certificate",
-    btn_print_pdf: "🖨️ Cetak / Simpan Berkas PDF",
+    btn_print_pdf: "📥 Download PDF Directly (1-Klik)",
     btn_share_chrome: "🌐 Salin Link Chrome",
-    btn_copy_text: "📋 Salin Teks Dokumen",
-    btn_close_modal: "Tutup Dokumen"
+    btn_copy_text: "📋 Salin Teks",
+    btn_close_modal: "Tutup"
   },
   en: {
     app_title: "THE VOICE OF DAO",
@@ -78,7 +78,7 @@ const i18nDictionary = {
     nav_admin: "🛡️ Admin Suite",
     step1_title: "Voter Registration & Pi Wallet Verification",
     step1_desc: "Authenticate via Pi SDK and connect wallet to verify On-Chain NFT ownership.",
-    label_wallet: "Pi Wallet Address (Public Key for Payouts & NFT Check)",
+    label_wallet: "Pi Wallet Address (Prefix G / M, 56 Characters for Payouts & NFT Check)",
     label_category: "Voter Category",
     cat_owner: "Regular Voter (Garuda NFT Owner #1 - #1000)",
     cat_delegator: "Delegator (1 Unit Halloween NFT / 3 Units PiDay2026 NFT)",
@@ -86,7 +86,7 @@ const i18nDictionary = {
     label_role: "Governance Role",
     role_member: "Member (Vote Weight: 0.5)",
     role_leader: "Group Leader (Vote Weight: 1.0)",
-    role_founder: "Founder (Vote Weight: 2.0 - Garuda ID #999)",
+    role_founder: "Founder (STRICT: Garuda ID #999 Only)",
     btn_register: "Verify Data & Enable Voting Access",
     prop_bg_title: "📄 BACKGROUND & OBJECT DESCRIPTION",
     prop_gallery_title: "📸 PHOTO & VIDEO PROOF GALLERY",
@@ -103,10 +103,10 @@ const i18nDictionary = {
     btn_retry_payouts: "🔄 Process Pending Payouts Queue",
     btn_official_minutes: "📄 Generate Official Minutes Document (English)",
     btn_digital_cert: "🎓 Generate Digital Verification Certificate",
-    btn_print_pdf: "🖨️ Print / Save PDF Document",
+    btn_print_pdf: "📥 Download PDF Directly (1-Click)",
     btn_share_chrome: "🌐 Copy Chrome Link",
     btn_copy_text: "📋 Copy Document Text",
-    btn_close_modal: "Close Document"
+    btn_close_modal: "Close"
   },
   ar: {
     app_title: "صوت منظمة DAO",
@@ -117,7 +117,7 @@ const i18nDictionary = {
     nav_admin: "🛡️ جناح الإدارة",
     step1_title: "تسجيل الناخبين والتحقق من محفظة Pi",
     step1_desc: "مصادقة عبر Pi SDK وربط المحفظة للتحقق من ملكية NFT.",
-    label_wallet: "عنوان محفظة Pi (المفتاح العام للمكافآت)",
+    label_wallet: "عنوان محفظة Pi (البادئة G / M)",
     label_category: "فئة الناخب",
     cat_owner: "ناخب دائم (مالك NFT Garuda #1 - #1000)",
     cat_delegator: "مفوض (1 unit Halloween / 3 units PiDay2026)",
@@ -125,7 +125,7 @@ const i18nDictionary = {
     label_role: "دور الحوكمة",
     role_member: "عضو (وزن الصوت: 0.5)",
     role_leader: "قائد المجموعة (وزن الصوت: 1.0)",
-    role_founder: "مؤسس (وزن الصوت: 2.0 - Garuda #999)",
+    role_founder: "مؤسس (خاص بـ Garuda ID #999)",
     btn_register: "التحقق من البيانات وفتح الوصول للتصويت",
     prop_bg_title: "📄 الخلفية ووصف الهدف",
     prop_gallery_title: "📸 معرض الصور والفيديو للأدلة",
@@ -142,10 +142,10 @@ const i18nDictionary = {
     btn_retry_payouts: "🔄 معالجة صف المدفوعات المعلقة",
     btn_official_minutes: "📄 إنشاء وثيقة المحضر الرسمي (PDF)",
     btn_digital_cert: "🎓 إنشاء شهادة التحقق الرقمية",
-    btn_print_pdf: "🖨️ طباعة / حفظ وثيقة PDF",
+    btn_print_pdf: "📥 تنزيل ملف PDF مباشرة",
     btn_share_chrome: "🌐 نسخ رابط Chrome",
-    btn_copy_text: "📋 نسخ نص الوثيقة",
-    btn_close_modal: "إغلاق الوثيقة"
+    btn_copy_text: "📋 نسخ النص",
+    btn_close_modal: "إغلاق"
   },
   zh: {
     app_title: "THE VOICE OF DAO",
@@ -156,7 +156,7 @@ const i18nDictionary = {
     nav_admin: "🛡️ 管理员套件",
     step1_title: "选民注册与 Pi 钱包验证",
     step1_desc: "通过 Pi SDK 进行身份验证并连接钱包以验证 On-Chain NFT 所有权。",
-    label_wallet: "Pi 钱包地址 (公钥用于支付与 NFT 检查)",
+    label_wallet: "Pi 钱包地址 (前缀 G / M, 56 个字符)",
     label_category: "选民类别",
     cat_owner: "正式选民 (Garuda NFT 所有者 #1 - #1000)",
     cat_delegator: "代表 (1个 Halloween NFT / 3个 PiDay2026 NFT)",
@@ -164,7 +164,7 @@ const i18nDictionary = {
     label_role: "治理角色",
     role_member: "成员 (投票权重: 0.5)",
     role_leader: "组长 (投票权重: 1.0)",
-    role_founder: "创始人 (投票权重: 2.0 - Garuda ID #999)",
+    role_founder: "创始人 (仅限 Garuda ID #999)",
     btn_register: "验证数据并开启投票权限",
     prop_bg_title: "📄 背景与对象描述",
     prop_gallery_title: "📸 照片与视频证明图库",
@@ -181,10 +181,10 @@ const i18nDictionary = {
     btn_retry_payouts: "🔄 处理挂起的支付队列",
     btn_official_minutes: "📄 生成官方会议纪要文档 (PDF)",
     btn_digital_cert: "🎓 生成数字验证证书",
-    btn_print_pdf: "🖨️ 打印 / 保存 PDF 文档",
+    btn_print_pdf: "📥 直接下载 PDF (1键)",
     btn_share_chrome: "🌐 复制 Chrome 链接",
-    btn_copy_text: "📋 复制文档文本",
-    btn_close_modal: "关闭文档"
+    btn_copy_text: "📋 复制文本",
+    btn_close_modal: "关闭"
   }
 };
 
@@ -240,6 +240,7 @@ function changeLanguage(lang) {
 let isPiSDKInitialized = false;
 let currentUser = null;
 let currentOpenedDocType = null;
+let isUserBanned = false;
 
 // DEFAULT PROFIL KETUA DEWAN (AFIFMASFIQO - GARUDA #911)
 let activeUser = {
@@ -267,7 +268,7 @@ let activeProposal = {
   title: "Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD",
   proposerEntity: "TVOD Development Team",
   proposerUsername: "TVOD Development Team",
-  category: "Verifikasi Objek / Kasus",
+  category: "Community Voting",
   author: "TVOD Development Team",
   date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
   description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.\nHarap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.",
@@ -323,6 +324,51 @@ function getSignatureDataUrl(id) {
 function clearOfficerSig(id) {
   if (signaturePads[id]) signaturePads[id].clear();
   localStorage.removeItem(`tvod_sig_${id}`);
+}
+
+// 🚫 PENGECEKAN STATUS BLACKLIST / PEMBEKUAN GARUDA ID & USERNAME
+async function checkGarudaBlacklistStatus(garudaId, username) {
+  const banBanner = $("#banBanner");
+  const banReason = $("#banReason");
+  isUserBanned = false;
+
+  if (!supabaseClient) return false;
+
+  try {
+    let query = supabaseClient.from('garuda_blacklist').select('*');
+    if (garudaId) {
+      query = query.or(`garuda_id.eq.${garudaId},username.eq.${username}`);
+    } else if (username) {
+      query = query.eq('username', username);
+    } else {
+      if (banBanner) banBanner.classList.add("hidden");
+      return false;
+    }
+
+    const { data, error } = await query;
+
+    if (data && data.length > 0) {
+      isUserBanned = true;
+      const record = data[0];
+      const reasonText = record.reason || "Pelanggaran Kode Etik / Garuda ID Dibekukan.";
+      if (banReason) banReason.textContent = `⚠️ AKSES DIBATASI: Garuda ID #${record.garuda_id || garudaId} / User @${record.username || username} dibekukan. Alasan: ${reasonText}`;
+      if (banBanner) banBanner.classList.remove("hidden");
+      
+      const btnSubmit = $("#btnSubmitVote");
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "⛔ ID Garuda / Username Dibekukan";
+        btnSubmit.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
+      }
+      return true;
+    } else {
+      if (banBanner) banBanner.classList.add("hidden");
+      return false;
+    }
+  } catch (err) {
+    console.warn("Gagal mengecek status blacklist Supabase:", err);
+    return false;
+  }
 }
 
 // ⚡ INISIALISASI PI SDK
@@ -422,7 +468,6 @@ async function saveVoteToSupabase(voteData) {
   }
 }
 
-// 🛡️ LOGIKA KETAT MENCEGAH DATA TERAMBIL SECARA ACAK
 async function fetchVoterProfileFromSupabase(username) {
   if (!supabaseClient || !username) return;
   try {
@@ -449,6 +494,7 @@ async function fetchVoterProfileFromSupabase(username) {
         const displayGaruda = $("#displayGaruda");
         if (displayGaruda) displayGaruda.textContent = "BELUM VERIFIKASI";
       }
+      await checkGarudaBlacklistStatus(activeUser.garudaId, username);
       return;
     }
 
@@ -478,6 +524,8 @@ async function fetchVoterProfileFromSupabase(username) {
     if (displayGaruda) {
       displayGaruda.textContent = data.garuda_id ? `#${data.garuda_id}` : `DELEGATE (${(data.category || 'owner').toUpperCase()})`;
     }
+
+    await checkGarudaBlacklistStatus(data.garuda_id, username);
   } catch (err) {
     console.error("Fetch Profile Error:", err);
   }
@@ -547,7 +595,7 @@ async function fetchActiveProposalFromSupabase() {
     activeProposal = {
       id: p.id,
       title: p.title,
-      category: p.category,
+      category: p.category || "Community Voting",
       description: p.description,
       proposerEntity: "TVOD Development Team",
       proposerUsername: "TVOD Development Team",
@@ -893,6 +941,12 @@ async function handleOnboarding(e) {
       return;
     }
 
+    const banned = await checkGarudaBlacklistStatus(gId, username);
+    if (banned) {
+      alert(`⛔ REGISTRASI DITOLAK!\n\nGaruda ID #${gId} atau Username @${username} dibekukan karena pelanggaran Kode Etik.`);
+      return;
+    }
+
     activeUser.garudaId = gId;
     activeUser.garudaHash = gHash;
   } else if (category === "delegator") {
@@ -911,6 +965,12 @@ async function handleOnboarding(e) {
     }
     if (nftType === "piday" && hashList.length !== 3) {
       alert("Pendaftaran Ditolak: NFT PiDay2026 membutuhkan tepat 3 Hash NFT (dipisahkan koma).");
+      return;
+    }
+
+    const banned = await checkGarudaBlacklistStatus(null, username);
+    if (banned) {
+      alert(`⛔ REGISTRASI DITOLAK!\n\nUsername @${username} sedang dalam status dibekukan.`);
       return;
     }
 
@@ -951,7 +1011,7 @@ async function handleOnboarding(e) {
 
 function renderProposalMaterials() {
   if ($("#displayPropTitle")) $("#displayPropTitle").textContent = activeProposal.title;
-  if ($("#displayPropCategory")) $("#displayPropCategory").textContent = "🏷️ Kategori: " + activeProposal.category;
+  if ($("#displayPropCategory")) $("#displayPropCategory").textContent = "🏷️ Category: " + activeProposal.category;
   if ($("#displayPropDescription")) $("#displayPropDescription").textContent = activeProposal.description;
   if ($("#displayPropAuthor")) $("#displayPropAuthor").textContent = activeProposal.author;
   if ($("#displayPropDate")) $("#displayPropDate").textContent = activeProposal.date;
@@ -1003,7 +1063,7 @@ async function publishNewProposal(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   const title = $("#inputPropTitle") ? $("#inputPropTitle").value.trim() : "";
-  const category = $("#inputPropCategory") ? $("#inputPropCategory").value : "Verifikasi Objek / Kasus";
+  const category = $("#inputPropCategory") ? $("#inputPropCategory").value : "Community Voting";
   const durationInput = $("#inputPropDuration");
   const durationHrs = durationInput ? parseFloat(durationInput.value) || 24 : 24;
   const description = $("#inputPropDesc") ? $("#inputPropDesc").value.trim() : "";
@@ -1038,16 +1098,19 @@ async function publishNewProposal(e) {
   }
   startCountdownTimer();
 
+  // Penggabungan foto galeri terkompres & URL eksternal
+  let combinedImages = [];
   if (uploadedGalleryBase64Images && uploadedGalleryBase64Images.length > 0) {
-    activeProposal.images = uploadedGalleryBase64Images;
-  } else {
-    const rawImages = $("#inputPropImages") ? $("#inputPropImages").value.trim() : "";
-    if (rawImages) {
-      activeProposal.images = rawImages.split(",").map(img => ensureHttps(img.trim())).filter(img => img.length > 0);
-    } else {
-      activeProposal.images = ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting"];
-    }
+    combinedImages = combinedImages.concat(uploadedGalleryBase64Images);
   }
+
+  const rawImages = $("#inputPropImages") ? $("#inputPropImages").value.trim() : "";
+  if (rawImages) {
+    const extList = rawImages.split(",").map(img => ensureHttps(img.trim())).filter(img => img.length > 0);
+    combinedImages = combinedImages.concat(extList);
+  }
+
+  activeProposal.images = combinedImages.length > 0 ? combinedImages : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting"];
 
   const rawVideo = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
   activeProposal.videoUrl = rawVideo ? ensureHttps(rawVideo) : "";
@@ -1075,7 +1138,7 @@ async function publishNewProposal(e) {
     }
   }
 
-  alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan oleh TVOD Development Team!\nDurasi Voting: ${durationHrs} Jam.`);
+  alert(`✅ Proposal Baru (ID: ${activeProposal.id}) Berhasil Diterbitkan oleh TVOD Development Team!\nKategori: ${category}\nDurasi Voting: ${durationHrs} Jam.`);
 }
 
 async function cancelActiveProposal() {
@@ -1159,7 +1222,17 @@ async function handleCastVote(e) {
   if (btn) {
     if (btn.disabled) return;
     btn.disabled = true;
-    btn.innerText = "⏳ Memeriksa Hak Suara...";
+    btn.innerText = "⏳ Memeriksa Hak Suara & Status Etika...";
+  }
+
+  const currentUsername = activeUser.username || "Anonymous";
+  const currentWallet = activeUser.walletAddress || "";
+
+  // Dynamic Blacklist check
+  const isBanned = await checkGarudaBlacklistStatus(activeUser.garudaId, currentUsername);
+  if (isBanned) {
+    alert("⛔ PROSES VOTING DITOLAK!\n\nNomor Garuda ID atau Username Anda terdaftar dalam status pembekuan Kode Etik.");
+    return;
   }
 
   if (activeProposal.status === 'CANCELLED' || new Date().getTime() > votingEndTime.getTime()) {
@@ -1170,9 +1243,6 @@ async function handleCastVote(e) {
     alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin.");
     return;
   }
-
-  const currentUsername = activeUser.username || "Anonymous";
-  const currentWallet = activeUser.walletAddress || "";
 
   if (!currentWallet || !isValidPiWalletAddress(currentWallet)) {
     if (btn) {
@@ -1295,10 +1365,61 @@ async function handleCastVote(e) {
   }
 }
 
-function toggleUserBan(isBan) {
-  const target = $("#targetUser") ? $("#targetUser").value.trim() : "";
-  if (!target) return alert("Masukkan Username Pi Target.");
-  alert(`User ${target} telah berhasil di-${isBan ? "BAN / RESTRICTED" : "REINSTATED"}.`);
+// 🚫 MODUL PEMBEKUAN (BLACK-LISTING) ID GARUDA / USERNAME OLEH ADMIN
+async function toggleGarudaBan(isBan) {
+  const garudaIdInput = $("#targetGarudaId") ? $("#targetGarudaId").value.trim() : "";
+  const reasonInput = $("#targetBanReason") ? $("#targetBanReason").value.trim() : "";
+
+  if (!garudaIdInput) {
+    alert("⚠️ Masukkan Garuda ID target (#1 - #1000).");
+    return;
+  }
+
+  const garudaIdNum = parseInt(garudaIdInput);
+  if (isNaN(garudaIdNum) || garudaIdNum < 1 || garudaIdNum > 1000) {
+    alert("⚠️ Nomor Garuda ID harus berupa angka sah (#1 - #1000).");
+    return;
+  }
+
+  if (isBan && !reasonInput) {
+    alert("⚠️ Harap masukkan Alasan Pembekuan / Pelanggaran Kode Etik.");
+    return;
+  }
+
+  if (!supabaseClient) {
+    alert("⚠️ Supabase Client belum terinisialisasi.");
+    return;
+  }
+
+  try {
+    if (isBan) {
+      const { data, error } = await supabaseClient
+        .from('garuda_blacklist')
+        .upsert([{
+          garuda_id: garudaIdNum,
+          reason: reasonInput,
+          banned_by: activeUser.username || 'admin',
+          created_at: new Date().toISOString()
+        }], { onConflict: 'garuda_id' });
+
+      if (error) throw error;
+      alert(`🔒 Garuda ID #${garudaIdNum} BERSAMANYA DIBEKUKAN!\n\nAlasan: ${reasonInput}`);
+    } else {
+      const { error } = await supabaseClient
+        .from('garuda_blacklist')
+        .delete()
+        .eq('garuda_id', garudaIdNum);
+
+      if (error) throw error;
+      alert(`🔓 Pembekuan Garuda ID #${garudaIdNum} DIBATALKAN. Akses dipulihkan.`);
+    }
+
+    if (activeUser.garudaId === garudaIdNum) {
+      await checkGarudaBlacklistStatus(garudaIdNum, activeUser.username);
+    }
+  } catch (err) {
+    alert("❌ Gagal memperbarui status blacklist: " + err.message);
+  }
 }
 
 function savePayoutRate() {
@@ -1362,7 +1483,7 @@ async function retryFailedPayouts() {
 
   } catch (err) {
     alert("Gagal memproses antrean pembayaran: " + err.message);
-  } finally {
+  } font-bold {
     if (displayBtn) {
       displayBtn.disabled = false;
       displayBtn.innerText = "🔄 Process Pending Payouts Queue";
@@ -1520,7 +1641,6 @@ async function downloadPdfDirect() {
   }
 }
 
-// 🖨️ RENDER DOKUMEN MENJADI GAMBAR PNG (FALLBACK PREVIEW)
 async function downloadPdfModal() {
   const contentDiv = document.getElementById("documentViewerContent");
   const btnDownload = document.getElementById("btnModalDownload");
@@ -2066,7 +2186,7 @@ async function generateCertificatePDF() {
     </div>
   `;
 
-  renderDocumentInModal(`Digital Certificate: ${activeProposal.id}`, certHtml);
+  renderDocumentInModal(`Digital Certificate: ${activeProposal.id}`, docHtml);
 }
 
 window.publishNewProposal = publishNewProposal;
@@ -2076,7 +2196,7 @@ window.checkAppWalletBalance = checkAppWalletBalance;
 window.fetchVoterStatsForAdmin = fetchVoterStatsForAdmin;
 window.setConfidence = setConfidence;
 window.clearOfficerSig = clearOfficerSig;
-window.toggleUserBan = toggleUserBan;
+window.toggleGarudaBan = toggleGarudaBan;
 window.savePayoutRate = savePayoutRate;
 window.retryFailedPayouts = retryFailedPayouts;
 window.changeLanguage = changeLanguage;
