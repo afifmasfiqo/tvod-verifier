@@ -41,7 +41,7 @@ const i18nDictionary = {
     step1_desc: "Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.",
     label_wallet: "Pi Wallet Address (Awalan G / M, 56 Karakter untuk Payout & Cek NFT)",
     label_category: "Kategori Pemilih (Voter Category)",
-    cat_owner: "Pemilih Tetap (Pemilik NFT Garuda #1 - #1000)",
+    cat_owner: "Pemilih Tetap (Pemilik NFT Garuda)",
     cat_delegator: "Delegator (NFT Halloween 1 Unit / NFT PiDay2026 3 Unit)",
     label_chapter: "Wilayah Komunitas (Chapter)",
     label_role: "Peran Tata Kelola (Governance Role)",
@@ -80,7 +80,7 @@ const i18nDictionary = {
     step1_desc: "Authenticate via Pi SDK and connect wallet to verify On-Chain NFT ownership.",
     label_wallet: "Pi Wallet Address (Prefix G / M, 56 Characters for Payouts & NFT Check)",
     label_category: "Voter Category",
-    cat_owner: "Regular Voter (Garuda NFT Owner #1 - #1000)",
+    cat_owner: "Regular Voter (Garuda NFT Owner)",
     cat_delegator: "Delegator (1 Unit Halloween NFT / 3 Units PiDay2026 NFT)",
     label_chapter: "Community Chapter / Region",
     label_role: "Governance Role",
@@ -119,7 +119,7 @@ const i18nDictionary = {
     step1_desc: "مصادقة عبر Pi SDK وربط المحفظة للتحقق من ملكية NFT.",
     label_wallet: "عنوان محفظة Pi (البادئة G / M)",
     label_category: "فئة الناخب",
-    cat_owner: "ناخب دائم (مالك NFT Garuda #1 - #1000)",
+    cat_owner: "ناخب دائم (مالك NFT Garuda)",
     cat_delegator: "مفوض (1 unit Halloween / 3 units PiDay2026)",
     label_chapter: "منطقة المجتمع",
     label_role: "دور الحوكمة",
@@ -158,7 +158,7 @@ const i18nDictionary = {
     step1_desc: "通过 Pi SDK 进行身份验证并连接钱包以验证 On-Chain NFT 所有权。",
     label_wallet: "Pi 钱包地址 (前缀 G / M, 56 个字符)",
     label_category: "选民类别",
-    cat_owner: "正式选民 (Garuda NFT 所有者 #1 - #1000)",
+    cat_owner: "正式选民 (Garuda NFT 所有者)",
     cat_delegator: "代表 (1个 Halloween NFT / 3个 PiDay2026 NFT)",
     label_chapter: "社区分会 / 区域",
     label_role: "治理角色",
@@ -331,7 +331,6 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   isUserBanned = false;
 
   try {
-    // Cek ke Backend API yang membaca frozen_list.json
     const res = await fetch('/api/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -346,7 +345,6 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
       if (banReason) banReason.textContent = `⚠️ ${errorMsg}`;
       if (banBanner) banBanner.classList.remove("hidden");
 
-      // Forced Logout & Clear Session
       localStorage.removeItem("tvod_user_session");
 
       const btnSubmit = $("#btnSubmitVote");
@@ -361,7 +359,6 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
     console.warn("Gagal mengecek status frozen server:", err);
   }
 
-  // Fallback Supabase Check
   if (supabaseClient) {
     try {
       let query = supabaseClient.from('garuda_blacklist').select('*');
@@ -560,7 +557,6 @@ async function getFrozenListClient() {
     const data = await res.json();
     return data.frozenIds || [];
   } catch (e) {
-    // 19 Garuda ID yang dibekukan sesuai data resmi Founder
     return ["951", "992", "983", "929", "921", "954", "973", "931", "986", "953", "993", "995", "975", "920", "952", "985", "930", "991", "981"];
   }
 }
@@ -598,11 +594,10 @@ async function fetchVoterStatsForAdmin() {
       activeProposal.disagreeCount = 0;
       activeProposal.avgConfidence = 0;
     } else {
-      // 🛑 Saring dan abaikan suara dari voter yang Garuda ID-nya masuk daftar frozen
       const validVotes = voteRows.filter(v => {
         const prof = profileMap[v.username] || {};
         if (prof.garuda_id && frozenIds.includes(String(prof.garuda_id))) {
-          return false; // Abaikan / exclude dari perhitungan official minutes
+          return false;
         }
         return true;
       });
@@ -984,8 +979,9 @@ async function handleOnboarding(e) {
     gId = parseInt($("#garudaId").value || "0");
     gHash = $("#garudaHash").value.trim();
 
+    // Backend validation kept intact
     if (!gId || gId < 1 || gId > 1000) {
-      alert("Pendaftaran Ditolak: Garuda ID harus berupa angka antara #1 sampai #1000.");
+      alert("Pendaftaran Ditolak: Garuda ID tidak valid.");
       return;
     }
     if (!gHash) {
@@ -1024,7 +1020,6 @@ async function handleOnboarding(e) {
     activeUser.delegatedHashes = hashList;
   }
 
-  // 🛑 Validasi Ketat Blacklist Server / Frozen List sebelum Onboarding disimpan
   const banned = await checkGarudaBlacklistStatus(gId, username);
   if (banned) {
     alert("Access denied: Your Garuda ID is temporarily frozen by Founder's directive. Voting and login are restricted.");
@@ -1279,7 +1274,6 @@ async function handleCastVote(e) {
   const currentUsername = activeUser.username || "Anonymous";
   const currentWallet = activeUser.walletAddress || "";
 
-  // 🛑 Validasi Ketat Blacklist Server / Frozen List sebelum Voting dieksekusi
   const isBanned = await checkGarudaBlacklistStatus(activeUser.garudaId, currentUsername);
   if (isBanned) {
     alert("Access denied: Your Garuda ID is temporarily frozen by Founder's directive. Voting and login are restricted.");
@@ -1422,13 +1416,14 @@ async function toggleGarudaBan(isBan) {
   const reasonInput = $("#targetBanReason") ? $("#targetBanReason").value.trim() : "";
 
   if (!garudaIdInput) {
-    alert("⚠️ Masukkan Garuda ID target (#1 - #1000).");
+    alert("⚠️ Masukkan Garuda ID target.");
     return;
   }
 
   const garudaIdNum = parseInt(garudaIdInput);
+  // Backend validation kept intact
   if (isNaN(garudaIdNum) || garudaIdNum < 1 || garudaIdNum > 1000) {
-    alert("⚠️ Nomor Garuda ID harus berupa angka sah (#1 - #1000).");
+    alert("⚠️ Nomor Garuda ID tidak valid.");
     return;
   }
 
@@ -1437,7 +1432,6 @@ async function toggleGarudaBan(isBan) {
     return;
   }
 
-  // Panggil Endpoint API Backend Server untuk Freeze/Unfreeze
   try {
     const endpoint = isBan ? '/api/admin/freeze' : '/api/admin/unfreeze';
     const res = await fetch(endpoint, {
@@ -1983,7 +1977,6 @@ async function generateVoterAuditLogPDF() {
       }
 
       if (voteData && voteData.length > 0) {
-        // 🛑 Filter voter log agar akun frozen tidak masuk dalam daftar recording
         const validVoteRows = voteData.filter(v => {
           const prof = profileMap[v.username] || {};
           if (prof.garuda_id && frozenIds.includes(String(prof.garuda_id))) {
@@ -2123,7 +2116,7 @@ async function generateCertificatePDF() {
 
       <div style="text-align: left; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 11.5px; color: #334155; margin-bottom: 14px; line-height: 1.6;">
         <p style="margin: 3px 0;">• Submitted By Entity : <strong>${activeProposal.proposerEntity}</strong></p>
-        <p style="margin: 3px 0;">• Case Category      : <strong>${activeProposal.category}</strong></p>
+        <p style="margin: 3px 0;">• Case Category     : <strong>${activeProposal.category}</strong></p>
         <p style="margin: 3px 0;">• Reference ID       : <strong>${activeProposal.id}</strong></p>
         <p style="margin: 3px 0;">• Ratification Date  : <strong>${activeProposal.date}</strong></p>
       </div>
