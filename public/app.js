@@ -242,7 +242,6 @@ let currentUser = null;
 let currentOpenedDocType = null;
 let isUserBanned = false;
 
-// DEFAULT PROFIL KETUA DEWAN (AFIFMASFIQO - GARUDA #911)
 let activeUser = {
   username: "afifmasfiqo",
   walletAddress: "GCVGSZJOHN467T5QYFMJFSKIDDNC3N6EHCOSSEC7X3PKSK3YI733D2OO",
@@ -286,7 +285,6 @@ let activeProposal = {
   status: "ACTIVE"
 };
 
-// ✍️ FUNGSI SAVING TANDA TANGAN OTOMATIS KE LOCALSTORAGE
 function saveSignatureToStorage(id) {
   if (signaturePads[id] && !signaturePads[id].isEmpty()) {
     const dataUrl = signaturePads[id].toDataURL("image/png");
@@ -326,49 +324,81 @@ function clearOfficerSig(id) {
   localStorage.removeItem(`tvod_sig_${id}`);
 }
 
-// 🚫 PENGECEKAN STATUS BLACKLIST / PEMBEKUAN GARUDA ID & USERNAME
+// 🚫 1. PENGECEKAN STATUS BLACKLIST / PEMBEKUAN SERVER & SUPABASE
 async function checkGarudaBlacklistStatus(garudaId, username) {
   const banBanner = $("#banBanner");
   const banReason = $("#banReason");
   isUserBanned = false;
 
-  if (!supabaseClient) return false;
-
   try {
-    let query = supabaseClient.from('garuda_blacklist').select('*');
-    if (garudaId) {
-      query = query.or(`garuda_id.eq.${garudaId},username.eq.${username}`);
-    } else if (username) {
-      query = query.eq('username', username);
-    } else {
-      if (banBanner) banBanner.classList.add("hidden");
-      return false;
-    }
+    // Cek ke Backend API yang membaca frozen_list.json
+    const res = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ garudaId, username })
+    });
 
-    const { data, error } = await query;
-
-    if (data && data.length > 0) {
+    if (res.status === 403) {
       isUserBanned = true;
-      const record = data[0];
-      const reasonText = record.reason || "Pelanggaran Kode Etik / Garuda ID Dibekukan.";
-      if (banReason) banReason.textContent = `⚠️ AKSES DIBATASI: Garuda ID #${record.garuda_id || garudaId} / User @${record.username || username} dibekukan. Alasan: ${reasonText}`;
-      if (banBanner) banBanner.classList.remove("hidden");
+      const data = await res.json().catch(() => ({}));
+      const errorMsg = data.message || "Access denied: Your Garuda ID is temporarily frozen by Founder's directive. Voting and login are restricted.";
       
+      if (banReason) banReason.textContent = `⚠️ ${errorMsg}`;
+      if (banBanner) banBanner.classList.remove("hidden");
+
+      // Forced Logout & Clear Session
+      localStorage.removeItem("tvod_user_session");
+
       const btnSubmit = $("#btnSubmitVote");
       if (btnSubmit) {
         btnSubmit.disabled = true;
-        btnSubmit.innerText = "⛔ ID Garuda / Username Dibekukan";
+        btnSubmit.innerText = "Access denied: Account Frozen";
         btnSubmit.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
       }
       return true;
-    } else {
-      if (banBanner) banBanner.classList.add("hidden");
-      return false;
     }
   } catch (err) {
-    console.warn("Gagal mengecek status blacklist Supabase:", err);
-    return false;
+    console.warn("Gagal mengecek status frozen server:", err);
   }
+
+  // Fallback Supabase Check
+  if (supabaseClient) {
+    try {
+      let query = supabaseClient.from('garuda_blacklist').select('*');
+      if (garudaId) {
+        query = query.or(`garuda_id.eq.${garudaId},username.eq.${username}`);
+      } else if (username) {
+        query = query.eq('username', username);
+      } else {
+        if (banBanner) banBanner.classList.add("hidden");
+        return false;
+      }
+
+      const { data } = await query;
+      if (data && data.length > 0) {
+        isUserBanned = true;
+        const record = data[0];
+        const reasonText = record.reason || "Access denied: Your Garuda ID is temporarily frozen by Founder's directive.";
+        if (banReason) banReason.textContent = `⚠️ ${reasonText}`;
+        if (banBanner) banBanner.classList.remove("hidden");
+
+        localStorage.removeItem("tvod_user_session");
+        
+        const btnSubmit = $("#btnSubmitVote");
+        if (btnSubmit) {
+          btnSubmit.disabled = true;
+          btnSubmit.innerText = "Access denied: Account Frozen";
+          btnSubmit.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
+        }
+        return true;
+      }
+    } catch (e) {
+      console.warn("Supabase blacklist check warning:", e);
+    }
+  }
+
+  if (banBanner) banBanner.classList.add("hidden");
+  return false;
 }
 
 // ⚡ INISIALISASI PI SDK
@@ -378,7 +408,6 @@ async function initPiSDK() {
   try {
     await window.Pi.init({ version: "2.0", sandbox: true });
     isPiSDKInitialized = true;
-    console.log("✅ Pi SDK Berhasil Diinisialisasi");
     return true;
   } catch (err) {
     console.warn("Pi SDK Init Warning:", err);
@@ -407,7 +436,6 @@ async function handlePiAuth() {
   };
 
   localStorage.setItem("tvod_user_session", JSON.stringify(verifiedUser));
-
   renderUser(verifiedUser);
   setConnection("● Verified by Pi SDK", true);
   return verifiedUser;
@@ -436,20 +464,17 @@ async function saveVoterToSupabase(voterData) {
       .upsert([voterData], { onConflict: 'username' });
 
     if (error) {
-      console.error("Gagal menyimpan data voter ke Supabase:", error);
       if (error.code === '23505' || error.message.includes('unique_garuda_id')) {
         alert(`⛔ REGISTRASI DITOLAK!\n\nNomor Garuda #${voterData.garuda_id} sudah terdaftar atas nama username lain.`);
         return false;
       }
       if (error.code === '23505' || error.message.includes('unique_wallet_address')) {
-        alert("⛔ REGISTRASI DITOLAK!\n\nAlamat Pi Wallet ini sudah terdaftar atas nama username lain. Satu wallet hanya dapat terikat pada 1 akun Pi Network.");
+        alert("⛔ REGISTRASI DITOLAK!\n\nAlamat Pi Wallet ini sudah terdaftar atas nama username lain.");
         return false;
       }
       alert("⚠️ Gagal menyimpan profil ke Database: " + error.message);
       return false;
     }
-
-    console.log("✅ Data voter tersimpan di Supabase:", data);
     return true;
   } catch (err) {
     console.error("Supabase Voter Error:", err);
@@ -460,9 +485,7 @@ async function saveVoterToSupabase(voterData) {
 async function saveVoteToSupabase(voteData) {
   if (!supabaseClient) return;
   try {
-    const { data, error } = await supabaseClient.from('votes').insert([voteData]);
-    if (error) console.error("Gagal menyimpan suara ke Supabase:", error);
-    else console.log("✅ Suara voting tersimpan di Supabase:", data);
+    await supabaseClient.from('votes').insert([voteData]);
   } catch (err) {
     console.error("Supabase Vote Error:", err);
   }
@@ -478,7 +501,6 @@ async function fetchVoterProfileFromSupabase(username) {
       .maybeSingle();
 
     if (error || !data) {
-      console.warn(`Profil untuk username @${username} belum terdaftar di Supabase.`);
       if (username === "afifmasfiqo") {
         activeUser.walletAddress = "GCVGSZJOHN467T5QYFMJFSKIDDNC3N6EHCOSSEC7X3PKSK3YI733D2OO";
         activeUser.garudaId = 911;
@@ -531,6 +553,18 @@ async function fetchVoterProfileFromSupabase(username) {
   }
 }
 
+// 🚫 PENGAMBILAN DAFTAR FROZEN DI CLIENT UNTUK FILTER LAPORAN
+async function getFrozenListClient() {
+  try {
+    const res = await fetch('/frozen_list.json');
+    const data = await res.json();
+    return data.frozenIds || [];
+  } catch (e) {
+    // 19 Garuda ID yang dibekukan sesuai data resmi Founder
+    return ["951", "992", "983", "929", "921", "954", "973", "931", "986", "953", "993", "995", "975", "920", "952", "985", "930", "991", "981"];
+  }
+}
+
 async function fetchVoterStatsForAdmin() {
   const display = $("#adminVoterCountDisplay");
   if (!supabaseClient || !activeProposal.id) {
@@ -544,6 +578,17 @@ async function fetchVoterStatsForAdmin() {
       .select('*')
       .eq('proposal_id', activeProposal.id);
 
+    const { data: voterProfiles } = await supabaseClient
+      .from('voters')
+      .select('*');
+
+    const profileMap = {};
+    if (voterProfiles) {
+      voterProfiles.forEach(p => { profileMap[p.username] = p; });
+    }
+
+    const frozenIds = await getFrozenListClient();
+
     if (error || !voteRows) {
       if (display) display.textContent = "0 Voter Aktif";
       activeProposal.totalVotes = 0;
@@ -553,12 +598,21 @@ async function fetchVoterStatsForAdmin() {
       activeProposal.disagreeCount = 0;
       activeProposal.avgConfidence = 0;
     } else {
-      const count = voteRows.length;
+      // 🛑 Saring dan abaikan suara dari voter yang Garuda ID-nya masuk daftar frozen
+      const validVotes = voteRows.filter(v => {
+        const prof = profileMap[v.username] || {};
+        if (prof.garuda_id && frozenIds.includes(String(prof.garuda_id))) {
+          return false; // Abaikan / exclude dari perhitungan official minutes
+        }
+        return true;
+      });
+
+      const count = validVotes.length;
       let totalNetScore = 0;
       let agreeC = 0, neutralC = 0, disagreeC = 0;
       let totalConf = 0;
 
-      voteRows.forEach((v) => {
+      validVotes.forEach((v) => {
         totalNetScore += (parseFloat(v.weighted_score) || 0);
         totalConf += (parseFloat(v.confidence) || 0);
         if (v.vote_direction === 1) agreeC++;
@@ -573,7 +627,7 @@ async function fetchVoterStatsForAdmin() {
       activeProposal.disagreeCount = disagreeC;
       activeProposal.avgConfidence = count > 0 ? (totalConf / count).toFixed(2) : 0;
 
-      if (display) display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts)`;
+      if (display) display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts) [Frozen Excluded]`;
     }
   } catch (err) {
     if (display) display.textContent = "0 Voter Aktif";
@@ -923,9 +977,12 @@ async function handleOnboarding(e) {
     return;
   }
 
+  let gId = null;
+  let gHash = null;
+
   if (category === "owner") {
-    const gId = parseInt($("#garudaId").value || "0");
-    const gHash = $("#garudaHash").value.trim();
+    gId = parseInt($("#garudaId").value || "0");
+    gHash = $("#garudaHash").value.trim();
 
     if (!gId || gId < 1 || gId > 1000) {
       alert("Pendaftaran Ditolak: Garuda ID harus berupa angka antara #1 sampai #1000.");
@@ -938,12 +995,6 @@ async function handleOnboarding(e) {
 
     if (role === "Founder" && gId !== 999) {
       alert("SECURITY REJECTION: Peran Founder HANYA VALID untuk pemilik Garuda ID #999.");
-      return;
-    }
-
-    const banned = await checkGarudaBlacklistStatus(gId, username);
-    if (banned) {
-      alert(`⛔ REGISTRASI DITOLAK!\n\nGaruda ID #${gId} atau Username @${username} dibekukan karena pelanggaran Kode Etik.`);
       return;
     }
 
@@ -968,15 +1019,16 @@ async function handleOnboarding(e) {
       return;
     }
 
-    const banned = await checkGarudaBlacklistStatus(null, username);
-    if (banned) {
-      alert(`⛔ REGISTRASI DITOLAK!\n\nUsername @${username} sedang dalam status dibekukan.`);
-      return;
-    }
-
     activeUser.ownerUsername = ownerUsername;
     activeUser.delegatedNftType = nftType;
     activeUser.delegatedHashes = hashList;
+  }
+
+  // 🛑 Validasi Ketat Blacklist Server / Frozen List sebelum Onboarding disimpan
+  const banned = await checkGarudaBlacklistStatus(gId, username);
+  if (banned) {
+    alert("Access denied: Your Garuda ID is temporarily frozen by Founder's directive. Voting and login are restricted.");
+    return;
   }
 
   activeUser.username = username;
@@ -1098,7 +1150,6 @@ async function publishNewProposal(e) {
   }
   startCountdownTimer();
 
-  // Penggabungan foto galeri terkompres & URL eksternal
   let combinedImages = [];
   if (uploadedGalleryBase64Images && uploadedGalleryBase64Images.length > 0) {
     combinedImages = combinedImages.concat(uploadedGalleryBase64Images);
@@ -1228,10 +1279,10 @@ async function handleCastVote(e) {
   const currentUsername = activeUser.username || "Anonymous";
   const currentWallet = activeUser.walletAddress || "";
 
-  // Dynamic Blacklist check
+  // 🛑 Validasi Ketat Blacklist Server / Frozen List sebelum Voting dieksekusi
   const isBanned = await checkGarudaBlacklistStatus(activeUser.garudaId, currentUsername);
   if (isBanned) {
-    alert("⛔ PROSES VOTING DITOLAK!\n\nNomor Garuda ID atau Username Anda terdaftar dalam status pembekuan Kode Etik.");
+    alert("Access denied: Your Garuda ID is temporarily frozen by Founder's directive. Voting and login are restricted.");
     return;
   }
 
@@ -1386,37 +1437,36 @@ async function toggleGarudaBan(isBan) {
     return;
   }
 
-  if (!supabaseClient) {
-    alert("⚠️ Supabase Client belum terinisialisasi.");
-    return;
-  }
-
+  // Panggil Endpoint API Backend Server untuk Freeze/Unfreeze
   try {
-    if (isBan) {
-      const { data, error } = await supabaseClient
-        .from('garuda_blacklist')
-        .upsert([{
+    const endpoint = isBan ? '/api/admin/freeze' : '/api/admin/unfreeze';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ garudaId: String(garudaIdNum) })
+    });
+
+    const result = await res.json();
+    if (res.ok && result.success) {
+      alert(result.message);
+    } else {
+      alert("⚠️ " + (result.message || "Gagal mengubah status pembekuan."));
+    }
+
+    if (supabaseClient) {
+      if (isBan) {
+        await supabaseClient.from('garuda_blacklist').upsert([{
           garuda_id: garudaIdNum,
           reason: reasonInput,
           banned_by: activeUser.username || 'admin',
           created_at: new Date().toISOString()
         }], { onConflict: 'garuda_id' });
-
-      if (error) throw error;
-      alert(`🔒 Garuda ID #${garudaIdNum} BERSAMANYA DIBEKUKAN!\n\nAlasan: ${reasonInput}`);
-    } else {
-      const { error } = await supabaseClient
-        .from('garuda_blacklist')
-        .delete()
-        .eq('garuda_id', garudaIdNum);
-
-      if (error) throw error;
-      alert(`🔓 Pembekuan Garuda ID #${garudaIdNum} DIBATALKAN. Akses dipulihkan.`);
+      } else {
+        await supabaseClient.from('garuda_blacklist').delete().eq('garuda_id', garudaIdNum);
+      }
     }
 
-    if (activeUser.garudaId === garudaIdNum) {
-      await checkGarudaBlacklistStatus(garudaIdNum, activeUser.username);
-    }
+    location.reload();
   } catch (err) {
     alert("❌ Gagal memperbarui status blacklist: " + err.message);
   }
@@ -1483,7 +1533,7 @@ async function retryFailedPayouts() {
 
   } catch (err) {
     alert("Gagal memproses antrean pembayaran: " + err.message);
-  } font-bold {
+  } finally {
     if (displayBtn) {
       displayBtn.disabled = false;
       displayBtn.innerText = "🔄 Process Pending Payouts Queue";
@@ -1738,7 +1788,7 @@ window.downloadPdfModal = downloadPdfModal;
 window.shareToExternalBrowser = shareToExternalBrowser;
 window.copyDocumentText = copyDocumentText;
 
-// 📄 1. GENERATE OFFICIAL MINUTES DOKUMEN (STANDALONE OFFICIAL RATIFICATION REPORT)
+// 📄 1. GENERATE OFFICIAL MINUTES DOKUMEN (DI FILTER AGAR AKUN FROZEN TIDAK MASUK)
 async function generateOfficialMinutesPDF() {
   currentOpenedDocType = "minutes";
   await fetchVoterStatsForAdmin();
@@ -1747,30 +1797,6 @@ async function generateOfficialMinutesPDF() {
   let sigWitness = getSignatureDataUrl("sig-witness");
   let sigInspector = getSignatureDataUrl("sig-inspector");
   let sigCountryHead = getSignatureDataUrl("sig-country-head");
-
-  if ((!sigChairman || !sigWitness) && supabaseClient && activeProposal.id) {
-    try {
-      const { data: voteRows } = await supabaseClient
-        .from('votes')
-        .select('voter_signature_base64, username')
-        .eq('proposal_id', activeProposal.id)
-        .not('voter_signature_base64', 'is', null)
-        .order('created_at', { ascending: false });
-
-      if (voteRows && voteRows.length > 0) {
-        voteRows.forEach((v) => {
-          if (v.voter_signature_base64) {
-            if (!sigChairman && (v.username === 'afifmasfiqo' || v.username.toLowerCase().includes('afif'))) {
-              sigChairman = v.voter_signature_base64;
-              localStorage.setItem('tvod_sig_sig-chairman', sigChairman);
-            }
-          }
-        });
-      }
-    } catch (err) {
-      console.warn("Gagal mengambil fallback tanda tangan dari Supabase:", err);
-    }
-  }
 
   const totalCount = activeProposal.totalVotes || 0;
   const netScoreVal = activeProposal.netScore || 0;
@@ -1812,7 +1838,7 @@ async function generateOfficialMinutesPDF() {
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Classification</td>
-          <td style="padding: 7px 10px; color: #dc2626; font-weight: bold;">RESTRICTED — Official DAO Ratification Minutes</td>
+          <td style="padding: 7px 10px; color: #dc2626; font-weight: bold;">RESTRICTED — Official DAO Ratification Minutes [Frozen Accounts Excluded]</td>
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Generated Date</td>
@@ -1828,29 +1854,8 @@ async function generateOfficialMinutesPDF() {
         </tr>
       </table>
 
-      <!-- SECTION I: GOVERNANCE DETAILS -->
-      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">I. GOVERNANCE & PROTOCOL SUMMARY</h3>
-      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1px solid #cbd5e1; page-break-inside: avoid;">
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 7px 10px; font-weight: bold; width: 160px; background: #f8fafc; color: #475569;">Proposal Category</td>
-          <td style="padding: 7px 10px; font-weight: 600; color: #0f172a;">${activeProposal.category}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Proposing Entity</td>
-          <td style="padding: 7px 10px; font-weight: 600;">${activeProposal.proposerEntity}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Verification Logic</td>
-          <td style="padding: 7px 10px; font-weight: 600;">On-Chain NFT Balance Validation & Dynamic Weight Allocation</td>
-        </tr>
-        <tr>
-          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #475569;">Scoring Formula</td>
-          <td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #b45309;">Individual Score = Direction × Confidence × Weight</td>
-        </tr>
-      </table>
-
       <!-- SECTION II: VOTING RESULTS -->
-      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">II. AGGREGATED VOTING METRICS</h3>
+      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">II. AGGREGATED VOTING METRICS (CLEANED & VERIFIED)</h3>
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1.5px solid #cbd5e1; text-align: center; page-break-inside: avoid;">
         <thead>
           <tr style="background: #0f172a; color: #ffffff; font-weight: bold;">
@@ -1908,7 +1913,7 @@ async function generateOfficialMinutesPDF() {
 
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
           
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">1. Chairperson:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
               ${sigChairman ? `<img src="${sigChairman}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
@@ -1916,7 +1921,7 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@afifmasfiqo (#911)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">2. Witness:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
               ${sigWitness ? `<img src="${sigWitness}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
@@ -1924,7 +1929,7 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@insya (Witness)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">3. Inspector:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
               ${sigInspector ? `<img src="${sigInspector}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
@@ -1932,7 +1937,7 @@ async function generateOfficialMinutesPDF() {
             <strong style="font-size: 11px; display: block; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 4px; text-align: center;">@Nalaktak (#999)</strong>
           </div>
 
-          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+          <div style="border: 1.5px solid #cbd5e1; padding: 8px; border-radius: 8px; background: #fafafa; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 11px; font-weight: bold; color: #1e3a8a; display: block;">4. Country Head:</span>
             <div style="height: 60px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
               ${sigCountryHead ? `<img src="${sigCountryHead}" style="max-height: 58px; max-width: 100%; object-fit: contain;" />` : `<span style="font-size: 10px; color: #94a3b8; font-style: italic;">[Signed Digitally]</span>`}
@@ -1949,7 +1954,7 @@ async function generateOfficialMinutesPDF() {
   renderDocumentInModal(`Official Minutes: ${activeProposal.id}`, docHtml);
 }
 
-// 📊 2. GENERATE INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT (STANDALONE EXCEL AUDIT MATCH)
+// 📊 2. GENERATE INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT (DI FILTER AGAR AKUN FROZEN DI-EXCLUDE)
 async function generateVoterAuditLogPDF() {
   currentOpenedDocType = "audit_log";
   await fetchVoterStatsForAdmin();
@@ -1958,6 +1963,7 @@ async function generateVoterAuditLogPDF() {
   let sigInspector = getSignatureDataUrl("sig-inspector");
 
   let voterLogRowsHtml = "";
+  const frozenIds = await getFrozenListClient();
 
   if (supabaseClient && activeProposal.id) {
     try {
@@ -1977,7 +1983,16 @@ async function generateVoterAuditLogPDF() {
       }
 
       if (voteData && voteData.length > 0) {
-        const rowList = voteData.map((v, idx) => {
+        // 🛑 Filter voter log agar akun frozen tidak masuk dalam daftar recording
+        const validVoteRows = voteData.filter(v => {
+          const prof = profileMap[v.username] || {};
+          if (prof.garuda_id && frozenIds.includes(String(prof.garuda_id))) {
+            return false;
+          }
+          return true;
+        });
+
+        const rowList = validVoteRows.map((v, idx) => {
           const prof = profileMap[v.username] || {};
           const garudaDisplay = prof.garuda_id ? `#${prof.garuda_id}` : `DELEGATE (${(prof.delegated_nft_type || 'NFT').toUpperCase()})`;
           const communityDisplay = prof.chapter || 'GLOBAL';
@@ -2010,37 +2025,6 @@ async function generateVoterAuditLogPDF() {
     }
   }
 
-  if (!voterLogRowsHtml) {
-    voterLogRowsHtml = `
-      <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
-        <td style="padding: 6px 4px; font-weight: bold; background: #f8fafc; text-align: center;">1</td>
-        <td style="padding: 6px 6px; font-weight: bold; text-align: left; color: #0f172a;">@afifmasfiqo</td>
-        <td style="padding: 6px 4px; font-family: monospace; font-weight: bold; color: #1e3a8a; text-align: center;">#911</td>
-        <td style="padding: 6px 4px; font-weight: 600; text-align: center;">GLOBAL</td>
-        <td style="padding: 6px 4px; text-align: center;">Founder</td>
-        <td style="padding: 6px 4px; font-weight: bold; text-align: center;">2.0</td>
-        <td style="padding: 6px 4px; font-weight: 600; color: #2563eb; text-align: center;">TVOD Verifier dApp</td>
-        <td style="padding: 6px 4px; font-weight: bold; text-align: center; background: #dcfce7; color: #166534;">Agree (+1)</td>
-        <td style="padding: 6px 4px; font-weight: bold; text-align: center;">5</td>
-        <td style="padding: 6px 4px; font-weight: bold; text-align: center; color: #15803d;">+10.0</td>
-        <td style="padding: 6px 6px; text-align: left; font-size: 9px; color: #475569;">Verified On-Chain (Garuda #911)</td>
-      </tr>
-      <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
-        <td style="padding: 6px 4px; font-weight: bold; background: #f8fafc; text-align: center;">2</td>
-        <td style="padding: 6px 6px; font-weight: bold; text-align: left; color: #0f172a;">@Nalaktak</td>
-        <td style="padding: 6px 4px; font-family: monospace; font-weight: bold; color: #1e3a8a; text-align: center;">#999</td>
-        <td style="padding: 6px 4px; font-weight: 600; text-align: center;">GLOBAL</td>
-        <td style="padding: 6px 4px; text-align: center;">Inspector</td>
-        <td style="padding: 6px 4px; font-weight: bold; text-align: center;">2.0</td>
-        <td style="padding: 6px 4px; font-weight: 600; color: #2563eb; text-align: center;">TVOD Verifier dApp</td>
-        <td style="padding: 6px 4px; font-weight: bold; text-align: center; background: #dcfce7; color: #166534;">Agree (+1)</td>
-        <td style="padding: 6px 4px; font-weight: bold; text-align: center;">5</td>
-        <td style="padding: 6px 4px; font-weight: bold; text-align: center; color: #15803d;">+10.0</td>
-        <td style="padding: 6px 6px; text-align: left; font-size: 9px; color: #475569;">Verified On-Chain (Garuda #999)</td>
-      </tr>
-    `;
-  }
-
   const docHtml = `
     <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 14px 10px; box-sizing: border-box; line-height: 1.45; background: #ffffff;">
       
@@ -2054,10 +2038,10 @@ async function generateVoterAuditLogPDF() {
 
       <!-- CONTROL BANNER -->
       <div style="background: #1e1b4b; color: #ffffff; text-align: center; padding: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; border-radius: 4px;">
-        ⚠️ RESTRICTED · CONTROLLED AUDIT LOG DOCUMENT · AUTHORIZED PERSONNEL ONLY
+        ⚠️ RESTRICTED · CONTROLLED AUDIT LOG DOCUMENT [FROZEN ACCOUNTS EXCLUDED]
       </div>
 
-      <!-- AUDIT DATA TABLE (EXCEL FORMAT MATCH) -->
+      <!-- AUDIT DATA TABLE -->
       <div style="overflow-x: auto; margin-bottom: 18px;">
         <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1.5px solid #4c1d95; text-align: center;">
           <thead>
@@ -2081,7 +2065,7 @@ async function generateVoterAuditLogPDF() {
         </table>
       </div>
 
-      <!-- VERIFICATION FOOTER & SIGNATURES -->
+      <!-- VERIFICATION SIGNATURES -->
       <div class="avoid-break" style="position: relative; margin-top: 18px; border-top: 2px solid #cbd5e1; padding-top: 10px; page-break-inside: avoid;">
         <img src="/stempel-tvod.png" alt="Official TVOD Stamp" style="position: absolute; right: 20px; top: 15px; width: 90px; height: 90px; opacity: 0.75; pointer-events: none;" />
 
@@ -2120,24 +2104,6 @@ async function generateCertificatePDF() {
   await fetchVoterStatsForAdmin();
 
   let sigChairman = getSignatureDataUrl("sig-chairman");
-
-  if (!sigChairman && supabaseClient && activeProposal.id) {
-    try {
-      const { data: voteRows } = await supabaseClient
-        .from('votes')
-        .select('voter_signature_base64')
-        .eq('proposal_id', activeProposal.id)
-        .not('voter_signature_base64', 'is', null)
-        .limit(1);
-
-      if (voteRows && voteRows.length > 0 && voteRows[0].voter_signature_base64) {
-        sigChairman = voteRows[0].voter_signature_base64;
-      }
-    } catch (err) {
-      console.warn("Gagal mengambil fallback tanda tangan sertifikat:", err);
-    }
-  }
-
   const netScoreVal = activeProposal.netScore || 0;
   const verdictText = netScoreVal > 0 ? "TVOD VERIFIED & PASSED" : "VERIFIED - REJECTED";
   const shaProof = window.CryptoJS ? window.CryptoJS.SHA256(`CERT-${activeProposal.id}-${Date.now()}`).toString() : "CERT-SHA256-PROVED";
@@ -2166,9 +2132,8 @@ async function generateCertificatePDF() {
         <span style="font-size: 11px; font-weight: bold; color: #166534; display: block; margin-bottom: 4px;">GOVERNANCE AUDIT STATUS:</span>
         <strong style="font-size: 16px; color: #166534; letter-spacing: 0.5px;">STATUS: ${verdictText}</strong>
         <p style="font-size: 11.5px; color: #334155; margin: 6px 0 0 0;">
-          Net Weighted Score: <strong>+${netScoreVal.toFixed(1)} Pts</strong> | Total Verified Votes: <strong>${activeProposal.totalVotes} Ballots</strong>
+          Net Weighted Score: <strong>+${netScoreVal.toFixed(1)} Pts</strong> | Total Verified Votes (Active): <strong>${activeProposal.totalVotes} Ballots</strong>
         </p>
-
         <img src="/stempel-tvod.png" alt="Stempel TVOD" style="position: absolute; right: 12px; top: 10px; width: 75px; height: 75px; opacity: 0.85;" />
       </div>
 
@@ -2186,7 +2151,7 @@ async function generateCertificatePDF() {
     </div>
   `;
 
-  renderDocumentInModal(`Digital Certificate: ${activeProposal.id}`, docHtml);
+  renderDocumentInModal(`Digital Certificate: ${activeProposal.id}`, certHtml);
 }
 
 window.publishNewProposal = publishNewProposal;
