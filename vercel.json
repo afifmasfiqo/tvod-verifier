@@ -7,7 +7,8 @@
       "config": {
         "includeFiles": [
           "public/**",
-          "api/**"
+          "api/**",
+          "frozen_list.json"
         ]
       }
     }
