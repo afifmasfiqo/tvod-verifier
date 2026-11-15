@@ -1,3 +1,4 @@
+// file: app.js
 "use strict";
 
 const $ = (selector) => document.querySelector(selector);
@@ -398,12 +399,12 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   return false;
 }
 
-// ⚡ INISIALISASI PI SDK
+// ⚡ INISIALISASI PI SDK (STEP 1: Await Pi.init({ version: "2.0" }) without sandbox)
 async function initPiSDK() {
   if (isPiSDKInitialized) return true;
   if (!window.Pi) return false;
   try {
-    await window.Pi.init({ version: "2.0", sandbox: true });
+    await window.Pi.init({ version: "2.0" });
     isPiSDKInitialized = true;
     return true;
   } catch (err) {
@@ -412,38 +413,45 @@ async function initPiSDK() {
   }
 }
 
+// 🔑 PI AUTHENTICATION & APP STUDIO EXCHANGE (STEP 1 & STEP 2)
 async function handlePiAuth() {
   const initialized = await initPiSDK();
   if (!initialized) {
     throw new Error("Pi SDK belum siap. Pastikan dApp dibuka di dalam Pi Browser.");
   }
 
-  const auth = await window.Pi.authenticate(["username", "payments"], (payment) => {
-    console.warn("Incomplete payment found:", payment);
-  });
+  // STEP 1 - Sign the user in, in the browser
+  const auth = await window.Pi.authenticate(["username"], onIncompletePaymentFound);
 
   if (!auth || !auth.accessToken) {
-    throw new Error("Gagal memperoleh otentikasi dari Pi SDK.");
+    throw new Error("Gagal memperoleh access token dari Pi.authenticate.");
   }
 
-  // 🌐 KIRIM ACCESS TOKEN KE PI APP STUDIO PARENT WINDOW (MENGATASI "We didn't detect a verified sign-in")
-  if (window.parent && window.parent !== window) {
-    try {
-      window.parent.postMessage({
-        type: "pi_access_token",
-        accessToken: auth.accessToken,
-        token: auth.accessToken,
-        user: auth.user
-      }, "*");
-    } catch (e) {
-      console.warn("Failed to post message to parent window:", e);
-    }
+  const accessToken = auth.accessToken;
+  // Keep the accessToken. Ignore the uid and username beside it.
+
+  // STEP 2 - Exchange that accessToken with App Studio
+  const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ accessToken: accessToken })
+  });
+
+  if (!response.ok) {
+    throw new Error(`App Studio login failed with status ${response.status}`);
   }
+
+  const data = await response.json();
+  const sessionToken = data.sessionToken;
+  const user = data.user; // { uid, username } returned and verified by App Studio
 
   const verifiedUser = {
-    username: auth.user.username,
-    uid: auth.user.uid,
-    accessToken: auth.accessToken,
+    username: user.username,
+    uid: user.uid,
+    sessionToken: sessionToken,
+    accessToken: accessToken,
     demo: false
   };
 
@@ -453,6 +461,10 @@ async function handlePiAuth() {
   return verifiedUser;
 }
 
+const onIncompletePaymentFound = (payment) => {
+  console.warn("Incomplete payment found:", payment);
+};
+
 function checkSavedSession() {
   const saved = localStorage.getItem("tvod_user_session");
   if (saved) {
@@ -461,20 +473,6 @@ function checkSavedSession() {
       if (user && user.username) {
         renderUser(user);
         setConnection(user.demo ? "● Mode Demo" : "● Verified by Pi SDK", true);
-
-        // Jika tersimpan, teruskan token ke App Studio parent window jika berjalan di iframe preview
-        if (user.accessToken && window.parent && window.parent !== window) {
-          try {
-            window.parent.postMessage({
-              type: "pi_access_token",
-              accessToken: user.accessToken,
-              token: user.accessToken,
-              user: { username: user.username, uid: user.uid }
-            }, "*");
-          } catch (e) {
-            console.warn("Failed to post saved session token to parent window:", e);
-          }
-        }
       }
     } catch (e) {
       console.warn("Gagal membaca saved session:", e);
