@@ -1,3 +1,4 @@
+<!-- file: index.html -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#090d16">
   <meta name="description" content="The Voice of Dao Web3 Verifier & Voting dApp for Pi Network.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://sdk.minepi.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://socialchain.app https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com; frame-ancestors 'self' https://*.pinet.com https://*.minepi.com;">
   <title>TVOD Verifier | The Voice of Dao</title>
   
   <link rel="icon" href="/logo.png">
@@ -17,6 +19,7 @@
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+  <!-- Load Pi SDK first in document head -->
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
