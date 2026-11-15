@@ -1092,9 +1092,11 @@ function renderProposalMaterials() {
   const galleryContainer = $("#mediaGalleryContainer");
   if (galleryContainer && activeProposal.images) {
     galleryContainer.innerHTML = activeProposal.images.map((imgUrl, idx) => `
-      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 sm:p-4 text-center shadow-lg">
-        <span class="text-xs sm:text-sm font-semibold text-amber-400 block mb-2">Bukti Foto #${idx + 1}:</span>
-        <img src="${imgUrl}" alt="Bukti Foto #${idx + 1}" class="w-full h-auto max-h-[650px] object-contain rounded-xl border border-slate-800 bg-slate-900/60 shadow">
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center shadow-lg overflow-hidden max-w-full">
+        <span class="text-xs font-semibold text-amber-400 block mb-2">Bukti Foto #${idx + 1}:</span>
+        <div class="w-full max-h-[320px] overflow-hidden flex items-center justify-center bg-slate-900/60 rounded-lg border border-slate-800 p-1">
+          <img src="${imgUrl}" alt="Bukti Foto #${idx + 1}" class="w-full h-full max-h-[300px] object-contain rounded-lg">
+        </div>
       </div>
     `).join("");
   }
@@ -2141,8 +2143,8 @@ async function generateCertificatePDF() {
 
       <div style="text-align: left; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 11.5px; color: #334155; margin-bottom: 14px; line-height: 1.6;">
         <p style="margin: 3px 0;">• Submitted By Entity : <strong>${activeProposal.proposerEntity}</strong></p>
-        <p style="margin: 3px 0;">• Case Category     : <strong>${activeProposal.category}</strong></p>
-        <p style="margin: 3px 0;">• Reference ID       : <strong>${activeProposal.id}</strong></p>
+        <p style="margin: 3px 0;">• Case Category    : <strong>${activeProposal.category}</strong></p>
+        <p style="margin: 3px 0;">• Reference ID     : <strong>${activeProposal.id}</strong></p>
         <p style="margin: 3px 0;">• Ratification Date  : <strong>${activeProposal.date}</strong></p>
       </div>
 
