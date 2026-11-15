@@ -381,3 +381,10 @@ canvas.signature-pad:focus {
     transition: none !important;
   }
 }
+
+/* 12. PENGAMAN GAMBAR RESPONSIF (MENCEGAH OVERSIZED DI PI BROWSER) */
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
