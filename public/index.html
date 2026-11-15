@@ -6,21 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
   <meta name="theme-color" content="#090d16">
   <meta name="description" content="The Voice of Dao Web3 Verifier & Voting dApp for Pi Network.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; script-src 'self' https://sdk.minepi.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://socialchain.app https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com; frame-ancestors 'self' https://*.pinet.com https://*.minepi.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://sdk.minepi.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://socialchain.app https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com https://*.supabase.co; frame-ancestors 'self' https://*.pinet.com https://*.minepi.com;">
   <title>TVOD Verifier | The Voice of Dao</title>
   
   <link rel="icon" href="/logo.png">
   <link rel="stylesheet" href="/styles.css">
 
+  <!-- Tailwind CSS & Konfigurasi Skala Khusus Pi Browser -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontSize: {
-            'xs': '11px',
-            'sm': '12px',
-            'base': '13px',
+            'xs': '10.5px',
+            'sm': '11.5px',
+            'base': '12.5px',
             'lg': '14px',
             'xl': '16px',
           }
@@ -29,197 +30,209 @@
     }
   </script>
 
+  <!-- Pustaka Utility & Direct PDF Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+  <!-- Load Pi SDK first in document head -->
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
+    /* PENGUNCI UTAMA & SKALA LAYAR HP (Mencegah Over-Zoom & Tampilan Melar) */
     html {
-      font-size: 13px;
+      font-size: 12px;
       width: 100%;
       max-width: 100%;
       overflow-x: hidden;
-      background-color: #090d16;
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100%;
     }
     body {
       width: 100%;
-      max-width: 520px; /* Lebar optimal agar proporsional di Pi Browser HP */
-      margin: 0 auto;
+      max-width: 100%;
       overflow-x: hidden;
-      background-color: #090d16;
+      margin: 0;
+      padding: 0;
       -webkit-text-size-adjust: 100%;
     }
     * {
       box-sizing: border-box;
     }
+
     .rtl { direction: rtl; }
     canvas.signature-pad { touch-action: none; background-color: #020617; border: 1px solid #334155; border-radius: 0.5rem; }
 
+    /* Aturan Cetak & PDF Resolusi Tinggi */
     @media print {
       body * { visibility: hidden; }
       #pdfDownloadModal, #pdfDownloadModal * { visibility: visible; }
       #pdfDownloadModal { position: absolute; left: 0; top: 0; width: 100%; background: #ffffff !important; color: #000000 !important; }
       .no-print { display: none !important; }
       #documentViewerContent { padding: 0 !important; margin: 0 !important; max-width: 100% !important; box-shadow: none !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
+
+    /* Pengunci Tata Letak Halaman PDF Full-Width Responsif */
     .pdf-container {
       font-family: Arial, Helvetica, sans-serif;
       color: #0f172a;
       background: #ffffff;
+      box-sizing: border-box;
       width: 100% !important;
       max-width: 100% !important;
       padding: 12px 10px;
+    }
+    .avoid-break {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans text-xs sm:text-sm">
 
-  <!-- Topbar Header dengan Logo Kecil yang Proporsional -->
-  <header class="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-50 px-3 py-2.5">
-    <div class="flex justify-between items-center gap-2">
+  <!-- Topbar Header -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-3 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
       <a class="flex items-center gap-2.5" href="/" aria-label="TVOD home">
-        <img id="appLogo" src="/logo.png" alt="TVOD Logo" class="h-8 w-8 object-contain rounded-lg border border-amber-500/50 shadow-sm">
+        <img id="appLogo" src="/logo.png" alt="TVOD Logo" class="h-8 w-8 object-contain rounded">
         <div>
-          <strong class="text-xs sm:text-sm text-slate-100 block leading-tight tracking-wide" data-i18n="app_title">THE VOICE OF DAO</strong>
+          <strong class="text-xs sm:text-sm text-slate-100 block leading-tight" data-i18n="app_title">THE VOICE OF DAO</strong>
           <small class="text-[9px] text-amber-400 font-mono font-semibold" data-i18n="sub_title">WEB3 VERIFIER & VOTING dAPP</small>
         </div>
       </a>
 
-      <div class="flex items-center gap-1.5 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap">
         <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-slate-800 border border-slate-700 text-[10px] rounded-lg px-2 py-1 text-slate-200 outline-none cursor-pointer">
-          <option value="id">ID</option>
-          <option value="en">EN</option>
-          <option value="ar">AR</option>
-          <option value="zh">ZH</option>
+          <option value="id">Indonesian (ID)</option>
+          <option value="en">English (EN)</option>
+          <option value="ar">Arabic (AR)</option>
+          <option value="zh">Chinese (ZH)</option>
         </select>
-        <span id="connection-status" class="bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 text-[9px] px-2 py-0.5 rounded-full font-mono font-bold">
-          ● Live
+
+        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[9px] px-2 py-0.5 rounded-full font-mono font-semibold hidden sm:inline-block">
+          PROTOCOL 28
         </span>
+
+        <span id="connection-status" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[9px] px-2 py-0.5 rounded-full font-mono">
+          ● Connected
+        </span>
+
+        <div id="userBadge" class="hidden items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700 text-[10px]">
+          <span id="displayUsername" class="font-semibold text-amber-400">@user</span>
+          <span id="displayGaruda" class="bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded font-mono text-[9px]">#000</span>
+        </div>
       </div>
     </div>
   </header>
 
   <!-- Dashboard Navigation -->
-  <nav class="bg-slate-900/80 border-b border-slate-800 px-3 py-2 overflow-x-auto">
-    <div class="flex gap-2 text-xs font-medium whitespace-nowrap">
-      <a href="#section-auth" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-amber-400 hover:bg-slate-700 transition border border-amber-500/20" data-i18n="nav_home">🔑 Onboarding</a>
-      <a href="#section-material" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition border border-slate-700" data-i18n="nav_proposal">📄 Voting</a>
-      <a href="#section-voting" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition border border-slate-700" data-i18n="nav_verify">🗳️ Fast Vote</a>
-      <a href="#section-admin" id="nav-admin-link" class="hidden px-2.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition" data-i18n="nav_admin">🛡️ Admin</a>
+  <nav class="bg-slate-900/60 border-b border-slate-800/80 px-3 py-2 overflow-x-auto">
+    <div class="max-w-7xl mx-auto flex gap-2 text-xs font-medium whitespace-nowrap">
+      <a href="#section-auth" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-amber-400 hover:bg-slate-700 transition" data-i18n="nav_home">🔑 Onboarding & Wallet</a>
+      <a href="#section-material" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-i18n="nav_proposal">📄 Materi Voting</a>
+      <a href="#section-voting" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-i18n="nav_verify">🗳️ Fast Voting</a>
+      <a href="#section-admin" id="nav-admin-link" class="hidden px-2.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition" data-i18n="nav_admin">🛡️ Admin Suite</a>
     </div>
   </nav>
 
-  <main class="px-3 py-3 space-y-3">
-
-    <!-- HERO BANNER SPIRIT OF GARUDA (Dikembalikan proporsional & pas di HP) -->
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-2xl overflow-hidden">
-      <div class="relative w-full rounded-lg overflow-hidden bg-slate-950 border border-amber-500/30 flex items-center justify-center p-1">
-        <img src="/logo.png" alt="Spirit of Garuda NFT Banner" class="w-full h-44 sm:h-52 object-contain rounded-lg">
-      </div>
-    </div>
+  <main class="max-w-4xl mx-auto px-3 py-3 space-y-3">
 
     <!-- Ethics Violation Banner -->
     <div id="banBanner" class="hidden bg-red-950/90 border border-red-600 text-red-200 p-2.5 rounded-xl text-center font-medium text-xs shadow-xl">
-      ⚠️ <span id="banReason">Akses akun Anda dibatasi karena Pelanggaran Kode Etik / Garuda ID Dibekukan.</span>
+      ⚠️ <span id="banReason">Akses akun Anda dibatasi karena Pelanggaran Kode Etik / Garuda ID Dibekukan. Proses voting ditolak.</span>
     </div>
 
     <!-- SECTION 1: ONBOARDING & WALLET BINDING -->
-    <section id="section-auth" class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-xl">
-      <div class="border-b border-slate-800 pb-2 mb-3 flex justify-between items-center">
-        <div>
-          <span class="text-[9px] font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 1</span>
-          <h2 class="text-sm font-bold text-slate-100 mt-0.5" data-i18n="step1_title">Pendaftaran Pemilih & Pi Wallet</h2>
-        </div>
-        <div id="userBadge" class="hidden items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700 text-[10px]">
-          <span id="displayUsername" class="font-semibold text-amber-400">@user</span>
-          <span id="displayGaruda" class="bg-amber-500/20 text-amber-300 px-1 rounded font-mono text-[9px]">#000</span>
-        </div>
+    <section id="section-auth" class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 sm:p-4 shadow-xl">
+      <div class="border-b border-slate-800 pb-2 mb-3">
+        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 1</span>
+        <h2 class="text-base sm:text-lg font-bold text-slate-100 mt-0.5" data-i18n="step1_title">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
+        <p class="text-[11px] text-slate-400 mt-0.5" data-i18n="step1_desc">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2 mb-3 p-2.5 bg-slate-950 rounded-lg border border-slate-800">
-        <button id="pi-login-button" type="button" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow-md">
-          <span class="font-bold text-xs">π</span> Sign in Pi SDK
+        <button id="pi-login-button" type="button" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow">
+          <span class="font-bold text-xs">π</span> Sign in with Pi SDK
         </button>
-        <button id="demo-login-button" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs px-3 py-2 rounded-lg transition border border-slate-700 shadow">
-          Demo Mode
+        <button id="demo-login-button" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs px-3 py-2 rounded-lg transition shadow">
+          Simulasi Demo Mode
         </button>
-        <span id="loginStatusText" class="text-[10px] text-slate-400 italic">Belum terautentikasi</span>
+        <span id="loginStatusText" class="text-[11px] text-slate-400 italic">Belum terautentikasi</span>
       </div>
 
-      <form id="onboardingForm" class="space-y-2.5">
+      <form id="onboardingForm" class="space-y-3">
         <div>
-          <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1" data-i18n="label_wallet">Pi Wallet Address (Awalan G / M, 56 Karakter)</label>
-          <input type="text" id="walletAddress" placeholder="GBBIFANY...3TDQ3WL" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-amber-300 font-mono focus:border-amber-500 outline-none">
+          <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1" data-i18n="label_wallet">Pi Wallet Address (Awalan G / M, 56 Karakter untuk Payout & Cek NFT)</label>
+          <input type="text" id="walletAddress" placeholder="Contoh: GBBIFANY...3TDQ3WL atau M..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm text-amber-300 font-mono focus:border-amber-500 outline-none">
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           <div>
-            <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1" data-i18n="label_category">Kategori Pemilih</label>
-            <select id="voterCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 outline-none">
-              <option value="owner">Pemilik NFT Garuda</option>
-              <option value="delegator">Delegator (Halloween/PiDay)</option>
+            <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1" data-i18n="label_category">Kategori Pemilih (Voter Category)</label>
+            <select id="voterCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm text-slate-200 outline-none">
+              <option value="owner">Pemilih Tetap (Pemilik NFT Garuda)</option>
+              <option value="delegator">Delegator (NFT Halloween 1 Unit / NFT PiDay2026 3 Unit)</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1" data-i18n="label_chapter">Wilayah Chapter</label>
-            <select id="communityChapter" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 outline-none">
-              <option value="ICP2E JAKARTA">JAKARTA</option>
-              <option value="ICP2E SOLO">SOLO</option>
-              <option value="ICP2E BANTEN">BANTEN</option>
-              <option value="ICP2E JATIM">JATIM</option>
-              <option value="ICP2E BLITAR RAYA">BLITAR RAYA</option>
-              <option value="ICP2E LAMPUNG">LAMPUNG</option>
-              <option value="ICP2E JEMBER">JEMBER</option>
-              <option value="ICP2E SIDOARJO">SIDOARJO</option>
-              <option value="ICP2E MADURA">MADURA</option>
+            <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1" data-i18n="label_chapter">Wilayah Komunitas (Chapter)</label>
+            <select id="communityChapter" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm text-slate-200 outline-none">
+              <option value="ICP2E JAKARTA">ICP2E JAKARTA</option>
+              <option value="ICP2E SOLO">ICP2E SOLO</option>
+              <option value="ICP2E BANTEN">ICP2E BANTEN</option>
+              <option value="ICP2E JATIM">ICP2E JATIM</option>
+              <option value="ICP2E BLITAR RAYA">ICP2E BLITAR RAYA</option>
+              <option value="ICP2E LAMPUNG">ICP2E LAMPUNG</option>
+              <option value="ICP2E JEMBER">ICP2E JEMBER</option>
+              <option value="ICP2E SIDOARJO">ICP2E SIDOARJO</option>
+              <option value="ICP2E MADURA">ICP2E MADURA</option>
               <option value="TVOD">TVOD</option>
               <option value="GLOBAL">GLOBAL</option>
-              <option value="FOUNDER RECOMMENDED">FOUNDER</option>
+              <option value="FOUNDER RECOMMENDED">FOUNDER RECOMMENDED</option>
             </select>
           </div>
         </div>
 
-        <div id="ownerFields" class="grid grid-cols-2 gap-2 border-t border-slate-800 pt-2">
+        <div id="ownerFields" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 border-t border-slate-800 pt-2.5">
           <div>
-            <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1">Garuda ID</label>
-            <input type="number" id="garudaId" min="1" max="1000" placeholder="911" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs font-mono text-slate-100">
+            <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1">Garuda ID</label>
+            <input type="number" id="garudaId" min="1" max="1000" placeholder="Contoh: 911" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm font-mono text-slate-100">
           </div>
           <div>
-            <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1">Garuda NFT Hash</label>
-            <input type="text" id="garudaHash" placeholder="Hash NFT" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs font-mono text-slate-100">
+            <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1">Garuda NFT Token ID / Hash</label>
+            <input type="text" id="garudaHash" placeholder="Masukkan Hash NFT Garuda" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm font-mono text-slate-100">
           </div>
         </div>
 
-        <div id="delegatorFields" class="hidden grid-cols-1 gap-2 border-t border-slate-800 pt-2">
+        <div id="delegatorFields" class="hidden grid-cols-1 md:grid-cols-2 gap-2.5 border-t border-slate-800 pt-2.5">
           <div>
-            <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1">Username Pemilik Asli</label>
-            <input type="text" id="ownerUsername" placeholder="@username" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-100">
+            <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1">Username Pemilik Asli Garuda</label>
+            <input type="text" id="ownerUsername" placeholder="@username_pemilik" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm text-slate-100">
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1">Jenis NFT</label>
-              <select id="delegatorNftType" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-100">
-                <option value="halloween">Halloween (1 Unit)</option>
-                <option value="piday">PiDay2026 (3 Unit)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1">Hash NFT</label>
-              <input type="text" id="delegatorHashes" placeholder="Hash NFT" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs font-mono text-slate-100">
-            </div>
+          <div>
+            <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1">Jenis NFT Delegasi</label>
+            <select id="delegatorNftType" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm text-slate-100">
+              <option value="halloween">1 Unit NFT Halloween</option>
+              <option value="piday">3 Unit NFT PiDay2026</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1">Hash NFT Terdaftar</label>
+            <input type="text" id="delegatorHashes" placeholder="Masukkan Hash (Pisahkan koma jika 3 unit PiDay2026)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm font-mono text-slate-100">
+            <p id="delegatorHint" class="text-[10px] text-amber-400/90 mt-1">Wajib memasukkan tepat 1 Hash NFT Halloween.</p>
           </div>
         </div>
 
         <div>
-          <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1" data-i18n="label_role">Peran Tata Kelola</label>
-          <select id="userRole" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+          <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1" data-i18n="label_role">Peran Tata Kelola (Governance Role)</label>
+          <select id="userRole" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs sm:text-sm text-slate-200">
             <option value="Member">Member</option>
             <option value="Group Leader">Group Leader</option>
-            <option value="Founder">Founder (Garuda ID #999)</option>
+            <option value="Founder">Founder (STRICT: Khusus Garuda ID #999)</option>
           </select>
         </div>
 
@@ -230,42 +243,48 @@
     </section>
 
     <!-- SECTION 2: MATERI VOTING & BUKTI OBJEK -->
-    <section id="section-material" class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-xl">
-      <div class="border-b border-slate-800 pb-2 mb-2.5">
+    <section id="section-material" class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 sm:p-4 shadow-xl">
+      <div class="border-b border-slate-800 pb-2.5 mb-3">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-          <span id="displayPropCategory" class="bg-amber-500/15 text-amber-400 border border-amber-500/40 text-[9px] px-2 py-0.5 rounded font-mono uppercase font-semibold">
+          <span id="displayPropCategory" class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded font-mono uppercase font-semibold">
             🏷️ Category: Community Voting
           </span>
-          <span id="countdownDisplay" class="bg-amber-500/15 text-amber-400 border border-amber-500/40 text-[9px] px-2.5 py-0.5 rounded-full font-mono font-bold">
-            ⏳ Loading...
-          </span>
+          <div class="flex items-center gap-1.5">
+            <span id="countdownDisplay" class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+              ⏳ Durasi Voting: Loading...
+            </span>
+            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[9px] px-2 py-0.5 rounded-full font-mono font-semibold">
+              ● ACTIVE
+            </span>
+          </div>
         </div>
-        <h2 id="displayPropTitle" class="text-sm font-extrabold text-slate-100 leading-tight mt-1">
+        <h2 id="displayPropTitle" class="text-base sm:text-lg font-extrabold text-slate-100 leading-tight">
           Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD
         </h2>
-        <p class="text-[10px] text-slate-400 font-mono mt-0.5">Oleh: <span id="displayPropAuthor" class="text-amber-400">TVOD Team</span></p>
+        <p class="text-[10px] text-slate-400 font-mono mt-0.5">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400 font-semibold">TVOD Development Team</span> | Tanggal: <span id="displayPropDate">30 Okt 2026</span></p>
       </div>
 
       <div class="mb-3">
-        <h3 class="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-1" data-i18n="prop_bg_title">📄 LATAR BELAKANG & DESKRIPSI</h3>
-        <div id="displayPropDescription" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 leading-relaxed whitespace-pre-line shadow-inner">
+        <h3 class="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-1" data-i18n="prop_bg_title">📄 LATAR BELAKANG & DESKRIPSI OBJEK</h3>
+        <div id="displayPropDescription" class="bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-200 leading-relaxed whitespace-pre-line shadow-inner">
           Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.
+          Harap periksa materi audio-visual dan dokumen pendukung di bawah ini secara teliti sebelum memberikan suara terbobot Anda.
         </div>
       </div>
 
       <div>
-        <h3 class="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-2" data-i18n="prop_gallery_title">📸 GALERI BUKTI FOTO</h3>
-        <div class="space-y-2.5">
-          <div id="mediaGalleryContainer" class="flex flex-col gap-2.5"></div>
+        <h3 class="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2" data-i18n="prop_gallery_title">📸 GALERI BUKTI FOTO & VIDEO OBJEK</h3>
+        <div class="space-y-3">
+          <div id="mediaGalleryContainer" class="flex flex-col gap-3"></div>
           
           <div class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 flex flex-col items-center justify-center">
             <span class="text-[10px] font-semibold text-slate-400 self-start mb-1">Bukti Rekaman Video:</span>
-            <div id="videoContainer" class="w-full h-36 bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-slate-800">
+            <div id="videoContainer" class="w-full h-44 sm:h-72 bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-slate-800">
               <video id="displayMediaVideo" controls class="w-full h-full object-contain hidden">
                 <source src="" type="video/mp4">
               </video>
               <iframe id="displayMediaIframe" class="w-full h-full hidden" frameborder="0" allowfullscreen></iframe>
-              <p id="videoPlaceholder" class="text-[11px] text-slate-500 font-mono">Belum ada video dilampirkan</p>
+              <p id="videoPlaceholder" class="text-xs text-slate-500 font-mono">Belum ada video dilampirkan</p>
             </div>
           </div>
         </div>
@@ -273,33 +292,34 @@
     </section>
 
     <!-- SECTION 3: FAST VOTING MODULE -->
-    <section id="section-voting" class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-xl">
-      <div class="border-b border-slate-800 pb-2 mb-2.5">
-        <span class="text-[9px] font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 2</span>
-        <h2 class="text-sm font-bold text-slate-100 mt-0.5" data-i18n="vote_step_title">Modul Fast Voting</h2>
+    <section id="section-voting" class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 sm:p-4 shadow-xl">
+      <div class="border-b border-slate-800 pb-2 mb-3">
+        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 2</span>
+        <h2 class="text-base sm:text-lg font-bold text-slate-100 mt-0.5" data-i18n="vote_step_title">Modul Fast Voting</h2>
+        <p class="text-[11px] text-slate-400 mt-0.5">Sistem memverifikasi keberadaan NFT di wallet secara On-Chain sebelum menyimpan suara Anda.</p>
       </div>
 
-      <div id="voteStatusBanner" class="hidden p-2.5 rounded-lg text-xs font-medium mb-2 shadow"></div>
+      <div id="voteStatusBanner" class="hidden p-2.5 rounded-lg text-xs font-medium mb-2.5 shadow"></div>
 
-      <form id="votingForm" class="space-y-2.5">
+      <form id="votingForm" class="space-y-3">
         <div>
-          <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1" data-i18n="vote_dir_label">1. Arah Pilihan Suara Anda</label>
+          <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1" data-i18n="vote_dir_label">1. Arah Pilihan Suara Anda</label>
           <div class="grid grid-cols-3 gap-2 text-xs font-semibold">
             <label class="cursor-pointer">
               <input type="radio" name="voteValue" value="1" required class="peer hidden">
-              <div class="p-2 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-emerald-600 peer-checked:border-emerald-400 peer-checked:font-bold transition shadow text-xs" data-i18n="vote_agree">
+              <div class="p-2.5 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-emerald-600 peer-checked:border-emerald-400 peer-checked:font-bold transition shadow" data-i18n="vote_agree">
                 👍 Agree (+1)
               </div>
             </label>
             <label class="cursor-pointer">
               <input type="radio" name="voteValue" value="0" class="peer hidden">
-              <div class="p-2 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-slate-700 peer-checked:border-slate-400 peer-checked:font-bold transition shadow text-xs" data-i18n="vote_neutral">
+              <div class="p-2.5 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-slate-700 peer-checked:border-slate-400 peer-checked:font-bold transition shadow" data-i18n="vote_neutral">
                 😐 Neutral (0)
               </div>
             </label>
             <label class="cursor-pointer">
               <input type="radio" name="voteValue" value="-1" class="peer hidden">
-              <div class="p-2 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-red-600 peer-checked:border-red-400 peer-checked:font-bold transition shadow text-xs" data-i18n="vote_disagree">
+              <div class="p-2.5 text-center rounded-lg bg-slate-950 border border-slate-800 peer-checked:bg-red-600 peer-checked:border-red-400 peer-checked:font-bold transition shadow" data-i18n="vote_disagree">
                 👎 Disagree (-1)
               </div>
             </label>
@@ -307,13 +327,13 @@
         </div>
 
         <div>
-          <label class="block text-[10px] font-semibold uppercase text-slate-300 mb-1" data-i18n="confidence_label">2. Tingkat Keyakinan (Skala 1 - 5)</label>
-          <div class="grid grid-cols-5 gap-1.5">
-            <button type="button" onclick="setConfidence(1)" class="conf-btn p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs hover:border-amber-500 font-bold">1</button>
-            <button type="button" onclick="setConfidence(2)" class="conf-btn p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs hover:border-amber-500 font-bold">2</button>
-            <button type="button" onclick="setConfidence(3)" class="conf-btn p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs font-bold bg-amber-500 text-slate-950">3</button>
-            <button type="button" onclick="setConfidence(4)" class="conf-btn p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs hover:border-amber-500 font-bold">4</button>
-            <button type="button" onclick="setConfidence(5)" class="conf-btn p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs hover:border-amber-500 font-bold">5</button>
+          <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1" data-i18n="confidence_label">2. Tingkat Keyakinan / Confidence (Skala 1 - 5)</label>
+          <div class="grid grid-cols-5 gap-2">
+            <button type="button" onclick="setConfidence(1)" class="conf-btn p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs hover:border-amber-500 font-bold">1</button>
+            <button type="button" onclick="setConfidence(2)" class="conf-btn p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs hover:border-amber-500 font-bold">2</button>
+            <button type="button" onclick="setConfidence(3)" class="conf-btn p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs font-bold bg-amber-500 text-slate-950">3</button>
+            <button type="button" onclick="setConfidence(4)" class="conf-btn p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs hover:border-amber-500 font-bold">4</button>
+            <button type="button" onclick="setConfidence(5)" class="conf-btn p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs hover:border-amber-500 font-bold">5</button>
           </div>
         </div>
 
@@ -324,116 +344,186 @@
     </section>
 
     <!-- SECTION 4: ADMIN SUITE -->
-    <section id="section-admin" class="hidden bg-slate-900 border border-amber-500/40 rounded-xl p-3.5 shadow-2xl space-y-2.5">
+    <section id="section-admin" class="hidden bg-slate-900 border border-amber-500/40 rounded-xl p-3.5 sm:p-4 shadow-2xl space-y-3">
       <div class="border-b border-amber-500/30 pb-2 flex justify-between items-center">
-        <h2 class="text-xs font-bold text-amber-400 flex items-center gap-1" data-i18n="admin_title">
+        <h2 class="text-xs sm:text-sm font-bold text-amber-400 flex items-center gap-1.5" data-i18n="admin_title">
           🛡️ Admin Suite
         </h2>
         <span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-mono font-semibold">RESTRICTED</span>
       </div>
 
-      <div class="grid grid-cols-1 gap-2.5">
-        <div class="bg-slate-950 p-3 rounded-lg border border-amber-500/30 flex justify-between items-center gap-2">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <div class="bg-slate-950 p-3 rounded-lg border border-amber-500/30 flex flex-col justify-between gap-2">
           <div>
-            <h3 class="font-bold text-amber-400 uppercase text-[10px]">💰 Saldo Wallet App TVOD</h3>
-            <p id="appWalletDisplay" class="text-sm font-mono font-bold text-slate-100 mt-0.5">Loading...</p>
-            <span id="appWalletAddrText" class="text-[9px] font-mono text-slate-400 truncate max-w-[200px] block">GBBIFANY...3TDQ3WL</span>
+            <h3 class="font-bold text-amber-400 uppercase text-[10px]">💰 Saldo Wallet App TVOD (Kas Payout)</h3>
+            <p id="appWalletDisplay" class="text-base font-mono font-bold text-slate-100 mt-0.5">Loading Saldo...</p>
+            <span id="appWalletAddrText" class="text-[9px] font-mono text-slate-400 truncate max-w-xs block mt-0.5">GBBIFANY...3TDQ3WL</span>
           </div>
-          <button type="button" onclick="checkAppWalletBalance()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded text-[10px] transition shadow flex-shrink-0">
-            🔄 Cek Saldo
+          <button type="button" onclick="checkAppWalletBalance()" class="self-start bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2.5 py-1.5 rounded text-[11px] transition shadow">
+            🔄 Cek Saldo Wallet
           </button>
         </div>
 
-        <div class="bg-slate-950 p-3 rounded-lg border border-emerald-500/30 flex justify-between items-center gap-2">
+        <div class="bg-slate-950 p-3 rounded-lg border border-emerald-500/30 flex flex-col justify-between gap-2">
           <div>
-            <h3 class="font-bold text-emerald-400 uppercase text-[10px]">👥 Total Voter Aktif</h3>
-            <p id="adminVoterCountDisplay" class="text-sm font-mono font-bold text-slate-100 mt-0.5">0 Voter</p>
-            <span class="text-[9px] font-mono text-slate-400 block">Partisipan valid</span>
+            <h3 class="font-bold text-emerald-400 uppercase text-[10px]">👥 Total Voter Aktif (Suara Masuk)</h3>
+            <p id="adminVoterCountDisplay" class="text-base font-mono font-bold text-slate-100 mt-0.5">0 Voter Aktif</p>
+            <span class="text-[9px] font-mono text-slate-400 block mt-0.5">Jumlah partisipan terverifikasi pada proposal ini</span>
           </div>
-          <button type="button" onclick="fetchVoterStatsForAdmin()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded text-[10px] transition shadow flex-shrink-0">
-            🔄 Refresh
+          <button type="button" onclick="fetchVoterStatsForAdmin()" class="self-start bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1.5 rounded text-[11px] transition shadow">
+            🔄 Refresh Statistik Voter
           </button>
         </div>
       </div>
 
-      <!-- MODUL BAN / BLACKLIST -->
-      <div class="bg-slate-950 p-3 rounded-lg border border-red-500/30 text-xs space-y-2">
-        <h3 class="font-bold text-red-400 uppercase text-[10px]">🚫 Blacklist & Pembekuan Garuda ID</h3>
-        <input type="number" id="targetGarudaId" min="1" max="1000" placeholder="Garuda ID" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs font-mono text-slate-100">
-        <input type="text" id="targetBanReason" placeholder="Alasan Pembekuan" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs text-slate-100">
-        <div class="grid grid-cols-2 gap-2">
-          <button type="button" onclick="toggleGarudaBan(true)" class="bg-red-600 hover:bg-red-700 font-bold py-1.5 rounded text-white text-[10px] shadow">🔒 Bekukan ID</button>
-          <button type="button" onclick="toggleGarudaBan(false)" class="bg-emerald-600 hover:bg-emerald-700 font-bold py-1.5 rounded text-white text-[10px] shadow">🔓 Buka</button>
+      <!-- MODUL BAN / BLACKLIST VOTER & ID GARUDA -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+        <div class="bg-slate-950 p-3 rounded-lg border border-red-500/30">
+          <h3 class="font-bold text-red-400 uppercase mb-1 text-[10px]">🚫 Blacklist & Pembekuan ID Garuda</h3>
+          <p class="text-[10px] text-slate-400 mb-2">Membekukan nomor Garuda ID agar tidak bisa melakukan voting/onboarding.</p>
+          
+          <div class="space-y-2">
+            <input type="number" id="targetGarudaId" min="1" max="1000" placeholder="Garuda ID" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs font-mono text-slate-100">
+            <input type="text" id="targetBanReason" placeholder="Alasan Pembekuan / Pelanggaran Kode Etik" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs text-slate-100">
+            <div class="flex gap-2 pt-0.5">
+              <button type="button" onclick="toggleGarudaBan(true)" class="flex-1 bg-red-600 hover:bg-red-700 font-bold py-1.5 rounded text-white text-[10px]">🔒 Bekukan ID</button>
+              <button type="button" onclick="toggleGarudaBan(false)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-1.5 rounded text-white text-[10px]">🔓 Buka</button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- PUBLISH PROPOSAL -->
-      <div class="bg-slate-950 p-3 rounded-lg border border-amber-500/30 space-y-2 text-xs">
-        <h3 class="font-bold text-amber-400 uppercase text-[10px]">📝 Publish Proposal Baru</h3>
-        <input type="text" id="inputPropTitle" placeholder="Judul Proposal" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-slate-100 text-xs">
-        <div class="grid grid-cols-2 gap-2">
-          <select id="inputPropCategory" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-slate-100 text-xs font-semibold">
-            <option value="Community Voting">Community Voting</option>
-            <option value="NFT Voting">NFT Voting</option>
-            <option value="Dispute Case Voting">Dispute Case</option>
-          </select>
-          <input type="number" id="inputPropDuration" value="24" min="0.01" step="0.01" placeholder="Durasi (Jam)" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-slate-100 font-mono text-xs">
-        </div>
-        <textarea id="inputPropDesc" rows="2" placeholder="Deskripsi lengkap..." class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-slate-100 text-xs"></textarea>
-        <div>
-          <label class="block text-slate-300 text-[10px] font-semibold mb-0.5">📱 Upload Foto Bukti</label>
-          <input type="file" id="inputPropFileImages" accept="image/*" multiple class="w-full bg-slate-900 border border-slate-800 rounded p-1 text-slate-300 text-[10px] cursor-pointer">
-          <span id="galleryFilesCount" class="text-[9px] text-amber-400 font-mono mt-0.5 block"></span>
-        </div>
-        <div class="grid grid-cols-2 gap-2 pt-1">
-          <button type="button" onclick="publishNewProposal(event)" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 px-2 rounded text-xs transition shadow" data-i18n="btn_publish_prop">
-            🚀 Publish
-          </button>
-          <button type="button" onclick="cancelActiveProposal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 rounded text-xs transition shadow" data-i18n="btn_cancel_prop">
-            ⛔ Batalkan
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-slate-300 uppercase mb-1 text-[10px]">Atur Rate Insentif Pi / Suara</h3>
+            <div class="flex gap-2 mb-2">
+              <input type="number" id="payoutRate" step="0.1" min="0.8" max="100" value="1.0" class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs font-mono">
+              <button type="button" onclick="savePayoutRate()" class="bg-amber-500 text-slate-950 font-bold px-2.5 py-1.5 rounded text-[11px]">Simpan</button>
+            </div>
+          </div>
+          <button type="button" id="btnRetryPayouts" onclick="retryFailedPayouts()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-[11px] transition shadow" data-i18n="btn_retry_payouts">
+            🔄 Process Pending Payouts Queue
           </button>
         </div>
       </div>
 
-      <!-- TANDA TANGAN DIGITAL -->
-      <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-        <h3 class="text-xs font-bold text-slate-100">✍️ Tanda Tangan Digital Pejabat</h3>
-        <div class="grid grid-cols-2 gap-2">
+      <!-- PUBLISH SUITE PROPOSAL BARU -->
+      <div class="bg-slate-950 p-3 rounded-lg border border-amber-500/30 space-y-2.5">
+        <div class="border-b border-slate-800 pb-1.5">
+          <h3 class="font-bold text-amber-400 uppercase text-xs">📝 Publish Suite Proposal Baru</h3>
+          <p class="text-[10px] text-slate-400 mt-0.5">Terbitkan objek voting baru, atur durasi voting, atau batalkan proposal.</p>
+        </div>
+
+        <div class="space-y-2.5 text-xs">
           <div>
-            <label class="block text-[9px] font-semibold text-amber-400 mb-0.5">1. Chairman (@afifmasfiqo)</label>
-            <canvas id="sig-chairman" class="signature-pad w-full h-20"></canvas>
-            <button type="button" onclick="clearOfficerSig('sig-chairman')" class="text-[9px] text-red-400 hover:underline">Clear</button>
+            <label class="block text-slate-300 font-semibold mb-0.5 text-[11px]">Judul Proposal / Objek Voting</label>
+            <input type="text" id="inputPropTitle" placeholder="Contoh: Voting test - Europe Community" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-100 text-xs">
           </div>
-          <div>
-            <label class="block text-[9px] font-semibold text-amber-400 mb-0.5">2. Witness (@insya)</label>
-            <canvas id="sig-witness" class="signature-pad w-full h-20"></canvas>
-            <button type="button" onclick="clearOfficerSig('sig-witness')" class="text-[9px] text-red-400 hover:underline">Clear</button>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-0.5 text-[11px]">Kategori Objek</label>
+              <select id="inputPropCategory" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-100 text-xs font-semibold">
+                <option value="Community Voting">Community Voting</option>
+                <option value="NFT Voting">NFT Voting</option>
+                <option value="Dispute Case Voting">Dispute Case Voting</option>
+                <option value="Custom Proposal">Custom Proposal (Optional)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-0.5 text-[11px]">Durasi (Jam, contoh: 0.08 = 5 Menit)</label>
+              <input type="number" id="inputPropDuration" value="24" min="0.01" step="0.01" placeholder="Contoh: 24" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-100 font-mono text-xs">
+            </div>
           </div>
+
           <div>
-            <label class="block text-[9px] font-semibold text-amber-400 mb-0.5">3. Inspector (@Nalaktak)</label>
-            <canvas id="sig-inspector" class="signature-pad w-full h-20"></canvas>
-            <button type="button" onclick="clearOfficerSig('sig-inspector')" class="text-[9px] text-red-400 hover:underline">Clear</button>
+            <label class="block text-slate-300 font-semibold mb-0.5 text-[11px]">Latar Belakang & Deskripsi</label>
+            <textarea id="inputPropDesc" rows="2.5" placeholder="Jelaskan detail proyek / objek verifikasi secara lengkap..." class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-100 text-xs"></textarea>
           </div>
-          <div>
-            <label class="block text-[9px] font-semibold text-amber-400 mb-0.5">4. Country Head (@Rasj81)</label>
-            <canvas id="sig-country-head" class="signature-pad w-full h-20"></canvas>
-            <button type="button" onclick="clearOfficerSig('sig-country-head')" class="text-[9px] text-red-400 hover:underline">Clear</button>
+
+          <div class="border-t border-slate-800 pt-2">
+            <label class="block text-amber-300 font-bold mb-1 text-[11px]">📷 GALERI MEDIA & BUKTI FOTO / VIDEO</label>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-slate-300 text-[10px] font-semibold mb-0.5">📱 Upload Foto dari Galeri HP / Laptop</label>
+                <input type="file" id="inputPropFileImages" accept="image/*" multiple class="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-slate-300 text-[10px] cursor-pointer">
+                <span id="galleryFilesCount" class="text-[10px] text-amber-400 font-mono mt-0.5 block"></span>
+              </div>
+
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">Link Foto Eksternal (Pisahkan koma)</label>
+                <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-100 text-xs">
+              </div>
+
+              <div>
+                <label class="block text-slate-400 text-[10px] mb-0.5">URL Video Bukti (YouTube Embed / MP4)</label>
+                <input type="text" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-slate-100 text-xs">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-2 pt-0.5">
+            <button type="button" onclick="publishNewProposal(event)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 px-3 rounded-lg text-xs transition shadow cursor-pointer" data-i18n="btn_publish_prop">
+              🚀 Terbitkan Proposal & Mulai Timer
+            </button>
+            <button type="button" onclick="cancelActiveProposal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-3 rounded-lg text-xs transition shadow cursor-pointer" data-i18n="btn_cancel_prop">
+              ⛔ Batalkan / Tutup
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- GENERATOR PDF & SERTIFIKAT -->
-      <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-        <h3 class="text-xs font-bold text-slate-100">📑 Generator Dokumen & Sertifikat</h3>
-        <div class="grid grid-cols-1 gap-2 text-xs">
-          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-2.5 rounded-lg transition text-center shadow">
-            📄 Generate Official Minutes (English)
+      <!-- TANDA TANGAN DIGITAL PEJABAT TVOD -->
+      <div id="section-signatures" class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2.5">
+        <div class="border-b border-slate-800 pb-1.5">
+          <h3 class="text-xs font-bold text-slate-100 flex items-center gap-1">✍️ Tanda Tangan Digital Pejabat TVOD</h3>
+          <p class="text-[10px] text-slate-400 mt-0.5">Tanda tangan pada kanvas akan otomatis terpasang pada Official Minutes & Sertifikat.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">1. Chairman (@afifmasfiqo #911)</label>
+            <canvas id="sig-chairman" class="signature-pad w-full h-24"></canvas>
+            <button type="button" onclick="clearOfficerSig('sig-chairman')" class="text-[10px] text-red-400 hover:underline mt-0.5">Clear Tanda Tangan</button>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">2. Witness (@insya)</label>
+            <canvas id="sig-witness" class="signature-pad w-full h-24"></canvas>
+            <button type="button" onclick="clearOfficerSig('sig-witness')" class="text-[10px] text-red-400 hover:underline mt-0.5">Clear Tanda Tangan</button>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">3. Inspector (@Nalaktak #999)</label>
+            <canvas id="sig-inspector" class="signature-pad w-full h-24"></canvas>
+            <button type="button" onclick="clearOfficerSig('sig-inspector')" class="text-[10px] text-red-400 hover:underline mt-0.5">Clear Tanda Tangan</button>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">4. Country Head (@Rasj81)</label>
+            <canvas id="sig-country-head" class="signature-pad w-full h-24"></canvas>
+            <button type="button" onclick="clearOfficerSig('sig-country-head')" class="text-[10px] text-red-400 hover:underline mt-0.5">Clear Tanda Tangan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GENERATOR DOKUMEN PDF & SERTIFIKAT -->
+      <div id="section-bap" class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2.5">
+        <div class="border-b border-slate-800 pb-1.5">
+          <h3 class="text-xs font-bold text-slate-100 flex items-center gap-1">📑 Generator Dokumen Resmi & Sertifikat</h3>
+          <p class="text-[10px] text-slate-400 mt-0.5">Merender dokumen resmi sesuai data real-time voting.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-3 rounded-lg text-xs transition flex flex-col items-center justify-center text-center gap-1 shadow" data-i18n="btn_official_minutes">
+            <span class="text-xl">📄</span>
+            <span>Generate Official Minutes Document (English)</span>
           </button>
-          <button type="button" onclick="generateVoterAuditLogPDF()" class="bg-purple-950/80 hover:bg-purple-900/80 border border-purple-500/40 text-purple-200 font-bold p-2.5 rounded-lg transition text-center shadow">
-            📊 Individual Voter Audit Log (PDF/Excel)
+          
+          <button type="button" onclick="generateVoterAuditLogPDF()" class="bg-purple-950/80 hover:bg-purple-900/80 border border-purple-500/40 text-purple-200 font-bold p-3 rounded-lg text-xs transition flex flex-col items-center justify-center text-center gap-1 shadow">
+            <span class="text-xl">📊</span>
+            <span>Individual Voter Audit Log (PDF & Excel Format)</span>
           </button>
-          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-2.5 rounded-lg transition text-center shadow">
-            🎓 Generate Digital Certificate
+
+          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-3 rounded-lg text-xs transition flex flex-col items-center justify-center text-center gap-1 shadow" data-i18n="btn_digital_cert">
+            <span class="text-xl">🎓</span>
+            <span>Generate Digital Verification Certificate</span>
           </button>
         </div>
       </div>
@@ -441,32 +531,42 @@
 
   </main>
 
-  <!-- MODAL DOCUMENT VIEWER -->
+  <!-- MODAL DOCUMENT VIEWER SELULER KHUSUS PI BROWSER & CHROME -->
   <div id="pdfDownloadModal" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-2 overflow-y-auto">
-    <div class="bg-slate-900 border border-amber-500/50 rounded-xl p-3 max-w-lg w-full shadow-2xl space-y-2 my-auto max-h-[96vh] flex flex-col">
+    <div class="bg-slate-900 border border-amber-500/50 rounded-xl p-3 max-w-3xl w-full shadow-2xl space-y-2 my-auto max-h-[96vh] flex flex-col">
       <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
-        <h3 class="text-xs font-bold text-amber-400" id="pdfModalTitle">📄 Dokumen Resmi TVOD</h3>
+        <h3 class="text-xs sm:text-sm font-bold text-amber-400 flex items-center gap-1" id="pdfModalTitle">
+          📄 Dokumen Resmi TVOD Ready
+        </h3>
         <button type="button" onclick="closePdfModal()" class="text-slate-400 hover:text-white font-bold text-sm px-2">✕</button>
       </div>
 
+      <!-- Area Tautan Chrome -->
       <div id="externalLinkContainer" class="no-print hidden bg-slate-950 border border-slate-800 p-2 rounded-lg">
-        <label class="block text-[10px] font-semibold text-amber-400 mb-1">🔗 Link untuk Google Chrome:</label>
+        <label class="block text-[10px] font-semibold text-amber-400 mb-1">🔗 Link Dokumen Spesifik untuk Google Chrome:</label>
         <input type="text" id="externalLinkInput" readonly class="w-full bg-slate-900 border border-slate-800 rounded p-1 text-[10px] font-mono text-amber-300 outline-none select-all">
         <span id="shareStatusText" class="text-[10px] font-semibold text-emerald-400 mt-1 block"></span>
       </div>
 
-      <div id="documentViewerContent" class="pdf-container flex-1 overflow-y-auto bg-white p-2.5 rounded-lg border border-slate-300 text-slate-900 text-xs font-sans space-y-2 shadow-inner"></div>
+      <!-- Kontainer Isi Dokumen Resmi -->
+      <div id="documentViewerContent" class="pdf-container flex-1 overflow-y-auto bg-white p-2.5 rounded-lg border border-slate-300 text-slate-900 text-xs font-sans space-y-2 shadow-inner">
+      </div>
 
       <div id="directDownloadFallbackLink" class="hidden text-center py-1.5 bg-emerald-950 border border-emerald-500/40 rounded-lg text-xs"></div>
 
       <div class="flex flex-wrap gap-2 pt-1 border-t border-slate-800">
-        <button type="button" id="btnModalDownload" onclick="downloadPdfDirect()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 px-2.5 rounded-lg text-xs transition shadow flex items-center justify-center gap-1">
-          <span>📥</span> Download PDF
+        <button type="button" id="btnModalDownload" onclick="downloadPdfDirect()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 px-2.5 rounded-lg text-xs transition shadow flex items-center justify-center gap-1" data-i18n="btn_print_pdf">
+          <span>📥</span> Download PDF Directly (1-Klik)
         </button>
-        <button type="button" onclick="shareToExternalBrowser()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg text-xs transition shadow">
-          🌐 Chrome
+
+        <button type="button" onclick="shareToExternalBrowser()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2.5 rounded-lg text-xs transition flex items-center justify-center gap-1 shadow" data-i18n="btn_share_chrome">
+          🌐 Salin Link Chrome
         </button>
-        <button type="button" onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 px-2 rounded-lg text-xs transition">
+
+        <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-2 px-2.5 rounded-lg text-xs border border-slate-700 transition" data-i18n="btn_copy_text">
+          📋 Salin Teks
+        </button>
+        <button type="button" onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 px-2.5 rounded-lg text-xs transition" data-i18n="btn_close_modal">
           Tutup
         </button>
       </div>
@@ -474,9 +574,11 @@
   </div>
 
   <footer class="border-t border-slate-800 py-3 text-center text-[10px] text-slate-500">
-    <p>THE VOICE OF DAO (TVOD) · Web3 Verification Infrastructure</p>
+    <p>THE VOICE OF DAO (TVOD) · Web3 Verification & Voting Infrastructure</p>
+    <p class="text-[9px] text-slate-600 mt-0.5">TVOD Development Team</p>
   </footer>
 
   <script src="/app.js"></script>
+
 </body>
 </html>
