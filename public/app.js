@@ -196,7 +196,7 @@ let activeProposal = {
   title: "Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD",
   proposerEntity: "TVOD Development Team",
   category: "Community Voting",
-  author: "TVOD Team",
+  author: "afifmasfiqo",
   date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
   description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.",
   durationHours: 24,
@@ -574,7 +574,7 @@ async function fetchActiveProposalFromSupabase() {
       category: p.category || "Community Voting",
       description: p.description,
       proposerEntity: "TVOD Team",
-      author: "TVOD Team",
+      author: p.author || "afifmasfiqo",
       date: new Date(p.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
       durationHours: p.duration_hours || 24,
       images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/500x300/0f172a/f59e0b?text=Bukti+Foto"],
@@ -907,10 +907,10 @@ function renderProposalMaterials() {
   const galleryContainer = $("#mediaGalleryContainer");
   if (galleryContainer && activeProposal.images) {
     galleryContainer.innerHTML = activeProposal.images.map((imgUrl, idx) => `
-      <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 text-center shadow-md overflow-hidden max-w-full">
-        <span class="text-xs font-semibold text-amber-400 block mb-1">Bukti Foto #${idx + 1}:</span>
-        <div class="w-full max-h-[300px] overflow-hidden flex items-center justify-center bg-slate-900/60 rounded border border-slate-800 p-1">
-          <img src="${imgUrl}" alt="Bukti Foto" class="w-full h-full max-h-[280px] object-contain rounded">
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center shadow-md overflow-hidden max-w-full">
+        <span class="text-xs sm:text-sm font-semibold text-amber-400 block mb-1">Bukti Foto #${idx + 1}:</span>
+        <div class="w-full max-h-[300px] overflow-hidden flex items-center justify-center bg-slate-900/60 rounded-xl border border-slate-800 p-1">
+          <img src="${imgUrl}" alt="Bukti Foto" class="w-full h-full max-h-[280px] object-contain rounded-xl">
         </div>
       </div>
     `).join("");
@@ -934,6 +934,7 @@ async function publishNewProposal(e) {
   activeProposal.category = category;
   activeProposal.description = description;
   activeProposal.durationHours = durationHrs;
+  activeProposal.author = activeUser.username || "afifmasfiqo";
   votingEndTime = new Date(Date.now() + durationHrs * 60 * 60 * 1000);
 
   startCountdownTimer();
@@ -956,6 +957,7 @@ async function publishNewProposal(e) {
         description: activeProposal.description,
         duration_hours: activeProposal.durationHours,
         voting_end_time: votingEndTime.toISOString(),
+        author: activeProposal.author,
         images: activeProposal.images,
         status: 'ACTIVE'
       }], { onConflict: 'id' });
@@ -974,10 +976,6 @@ async function cancelActiveProposal() {
     await supabaseClient.from('proposals').update({ status: 'CANCELLED' }).eq('id', activeProposal.id);
   }
   alert("⛔ Proposal dibatalkan.");
-}
-
-async function verifyOnChainNftOwnership() {
-  return true;
 }
 
 function setConfidence(val) {
@@ -1030,7 +1028,7 @@ async function handleCastVote(e) {
     return;
   }
 
-  const voteVal = parseInt(selectedValue.value); // Menyerap nilai +1, 0, atau -1
+  const voteVal = parseInt(selectedValue.value);
   const roleWeight = activeUser.role === "Group Leader" ? 1.0 : (activeUser.role === "Founder" ? 2.0 : 0.5);
   const individualScore = voteVal * currentConfidence * roleWeight;
   const timestamp = new Date().toISOString();
@@ -1077,7 +1075,7 @@ async function handleCastVote(e) {
   if (btn) {
     btn.disabled = true;
     btn.innerText = "✅ Suara Terkirim";
-    btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-lg text-sm border border-amber-500/30 cursor-not-allowed";
+    btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
   }
 }
 
@@ -1273,7 +1271,7 @@ async function generateOfficialMinutesPDF() {
           <tr><td style="background: #f1f5f9; width: 30%; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Activity Name</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">${activeProposal.title}</td></tr>
           <tr><td style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Platform</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">TVOD Verifier dApp</td></tr>
           <tr><td style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Voting Method</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">On-Chain NFT Verification & Weighted Role Voting</td></tr>
-          <tr><td style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Scoring Formula</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">Score = Direction (+1 / 0 / -1) × Confidence × Role Weight</td></tr>
+          <tr><td style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Scoring Formula</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">Score = Direction × Confidence × Role Weight</td></tr>
         </table>
       </div>
 
@@ -1331,14 +1329,9 @@ async function generateOfficialMinutesPDF() {
       <div style="margin-top: 15px; position: relative;" class="avoid-break">
         <h3 style="font-size: 11px; color: #1e3a8a; margin: 0 0 6px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; font-weight: bold;">OFFICIAL RATIFICATION SIGNATURES</h3>
         
-        <!-- Stempel Resmi TVOD di area tanda tangan -->
-        <div style="position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: 80px; height: 80px; border: 2.5px dashed #1e3a8a; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; pointer-events: none; background: rgba(255,255,255,0.9); box-shadow: 0 0 10px rgba(30,58,138,0.3);">
-          <div style="text-align: center; font-size: 7.5px; color: #1e3a8a; font-weight: bold; line-height: 1.15;">
-            SPIRIT OF GARUDA<br>
-            <span style="font-size: 9px; color: #b45309;">🏛️ TVOD 🏛️</span><br>
-            OFFICIAL SEAL<br>
-            VERIFIED DAO
-          </div>
+        <!-- Stempel Resmi TVOD dari public/stempel-tvod.png -->
+        <div style="position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: 75px; height: 75px; z-index: 10; pointer-events: none;">
+          <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Official Seal" />
         </div>
 
         <table style="width: 100%; border: none; font-size: 9px; text-align: center; position: relative; z-index: 1;">
@@ -1402,24 +1395,27 @@ async function generateVoterAuditLogPDF() {
 
   let tableRowsHtml = "";
   if (validVotes.length === 0) {
-    tableRowsHtml = `<tr><td colspan="10" style="text-align: center; padding: 12px; color: #64748b;">Belum ada data voting aktif tercatat untuk proposal ini.</td></tr>`;
+    tableRowsHtml = `<tr><td colspan="11" style="text-align: center; padding: 12px; color: #64748b;">Belum ada data voting aktif tercatat untuk proposal ini.</td></tr>`;
   } else {
     validVotes.forEach((v, idx) => {
       const dirText = v.vote_direction === 1 ? "Agree (+1)" : (v.vote_direction === 0 ? "Neutral (0)" : "Disagree (-1)");
-      const timestampFormatted = v.created_at ? new Date(v.created_at).toLocaleString("id-ID", { timeZone: "UTC" }) + " UTC" : new Date().toLocaleString("id-ID") + " UTC";
       const prof = profileMap[v.username] || {};
+      const garudaIdStr = prof.garuda_id ? `#${prof.garuda_id}` : 'Delegate';
+      const notesStr = prof.garuda_id ? `Verified On-Chain (Garuda #${prof.garuda_id})` : `Delegate Verified`;
+      
       tableRowsHtml += `
         <tr>
           <td style="border: 1px solid #cbd5e1; padding: 5px; text-align:center;">${idx + 1}</td>
           <td style="border: 1px solid #cbd5e1; padding: 5px;">@${v.username || 'anonymous'}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 5px; text-align:center;">${prof.garuda_id ? '#' + prof.garuda_id : 'Delegate'}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 5px; text-align:center;">${garudaIdStr}</td>
           <td style="border: 1px solid #cbd5e1; padding: 5px;">${prof.chapter || 'GLOBAL'}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 5px;">${prof.role || 'Member'}</td>
           <td style="border: 1px solid #cbd5e1; padding: 5px; text-align:center; font-weight:bold; color:#581c87;">${v.role_weight || 1.0}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 5px;">TVOD dApp</td>
+          <td style="border: 1px solid #cbd5e1; padding: 5px;">TVOD Verifier dApp</td>
           <td style="border: 1px solid #cbd5e1; padding: 5px;">${dirText}</td>
           <td style="border: 1px solid #cbd5e1; padding: 5px; text-align:center;">${v.confidence || 3}</td>
           <td style="border: 1px solid #cbd5e1; padding: 5px; text-align:center; font-weight:bold;">${(v.weighted_score >= 0 ? '+' : '') + (v.weighted_score || 0).toFixed(1)}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 5px; font-size: 9px; font-family: monospace;">${timestampFormatted}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 5px; font-size: 8.5px;">${notesStr}</td>
         </tr>
       `;
     });
@@ -1429,32 +1425,32 @@ async function generateVoterAuditLogPDF() {
   const sigInspector = getSignatureDataUrl("sig-inspector");
 
   const docHtml = `
-    <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; background: #ffffff; padding: 20px; font-size: 12px;">
+    <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; background: #ffffff; padding: 20px; font-size: 11px;">
       <div style="text-align: center; border-bottom: 2px solid #581c87; padding-bottom: 10px; margin-bottom: 15px;">
         <img src="/logo.png" style="width: 48px; height: 48px; object-fit: contain; margin: 0 auto 4px auto; display: block;" alt="TVOD Logo" />
-        <h2 style="color: #581c87; margin: 0; font-size: 16px;">INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT</h2>
-        <p style="font-size: 11px; color: #475569; margin: 4px 0;">PROPOSAL: ${activeProposal.title.toUpperCase()}</p>
-        <p style="font-size: 10px; color: #64748b; margin: 0;">THE VOICE OF DAO (TVOD) x PI NETWORK ECOSYSTEM</p>
+        <h2 style="color: #581c87; margin: 0; font-size: 15px; font-weight: bold;">INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT</h2>
+        <p style="font-size: 11px; color: #475569; margin: 4px 0; font-weight: bold;">PROPOSAL: ${activeProposal.title.toUpperCase()}</p>
+        <p style="font-size: 9px; color: #64748b; margin: 0;">THE VOICE OF DAO (TVOD) x PI NETWORK ECOSYSTEM</p>
       </div>
 
-      <div style="margin-bottom: 10px; background: #f3e8ff; border: 1px solid #d8b4fe; padding: 6px 10px; border-radius: 4px; font-size: 10px; color: #6b21a8; font-weight: bold; text-align: center;">
-        ⚠️ RESTRICTED - CONTROLLED AUDIT LOG DOCUMENT • FROZEN IDs EXCLUDED
+      <div style="margin-bottom: 10px; background: #f3e8ff; border: 1px solid #d8b4fe; padding: 6px 10px; border-radius: 4px; font-size: 9px; color: #6b21a8; font-weight: bold; text-align: center;">
+        ⚠️ RESTRICTED - CONTROLLED AUDIT LOG DOCUMENT • AUTHORIZED PERSONNEL ONLY
       </div>
 
       <div style="overflow-x: auto; margin-bottom: 15px;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <thead>
-            <tr style="background: #581c87; color: #ffffff;">
-              <th style="padding: 6px; border: 1px solid #4c1d95;">No</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Username</th>
+            <tr style="background: #581c87; color: #ffffff; text-align: center;">
+              <th style="padding: 6px; border: 1px solid #4c1d95;">No. Name</th>
               <th style="padding: 6px; border: 1px solid #4c1d95;">Garuda ID</th>
               <th style="padding: 6px; border: 1px solid #4c1d95;">Community</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95;">Role</th>
               <th style="padding: 6px; border: 1px solid #4c1d95;">Weight</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Source</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95;">Voting Source</th>
               <th style="padding: 6px; border: 1px solid #4c1d95;">Vote</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Conf</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95;">Confidence</th>
               <th style="padding: 6px; border: 1px solid #4c1d95;">Score</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Timestamp (UTC)</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95;">Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -1464,25 +1460,23 @@ async function generateVoterAuditLogPDF() {
       </div>
 
       <div style="margin-top: 20px; position: relative;" class="avoid-break">
-        <h3 style="font-size: 11px; color: #581c87; margin: 0 0 6px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">AUDIT TRAIL VERIFICATION SIGNATURES</h3>
+        <h3 style="font-size: 11px; color: #581c87; margin: 0 0 6px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; font-weight: bold;">AUDIT TRAIL VERIFICATION SIGNATURES</h3>
         
-        <!-- Stempel Audit TVOD -->
-        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 75px; height: 75px; border: 2.5px dashed #581c87; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; pointer-events: none; background: rgba(255,255,255,0.9);">
-          <div style="text-align: center; font-size: 7px; color: #581c87; font-weight: bold; line-height: 1.15;">
-            AUDIT SEAL<br>🏛️ TVOD 🏛️<br>VERIFIED LOG
-          </div>
+        <!-- Stempel Audit dari public/stempel-tvod.png -->
+        <div style="position: absolute; left: 75%; top: 50%; transform: translate(-50%, -50%); width: 75px; height: 75px; z-index: 10; pointer-events: none;">
+          <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Audit Seal" />
         </div>
 
-        <table style="width: 100%; border: none; font-size: 10px; text-align: center; position: relative; z-index: 1;">
+        <table style="width: 100%; border: none; font-size: 9px; text-align: center; position: relative; z-index: 1;">
           <tr>
             <td style="border: 1px solid #cbd5e1; padding: 8px; width: 50%; vertical-align: top; background: #ffffff;">
               <b>Governance Chairman:</b><br><br>
-              ${sigChairman ? `<img src="${sigChairman}" style="max-height: 42px; display: block; margin: 0 auto;" />` : '<span style="color:#64748b;">[Signed Digitally]</span>'}<br>
+              ${sigChairman ? `<img src="${sigChairman}" style="max-height: 40px; display: block; margin: 0 auto;" />` : '<span style="color:#64748b;">[Signed Digitally]</span>'}<br>
               <b>@afifmasfiqo</b> (#911)
             </td>
             <td style="border: 1px solid #cbd5e1; padding: 8px; width: 50%; vertical-align: top; background: #ffffff;">
               <b>Audit Inspector:</b><br><br>
-              ${sigInspector ? `<img src="${sigInspector}" style="max-height: 42px; display: block; margin: 0 auto;" />` : '<span style="color:#64748b;">[Signed Digitally]</span>'}<br>
+              ${sigInspector ? `<img src="${sigInspector}" style="max-height: 40px; display: block; margin: 0 auto;" />` : '<span style="color:#64748b;">[Signed Digitally]</span>'}<br>
               <b>@Nalaktak</b> (#999)
             </td>
           </tr>
@@ -1496,25 +1490,27 @@ async function generateVoterAuditLogPDF() {
 async function generateCertificatePDF() {
   currentOpenedDocType = "certificate";
   const sigChairman = getSignatureDataUrl("sig-chairman");
+  
+  // Mengambil nama pemohon / author proposal
+  const applicantName = activeProposal.author ? `@${activeProposal.author}` : `@${activeUser.username || 'afifmasfiqo'}`;
+
   const docHtml = `
     <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; background: #ffffff; padding: 30px; text-align: center; border: 8px double #f59e0b; position: relative;">
       <img src="/logo.png" style="width: 56px; height: 56px; object-fit: contain; margin: 0 auto 8px auto; display: block;" alt="TVOD Logo" />
-      <h2 style="color: #b45309; font-size: 22px; margin-bottom: 5px;">CERTIFICATE OF VERIFICATION</h2>
+      <h2 style="color: #b45309; font-size: 22px; margin-bottom: 5px; font-weight: bold;">CERTIFICATE OF VERIFICATION</h2>
       <p style="font-size: 12px; color: #78350f; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">THE VOICE OF DAO (TVOD) x PI NETWORK</p>
       
-      <p style="font-size: 13px; margin: 25px 0 10px 0; color: #334155;">Sertifikat penghargaan ini diberikan kepada:</p>
-      <h3 style="font-size: 20px; color: #1e3a8a; margin: 5px 0 15px 0;">@${activeUser.username || 'afifmasfiqo'}</h3>
+      <p style="font-size: 13px; margin: 25px 0 10px 0; color: #334155;">Sertifikat penghargaan ini diberikan kepada pemohon / pengaju voting:</p>
+      <h3 style="font-size: 20px; color: #1e3a8a; margin: 5px 0 15px 0; font-weight: bold;">${applicantName}</h3>
       <p style="font-size: 12px; color: #475569; max-width: 500px; margin: 0 auto 20px auto; line-height: 1.6;">
-        Atas partisipasi aktif dan kontribusi verifikasi on-chain dalam proposal tata kelola:<br>
+        Atas pengajuan proposal dan kontribusi verifikasi on-chain dalam tata kelola DAO:<br>
         <b>"${activeProposal.title}"</b>
       </p>
 
-      <div style="display: flex; justify-content: space-around; margin-top: 40px; text-align: center; position: relative;" class="avoid-break">
-        <!-- Stempel Sertifikat TVOD -->
-        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border: 2.5px dashed #b45309; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; background: rgba(255,255,255,0.9);">
-          <div style="text-align: center; font-size: 7.5px; color: #b45309; font-weight: bold; line-height: 1.15;">
-            DAO AWARD<br>🏛️ TVOD 🏛️<br>OFFICIAL SEAL
-          </div>
+      <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 40px; text-align: center; position: relative;" class="avoid-break">
+        <!-- Stempel Sertifikat dari public/stempel-tvod.png -->
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; z-index: 10; pointer-events: none;">
+          <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Certificate Seal" />
         </div>
 
         <div>
