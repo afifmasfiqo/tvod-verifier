@@ -35,26 +35,24 @@ const i18nDictionary = {
     nav_proposal: "📄 Voting",
     nav_verify: "🗳️ Fast Vote",
     nav_admin: "🛡️ Admin",
-    step1_title: "Pendaftaran Pemilih & Pi Wallet",
-    label_wallet: "Pi Wallet Address (Awalan G / M, 56 Karakter)",
-    label_category: "Kategori Pemilih",
-    cat_owner: "Pemilik NFT Garuda",
-    cat_delegator: "Delegator (Halloween/PiDay)",
-    label_chapter: "Wilayah Chapter",
-    label_role: "Peran Tata Kelola",
-    btn_register: "Verifikasi Data & Buka Akses Voting",
-    prop_bg_title: "📄 LATAR BELAKANG & DESKRIPSI",
-    prop_gallery_title: "📸 GALERI BUKTI FOTO",
-    vote_step_title: "Modul Fast Voting",
-    vote_dir_label: "1. Arah Pilihan Suara Anda",
+    step1_title: "Voter Registration & Pi Wallet",
+    label_wallet: "Pi Wallet Address (Prefix G / M, 56 Characters)",
+    label_category: "Voter Category",
+    label_chapter: "Community Chapter",
+    label_role: "Governance Role",
+    btn_register: "Verify Data & Enable Voting",
+    prop_bg_title: "📄 BACKGROUND & DESCRIPTION",
+    prop_gallery_title: "📸 PHOTO PROOF GALLERY",
+    vote_step_title: "Fast Voting Module",
+    vote_dir_label: "1. Your Vote Direction",
     vote_agree: "👍 Agree (+1)",
     vote_neutral: "😐 Neutral (0)",
     vote_disagree: "👎 Disagree (-1)",
-    confidence_label: "2. Tingkat Keyakinan (Skala 1 - 5)",
-    btn_submit_vote: "Kirim Suara Terenkripsi & Klaim Insentif Pi",
+    confidence_label: "2. Confidence Level (Scale 1 - 5)",
+    btn_submit_vote: "Submit Encrypted Vote & Claim Pi",
     admin_title: "🛡️ Admin Suite",
-    btn_publish_prop: "🚀 Publish Proposal",
-    btn_cancel_prop: "⛔ Batalkan",
+    btn_publish_prop: "🚀 Publish",
+    btn_cancel_prop: "⛔ Cancel",
   },
   en: {
     app_title: "THE VOICE OF DAO",
@@ -136,7 +134,7 @@ const i18nDictionary = {
   }
 };
 
-let currentLanguage = "id";
+let currentLanguage = "en";
 
 function changeLanguage(lang) {
   if (!lang) return;
@@ -193,15 +191,15 @@ let countdownInterval = null;
 
 let activeProposal = {
   id: "TVOD-PROP-2026-001",
-  title: "Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD",
+  title: "Ratification of Web3 Verification System & TVOD Voting Incentive Distribution",
   proposerEntity: "TVOD Development Team",
   category: "Community Voting",
   author: "afifmasfiqo",
   date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
-  description: "Berikut adalah berkas bukti verifikasi objek voting terkait pengajuan sistem reward dan kepatuhan Kode Etik.",
+  description: "The following is the official verification proof file regarding the reward system proposal and Code of Ethics compliance.",
   durationHours: 24,
   images: [
-    "https://via.placeholder.com/500x300/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"
+    "https://via.placeholder.com/500x300/0f172a/f59e0b?text=Main+Voting+Proof+Image"
   ],
   videoUrl: "",
   totalVotes: 0,
@@ -283,7 +281,7 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
       return true;
     }
   } catch (err) {
-    console.warn("Gagal mengecek status frozen server:", err);
+    console.warn("Server freeze check warning:", err);
   }
 
   if (supabaseClient) {
@@ -339,12 +337,12 @@ async function initPiSDK() {
 async function handlePiAuth() {
   const initialized = await initPiSDK();
   if (!initialized) {
-    throw new Error("Pi SDK belum siap. Buka dApp di Pi Browser.");
+    throw new Error("Pi SDK is not ready. Please open the dApp inside Pi Browser.");
   }
 
   const auth = await window.Pi.authenticate(["username"], onIncompletePaymentFound);
   if (!auth || !auth.accessToken) {
-    throw new Error("Gagal memperoleh access token dari Pi.");
+    throw new Error("Failed to retrieve access token from Pi Network.");
   }
 
   const accessToken = auth.accessToken;
@@ -390,7 +388,7 @@ function checkSavedSession() {
         setConnection(user.demo ? "● Demo Mode" : "● Pi SDK Verified", true);
       }
     } catch (e) {
-      console.warn("Gagal membaca saved session:", e);
+      console.warn("Failed to read saved session:", e);
     }
   }
 }
@@ -403,7 +401,7 @@ async function saveVoterToSupabase(voterData) {
       .upsert([voterData], { onConflict: 'username' });
 
     if (error) {
-      alert("⚠️ Gagal menyimpan profil ke Database: " + error.message);
+      alert("⚠️ Failed to save voter profile to database: " + error.message);
       return false;
     }
     return true;
@@ -549,10 +547,10 @@ async function fetchVoterStatsForAdmin() {
       activeProposal.disagreeScore = disagreeScore;
       activeProposal.avgConfidence = count > 0 ? (totalConf / count).toFixed(2) : 0;
 
-      if (display) display.textContent = `${count} Voter (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts)`;
+      if (display) display.textContent = `${count} Voters (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts)`;
     }
   } catch (err) {
-    if (display) display.textContent = "0 Voter";
+    if (display) display.textContent = "0 Voters";
   }
 }
 
@@ -573,11 +571,11 @@ async function fetchActiveProposalFromSupabase() {
       title: p.title,
       category: p.category || "Community Voting",
       description: p.description,
-      proposerEntity: "TVOD Team",
+      proposerEntity: "TVOD Development Team",
       author: p.author || "afifmasfiqo",
       date: new Date(p.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
       durationHours: p.duration_hours || 24,
-      images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/500x300/0f172a/f59e0b?text=Bukti+Foto"],
+      images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/500x300/0f172a/f59e0b?text=Proof+Image"],
       videoUrl: p.video_url || "",
       totalVotes: p.total_votes || 0,
       netScore: p.net_score || 0,
@@ -597,7 +595,7 @@ async function fetchActiveProposalFromSupabase() {
 
 async function checkAppWalletBalance() {
   const display = $("#appWalletDisplay");
-  if (display) display.textContent = "⏳ Memeriksa...";
+  if (display) display.textContent = "⏳ Checking...";
   try {
     const res = await fetch(`https://api.testnet.minepi.com/accounts/${TVOD_APP_WALLET}`);
     if (!res.ok) throw new Error();
@@ -612,7 +610,7 @@ async function checkAppWalletBalance() {
 
 async function initialize() {
   setConnection("● Ready", true);
-  const savedLang = localStorage.getItem("tvod_lang") || "id";
+  const savedLang = localStorage.getItem("tvod_lang") || "en";
   const langSelectEl = $("#langSelect");
   if (langSelectEl) {
     langSelectEl.value = savedLang;
@@ -702,13 +700,13 @@ async function handleGalleryImagesSelect(event) {
     if (countSpan) countSpan.textContent = "";
     return;
   }
-  if (countSpan) countSpan.textContent = `⏳ Mengompres ${files.length} foto...`;
+  if (countSpan) countSpan.textContent = `⏳ Compressing ${files.length} photos...`;
   try {
     const promises = Array.from(files).map((file) => compressAndResizeImage(file, 800, 0.8));
     uploadedGalleryBase64Images = await Promise.all(promises);
-    if (countSpan) countSpan.textContent = `📷 ${uploadedGalleryBase64Images.length} foto siap.`;
+    if (countSpan) countSpan.textContent = `📷 ${uploadedGalleryBase64Images.length} photos ready.`;
   } catch (err) {
-    if (countSpan) countSpan.textContent = "❌ Gagal memuat foto.";
+    if (countSpan) countSpan.textContent = "❌ Failed to load photos.";
   }
 }
 
@@ -722,10 +720,10 @@ function startCountdownTimer() {
 
     if (distance <= 0) {
       clearInterval(countdownInterval);
-      if (display) display.textContent = "⚠️ VOTING BERAKHIR";
+      if (display) display.textContent = "⚠️ VOTING CLOSED";
       if (btn) {
         btn.disabled = true;
-        btn.innerText = "⛔ Sesi Voting Ditutup";
+        btn.innerText = "⛔ Voting Session Closed";
         btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3 rounded-lg text-sm cursor-not-allowed";
       }
       return;
@@ -736,7 +734,7 @@ function startCountdownTimer() {
     const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
     if (display) {
-      display.textContent = `⏳ ${hours}j ${minutes < 10 ? '0' : ''}${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`;
+      display.textContent = `⏳ ${hours}h ${minutes < 10 ? '0' : ''}${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`;
     }
   }, 1000);
 }
@@ -763,7 +761,7 @@ function renderUser(user) {
       userBadge.classList.add("flex");
     }
     if (displayUsername) displayUsername.textContent = "@" + user.username;
-    if (loginStatusText) loginStatusText.textContent = `Terautentikasi: @${user.username}`;
+    if (loginStatusText) loginStatusText.textContent = `Authenticated: @${user.username}`;
 
     const isAdmin = AUTHORIZED_ADMINS.includes(user.username);
     if (adminSection) adminSection.classList.toggle("hidden", !isAdmin);
@@ -777,7 +775,7 @@ function renderUser(user) {
       userBadge.classList.add("hidden");
       userBadge.classList.remove("flex");
     }
-    if (loginStatusText) loginStatusText.textContent = "Belum terautentikasi";
+    if (loginStatusText) loginStatusText.textContent = "Not authenticated";
     if (adminSection) adminSection.classList.add("hidden");
     if (adminNavLink) adminNavLink.classList.add("hidden");
   }
@@ -790,7 +788,7 @@ if (piLoginBtn) {
     piLoginBtn.disabled = true;
     try {
       const user = await handlePiAuth();
-      alert(`Selamat datang @${user.username}! Login Pi SDK Berhasil.`);
+      alert(`Welcome @${user.username}! Pi SDK Login Successful.`);
     } catch (error) {
       alert("Pi Login Notice: " + error.message);
     } finally {
@@ -806,7 +804,7 @@ if (demoLoginBtn) {
     const demoUser = { username: "afifmasfiqo", demo: true };
     localStorage.setItem("tvod_user_session", JSON.stringify(demoUser));
     renderUser(demoUser);
-    alert("Masuk ke Mode Demo.");
+    alert("Entered Demo Mode.");
   });
 }
 
@@ -822,7 +820,7 @@ async function handleOnboarding(e) {
   e.preventDefault();
   const username = currentUser ? currentUser.username : activeUser.username;
   if (!username) {
-    alert("⚠️ Silakan login terlebih dahulu.");
+    alert("⚠️ Please log in first.");
     return;
   }
 
@@ -832,7 +830,7 @@ async function handleOnboarding(e) {
   const chapter = $("#communityChapter") ? $("#communityChapter").value : "GLOBAL";
 
   if (!isValidPiWalletAddress(wallet)) {
-    alert("⛔ ALAMAT WALLET TIDAK VALID!\nHarus diawali 'G' atau 'M' dengan panjang tepat 56 karakter.");
+    alert("⛔ INVALID WALLET ADDRESS!\nMust start with 'G' or 'M' and be exactly 56 characters long.");
     return;
   }
 
@@ -843,11 +841,11 @@ async function handleOnboarding(e) {
     gId = parseInt($("#garudaId").value || "0");
     gHash = $("#garudaHash").value.trim();
     if (!gId || gId < 1 || gId > 1000) {
-      alert("Garuda ID tidak valid.");
+      alert("Invalid Garuda ID.");
       return;
     }
     if (!gHash) {
-      alert("Hash NFT Garuda wajib diisi.");
+      alert("Garuda NFT Hash is required.");
       return;
     }
     activeUser.garudaId = gId;
@@ -857,7 +855,7 @@ async function handleOnboarding(e) {
     const nftType = $("#delegatorNftType").value;
     const rawHashes = $("#delegatorHashes").value.trim();
     if (!ownerUsername || !rawHashes) {
-      alert("Lengkapi data delegator.");
+      alert("Please complete delegator details.");
       return;
     }
     activeUser.ownerUsername = ownerUsername;
@@ -867,7 +865,7 @@ async function handleOnboarding(e) {
 
   const banned = await checkGarudaBlacklistStatus(gId, username);
   if (banned) {
-    alert("Access denied: Akun dibekukan.");
+    alert("Access denied: Account frozen.");
     return;
   }
 
@@ -894,7 +892,7 @@ async function handleOnboarding(e) {
 
   if (savedSuccess) {
     checkAppWalletBalance();
-    alert(`✅ Registrasi & Binding Berhasil!\nUsername: @${username}`);
+    alert(`✅ Registration & Binding Successful!\nUsername: @${username}`);
   }
 }
 
@@ -908,9 +906,9 @@ function renderProposalMaterials() {
   if (galleryContainer && activeProposal.images) {
     galleryContainer.innerHTML = activeProposal.images.map((imgUrl, idx) => `
       <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center shadow-md overflow-hidden max-w-full">
-        <span class="text-xs sm:text-sm font-semibold text-amber-400 block mb-1">Bukti Foto #${idx + 1}:</span>
+        <span class="text-xs sm:text-sm font-semibold text-amber-400 block mb-1">Proof Photo #${idx + 1}:</span>
         <div class="w-full max-h-[300px] overflow-hidden flex items-center justify-center bg-slate-900/60 rounded-xl border border-slate-800 p-1">
-          <img src="${imgUrl}" alt="Bukti Foto" class="w-full h-full max-h-[280px] object-contain rounded-xl">
+          <img src="${imgUrl}" alt="Proof Photo" class="w-full h-full max-h-[280px] object-contain rounded-xl">
         </div>
       </div>
     `).join("");
@@ -925,7 +923,7 @@ async function publishNewProposal(e) {
   const description = $("#inputPropDesc") ? $("#inputPropDesc").value.trim() : "";
 
   if (!title || !description) {
-    alert("Judul dan Deskripsi wajib diisi!");
+    alert("Title and Description are required!");
     return;
   }
 
@@ -943,7 +941,7 @@ async function publishNewProposal(e) {
   if (uploadedGalleryBase64Images && uploadedGalleryBase64Images.length > 0) {
     combinedImages = combinedImages.concat(uploadedGalleryBase64Images);
   }
-  activeProposal.images = combinedImages.length > 0 ? combinedImages : ["https://via.placeholder.com/500x300/0f172a/f59e0b?text=Bukti"];
+  activeProposal.images = combinedImages.length > 0 ? combinedImages : ["https://via.placeholder.com/500x300/0f172a/f59e0b?text=Proof"];
 
   renderProposalMaterials();
   await fetchVoterStatsForAdmin();
@@ -965,17 +963,17 @@ async function publishNewProposal(e) {
       console.error(err);
     }
   }
-  alert(`✅ Proposal Berhasil Diterbitkan!`);
+  alert(`✅ Proposal Published Successfully!`);
 }
 
 async function cancelActiveProposal() {
-  if (!confirm("Batalkan proposal ini?")) return;
+  if (!confirm("Cancel this proposal?")) return;
   if (countdownInterval) clearInterval(countdownInterval);
   activeProposal.status = 'CANCELLED';
   if (supabaseClient) {
     await supabaseClient.from('proposals').update({ status: 'CANCELLED' }).eq('id', activeProposal.id);
   }
-  alert("⛔ Proposal dibatalkan.");
+  alert("⛔ Proposal cancelled.");
 }
 
 function setConfidence(val) {
@@ -1003,7 +1001,7 @@ async function handleCastVote(e) {
   if (btn) {
     if (btn.disabled) return;
     btn.disabled = true;
-    btn.innerText = "⏳ Memproses...";
+    btn.innerText = "⏳ Processing...";
   }
 
   const currentUsername = activeUser.username || "Anonymous";
@@ -1011,20 +1009,20 @@ async function handleCastVote(e) {
 
   const isBanned = await checkGarudaBlacklistStatus(activeUser.garudaId, currentUsername);
   if (isBanned) {
-    alert("Access denied: Akun frozen.");
+    alert("Access denied: Account frozen.");
     return;
   }
 
   if (!currentWallet || !isValidPiWalletAddress(currentWallet)) {
-    if (btn) { btn.disabled = false; btn.innerText = "Kirim Suara"; }
-    alert("Wallet belum valid.");
+    if (btn) { btn.disabled = false; btn.innerText = "Submit Vote"; }
+    alert("Wallet address is not valid.");
     return;
   }
 
   const selectedValue = document.querySelector('input[name="voteValue"]:checked');
   if (!selectedValue) {
-    if (btn) { btn.disabled = false; btn.innerText = "Kirim Suara"; }
-    alert("Pilih arah suara.");
+    if (btn) { btn.disabled = false; btn.innerText = "Submit Vote"; }
+    alert("Please select a vote direction.");
     return;
   }
 
@@ -1064,18 +1062,18 @@ async function handleCastVote(e) {
     });
     const payoutData = await payoutRes.json();
     if (payoutRes.ok && payoutData.success) {
-      showPayoutBanner(`🎉 SUKSES!<br><strong>Tx:</strong> ${payoutData.txHash}`, true);
+      showPayoutBanner(`🎉 SUCCESS!<br><strong>Tx:</strong> ${payoutData.txHash}`, true);
     } else {
-      showPayoutBanner(`⚠️ Suara tersimpan. Payout dipending.`, false);
+      showPayoutBanner(`⚠️ Vote recorded. Payout pending.`, false);
     }
   } catch (payErr) {
-    showPayoutBanner(`✅ Suara tersimpan di Database.`, false);
+    showPayoutBanner(`✅ Vote recorded in Database.`, false);
   }
 
   if (btn) {
     btn.disabled = true;
-    btn.innerText = "✅ Suara Terkirim";
-    btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
+    btn.innerText = "✅ Vote Submitted";
+    btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-lg text-sm border border-amber-500/30 cursor-not-allowed";
   }
 }
 
@@ -1083,7 +1081,7 @@ async function toggleGarudaBan(isBan) {
   const garudaIdInput = $("#targetGarudaId") ? $("#targetGarudaId").value.trim() : "";
   const reasonInput = $("#targetBanReason") ? $("#targetBanReason").value.trim() : "";
   if (!garudaIdInput) {
-    alert("Masukkan Garuda ID.");
+    alert("Please enter Garuda ID.");
     return;
   }
   const garudaIdNum = parseInt(garudaIdInput);
@@ -1106,10 +1104,10 @@ async function toggleGarudaBan(isBan) {
         await supabaseClient.from('garuda_blacklist').delete().eq('garuda_id', garudaIdNum);
       }
     }
-    alert("Status berhasil diperbarui.");
+    alert("Status updated successfully.");
     location.reload();
   } catch (err) {
-    alert("Gagal: " + err.message);
+    alert("Failed: " + err.message);
   }
 }
 
@@ -1127,7 +1125,7 @@ async function shareToExternalBrowser() {
     linkInput.focus();
     linkInput.select();
   }
-  if (statusEl) statusEl.textContent = "✅ Link berhasil disalin!";
+  if (statusEl) statusEl.textContent = "✅ Link copied successfully!";
 }
 
 function renderDocumentInModal(titleText, htmlBodyContent) {
@@ -1150,7 +1148,7 @@ async function downloadPdfDirect() {
   const contentDiv = document.getElementById("documentViewerContent");
   if (!contentDiv) return;
   try {
-    const docType = currentOpenedDocType || "dokumen";
+    const docType = currentOpenedDocType || "document";
     const propId = activeProposal.id || "TVOD";
     const filename = `${docType.toUpperCase()}_${propId}.pdf`;
     if (window.html2pdf) {
@@ -1166,7 +1164,7 @@ async function downloadPdfDirect() {
       window.print();
     }
   } catch (err) {
-    alert("Gagal unduh PDF");
+    alert("Failed to download PDF");
   }
 }
 
@@ -1252,12 +1250,12 @@ async function generateOfficialMinutesPDF() {
       <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px; background: #f8fafc;">
         <h3 style="font-size: 11px; color: #1e3a8a; margin: 0 0 6px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; font-weight: bold;">DOCUMENT CONTROL RECORD</h3>
         <table style="width: 100%; font-size: 10px; border: none;">
-          <tr><td style="border:none; padding: 2px; width: 28%; color: #334155;"><b>Document ID</b></td><td style="border:none; padding: 2px; font-family: monospace; color: #0f172a;">TVOD-PROP-${activeProposal.id}</td></tr>
-          <tr><td style="border:none; padding: 2px; color: #334155;"><b>Integrity Hash</b></td><td style="border:none; padding: 2px; font-family: monospace; color: #2563eb;">${window.CryptoJS ? window.CryptoJS.SHA256(activeProposal.id + totalVotes).toString().substring(0, 16).toUpperCase() : '35E2E40E2908403B'}</td></tr>
-          <tr><td style="border:none; padding: 2px; color: #334155;"><b>Classification</b></td><td style="border:none; padding: 2px; color: #b91c1c; font-weight: bold;">RESTRICTED - Official DAO Verification Record</td></tr>
-          <tr><td style="border:none; padding: 2px; color: #334155;"><b>Generated Date</b></td><td style="border:none; padding: 2px;">${dateFormattedUTC}</td></tr>
-          <tr><td style="border:none; padding: 2px; color: #334155;"><b>Subject</b></td><td style="border:none; padding: 2px;">${activeProposal.title}</td></tr>
-          <tr><td style="border:none; padding: 2px; color: #334155;"><b>Source / Chapter</b></td><td style="border:none; padding: 2px;">TVOD Verifier dApp / GLOBAL</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 3px 6px; width: 28%; font-weight: bold;">Document ID</td><td style="border: 1px solid #cbd5e1; padding: 3px 6px; font-family: monospace; color: #0f172a;">TVOD-PROP-${activeProposal.id}</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 3px 6px; font-weight: bold;">Integrity Hash</td><td style="border: 1px solid #cbd5e1; padding: 3px 6px; font-family: monospace; color: #2563eb;">${window.CryptoJS ? window.CryptoJS.SHA256(activeProposal.id + totalVotes).toString().substring(0, 16).toUpperCase() : '35E2E40E2908403B'}</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 3px 6px; font-weight: bold;">Classification</td><td style="border: 1px solid #cbd5e1; padding: 3px 6px; color: #b91c1c; font-weight: bold;">RESTRICTED - Official DAO Verification Record</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 3px 6px; font-weight: bold;">Generated Date</td><td style="border: 1px solid #cbd5e1; padding: 3px 6px;">${dateFormattedUTC}</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 3px 6px; font-weight: bold;">Subject</td><td style="border: 1px solid #cbd5e1; padding: 3px 6px;">${activeProposal.title}</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 3px 6px; font-weight: bold;">Source / Chapter</td><td style="border: 1px solid #cbd5e1; padding: 3px 6px;">TVOD Verifier dApp / GLOBAL</td></tr>
         </table>
       </div>
 
@@ -1268,10 +1266,10 @@ async function generateOfficialMinutesPDF() {
       <div style="margin-bottom: 12px;">
         <h3 style="font-size: 11px; color: #1e3a8a; margin: 0 0 5px 0; font-weight: bold;">I. ACTIVITY & GOVERNANCE DETAILS</h3>
         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-          <tr><td style="background: #f1f5f9; width: 30%; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Activity Name</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">${activeProposal.title}</td></tr>
-          <tr><td style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Platform</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">TVOD Verifier dApp</td></tr>
-          <tr><td style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Voting Method</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">On-Chain NFT Verification & Weighted Role Voting</td></tr>
-          <tr><td style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 6px; font-weight: bold; color: #334155;">Scoring Formula</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">Score = Direction × Confidence × Role Weight</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; width: 30%; border: 1px solid #1e3a8a; padding: 4px 6px; font-weight: bold;">Activity Name</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">${activeProposal.title}</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 4px 6px; font-weight: bold;">Platform</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">TVOD Verifier dApp</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 4px 6px; font-weight: bold;">Voting Method</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">On-Chain NFT Verification & Weighted Role Voting</td></tr>
+          <tr><td style="background: #1e3a8a; color: #ffffff; border: 1px solid #1e3a8a; padding: 4px 6px; font-weight: bold;">Scoring Formula</td><td style="border: 1px solid #cbd5e1; padding: 4px 6px;">Score = Direction × Confidence × Role Weight</td></tr>
         </table>
       </div>
 
@@ -1279,12 +1277,12 @@ async function generateOfficialMinutesPDF() {
         <h3 style="font-size: 11px; color: #1e3a8a; margin: 0 0 5px 0; font-weight: bold;">II. VOTING RESULTS & WEIGHTED METRICS</h3>
         <table style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: center;">
           <thead>
-            <tr style="background: #0f172a; color: #ffffff;">
-              <th style="padding: 5px; border: 1px solid #334155; text-align: left;">Category</th>
-              <th style="padding: 5px; border: 1px solid #334155;">Ballots Count</th>
-              <th style="padding: 5px; border: 1px solid #334155;">% Total Votes</th>
-              <th style="padding: 5px; border: 1px solid #334155;">Weighted Score</th>
-              <th style="padding: 5px; border: 1px solid #334155;">Avg Confidence</th>
+            <tr style="background: #1e3a8a; color: #ffffff;">
+              <th style="padding: 5px; border: 1px solid #1e3a8a; color: #ffffff; text-align: left; background-color: #1e3a8a;">Category</th>
+              <th style="padding: 5px; border: 1px solid #1e3a8a; color: #ffffff; background-color: #1e3a8a;">Ballots Count</th>
+              <th style="padding: 5px; border: 1px solid #1e3a8a; color: #ffffff; background-color: #1e3a8a;">% Total Votes</th>
+              <th style="padding: 5px; border: 1px solid #1e3a8a; color: #ffffff; background-color: #1e3a8a;">Weighted Score</th>
+              <th style="padding: 5px; border: 1px solid #1e3a8a; color: #ffffff; background-color: #1e3a8a;">Avg Confidence</th>
             </tr>
           </thead>
           <tbody>
@@ -1310,11 +1308,11 @@ async function generateOfficialMinutesPDF() {
               <td style="padding: 5px; border: 1px solid #cbd5e1;">0.00</td>
             </tr>
             <tr style="background: #1e293b; color: #ffffff; font-weight: bold;">
-              <td style="padding: 5px; border: 1px solid #334155; text-align: left;">FINAL TOTAL</td>
-              <td style="padding: 5px; border: 1px solid #334155;">${totalVotes}</td>
-              <td style="padding: 5px; border: 1px solid #334155;">100%</td>
+              <td style="padding: 5px; border: 1px solid #334155; color: #ffffff; text-align: left;">FINAL TOTAL</td>
+              <td style="padding: 5px; border: 1px solid #334155; color: #ffffff;">${totalVotes}</td>
+              <td style="padding: 5px; border: 1px solid #334155; color: #ffffff;">100%</td>
               <td style="padding: 5px; border: 1px solid #334155; color: #f59e0b;">${netScoreStr} Pts</td>
-              <td style="padding: 5px; border: 1px solid #334155;">${avgConf}</td>
+              <td style="padding: 5px; border: 1px solid #334155; color: #ffffff;">${avgConf}</td>
             </tr>
           </tbody>
         </table>
@@ -1329,7 +1327,7 @@ async function generateOfficialMinutesPDF() {
       <div style="margin-top: 15px; position: relative;" class="avoid-break">
         <h3 style="font-size: 11px; color: #1e3a8a; margin: 0 0 6px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; font-weight: bold;">OFFICIAL RATIFICATION SIGNATURES</h3>
         
-        <!-- Stempel Resmi TVOD dari public/stempel-tvod.png -->
+        <!-- TVOD Official Seal from /stempel-tvod.png -->
         <div style="position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: 75px; height: 75px; z-index: 10; pointer-events: none;">
           <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Official Seal" />
         </div>
@@ -1395,7 +1393,7 @@ async function generateVoterAuditLogPDF() {
 
   let tableRowsHtml = "";
   if (validVotes.length === 0) {
-    tableRowsHtml = `<tr><td colspan="11" style="text-align: center; padding: 12px; color: #64748b;">Belum ada data voting aktif tercatat untuk proposal ini.</td></tr>`;
+    tableRowsHtml = `<tr><td colspan="11" style="text-align: center; padding: 12px; color: #64748b;">No active voting records found for this proposal.</td></tr>`;
   } else {
     validVotes.forEach((v, idx) => {
       const dirText = v.vote_direction === 1 ? "Agree (+1)" : (v.vote_direction === 0 ? "Neutral (0)" : "Disagree (-1)");
@@ -1441,16 +1439,16 @@ async function generateVoterAuditLogPDF() {
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <thead>
             <tr style="background: #581c87; color: #ffffff; text-align: center;">
-              <th style="padding: 6px; border: 1px solid #4c1d95;">No. Name</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Garuda ID</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Community</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Role</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Weight</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Voting Source</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Vote</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Confidence</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Score</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95;">Notes</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">No. Name</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Garuda ID</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Community</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Role</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Weight</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Voting Source</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Vote</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Confidence</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Score</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -1462,7 +1460,7 @@ async function generateVoterAuditLogPDF() {
       <div style="margin-top: 20px; position: relative;" class="avoid-break">
         <h3 style="font-size: 11px; color: #581c87; margin: 0 0 6px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; font-weight: bold;">AUDIT TRAIL VERIFICATION SIGNATURES</h3>
         
-        <!-- Stempel Audit dari public/stempel-tvod.png -->
+        <!-- TVOD Audit Seal from /stempel-tvod.png -->
         <div style="position: absolute; left: 75%; top: 50%; transform: translate(-50%, -50%); width: 75px; height: 75px; z-index: 10; pointer-events: none;">
           <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Audit Seal" />
         </div>
@@ -1491,7 +1489,6 @@ async function generateCertificatePDF() {
   currentOpenedDocType = "certificate";
   const sigChairman = getSignatureDataUrl("sig-chairman");
   
-  // Mengambil nama pemohon / author proposal
   const applicantName = activeProposal.author ? `@${activeProposal.author}` : `@${activeUser.username || 'afifmasfiqo'}`;
 
   const docHtml = `
@@ -1500,15 +1497,15 @@ async function generateCertificatePDF() {
       <h2 style="color: #b45309; font-size: 22px; margin-bottom: 5px; font-weight: bold;">CERTIFICATE OF VERIFICATION</h2>
       <p style="font-size: 12px; color: #78350f; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">THE VOICE OF DAO (TVOD) x PI NETWORK</p>
       
-      <p style="font-size: 13px; margin: 25px 0 10px 0; color: #334155;">Sertifikat penghargaan ini diberikan kepada pemohon / pengaju voting:</p>
+      <p style="font-size: 13px; margin: 25px 0 10px 0; color: #334155;">This certificate of recognition is proudly presented to:</p>
       <h3 style="font-size: 20px; color: #1e3a8a; margin: 5px 0 15px 0; font-weight: bold;">${applicantName}</h3>
       <p style="font-size: 12px; color: #475569; max-width: 500px; margin: 0 auto 20px auto; line-height: 1.6;">
-        Atas pengajuan proposal dan kontribusi verifikasi on-chain dalam tata kelola DAO:<br>
+        For outstanding proposal submission and active on-chain verification contribution in DAO governance:<br>
         <b>"${activeProposal.title}"</b>
       </p>
 
       <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 40px; text-align: center; position: relative;" class="avoid-break">
-        <!-- Stempel Sertifikat dari public/stempel-tvod.png -->
+        <!-- Certificate Seal from /stempel-tvod.png -->
         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; z-index: 10; pointer-events: none;">
           <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Certificate Seal" />
         </div>
