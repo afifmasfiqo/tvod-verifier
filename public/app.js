@@ -426,9 +426,24 @@ async function handlePiAuth() {
     throw new Error("Gagal memperoleh otentikasi dari Pi SDK.");
   }
 
+  // 🌐 KIRIM ACCESS TOKEN KE PI APP STUDIO PARENT WINDOW (MENGATASI "We didn't detect a verified sign-in")
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage({
+        type: "pi_access_token",
+        accessToken: auth.accessToken,
+        token: auth.accessToken,
+        user: auth.user
+      }, "*");
+    } catch (e) {
+      console.warn("Failed to post message to parent window:", e);
+    }
+  }
+
   const verifiedUser = {
     username: auth.user.username,
     uid: auth.user.uid,
+    accessToken: auth.accessToken,
     demo: false
   };
 
@@ -446,6 +461,20 @@ function checkSavedSession() {
       if (user && user.username) {
         renderUser(user);
         setConnection(user.demo ? "● Mode Demo" : "● Verified by Pi SDK", true);
+
+        // Jika tersimpan, teruskan token ke App Studio parent window jika berjalan di iframe preview
+        if (user.accessToken && window.parent && window.parent !== window) {
+          try {
+            window.parent.postMessage({
+              type: "pi_access_token",
+              accessToken: user.accessToken,
+              token: user.accessToken,
+              user: { username: user.username, uid: user.uid }
+            }, "*");
+          } catch (e) {
+            console.warn("Failed to post saved session token to parent window:", e);
+          }
+        }
       }
     } catch (e) {
       console.warn("Gagal membaca saved session:", e);
@@ -979,7 +1008,6 @@ async function handleOnboarding(e) {
     gId = parseInt($("#garudaId").value || "0");
     gHash = $("#garudaHash").value.trim();
 
-    // Backend validation kept intact
     if (!gId || gId < 1 || gId > 1000) {
       alert("Pendaftaran Ditolak: Garuda ID tidak valid.");
       return;
@@ -1156,7 +1184,7 @@ async function publishNewProposal(e) {
     combinedImages = combinedImages.concat(extList);
   }
 
-  activeProposal.images = combinedImages.length > 0 ? combinedImages : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting"];
+  activeProposal.images = combinedImages.length > 0 ? combinedImages : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"];
 
   const rawVideo = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
   activeProposal.videoUrl = rawVideo ? ensureHttps(rawVideo) : "";
@@ -1421,7 +1449,6 @@ async function toggleGarudaBan(isBan) {
   }
 
   const garudaIdNum = parseInt(garudaIdInput);
-  // Backend validation kept intact
   if (isNaN(garudaIdNum) || garudaIdNum < 1 || garudaIdNum > 1000) {
     alert("⚠️ Nomor Garuda ID tidak valid.");
     return;
