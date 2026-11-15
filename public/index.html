@@ -46,7 +46,7 @@
     }
     body {
       width: 100%;
-      max-width: 520px; /* Lebar optimal agar proporsional di Pi Browser HP */
+      max-width: 520px;
       margin: 0 auto;
       overflow-x: hidden;
       background-color: #090d16;
@@ -73,19 +73,15 @@
       max-width: 100% !important;
       padding: 12px 10px;
     }
-    .avoid-break {
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans text-xs sm:text-sm">
 
-  <!-- Topbar Header -->
+  <!-- Topbar Header dengan Logo Kecil yang Proporsional -->
   <header class="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-50 px-3 py-2.5">
     <div class="flex justify-between items-center gap-2">
       <a class="flex items-center gap-2.5" href="/" aria-label="TVOD home">
-        <img id="appLogo" src="/logo.png" alt="TVOD Logo" class="h-8 w-8 object-contain rounded border border-amber-500/50">
+        <img id="appLogo" src="/logo.png" alt="TVOD Logo" class="h-8 w-8 object-contain rounded-lg border border-amber-500/50 shadow-sm">
         <div>
           <strong class="text-xs sm:text-sm text-slate-100 block leading-tight tracking-wide" data-i18n="app_title">THE VOICE OF DAO</strong>
           <small class="text-[9px] text-amber-400 font-mono font-semibold" data-i18n="sub_title">WEB3 VERIFIER & VOTING dAPP</small>
