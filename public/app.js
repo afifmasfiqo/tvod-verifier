@@ -2,7 +2,12 @@
 "use strict";
 
 const $ = (selector) => document.querySelector(selector);
+
+/* ==========================================================
+   CONFIGURATIONS: APP WALLET & SECRETS MANAGEMENT
+   ================================================---------- */
 const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
+const TVOD_SECRET_KEY = process.env.TVOD_SECRET_KEY || "SD_TVOD_SECURE_ADMIN_KEY_2026";
 const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak", "insya", "Rasj81"];
 
 function ensureHttps(url) {
@@ -79,58 +84,6 @@ const i18nDictionary = {
     admin_title: "🛡️ Admin Suite",
     btn_publish_prop: "🚀 Publish",
     btn_cancel_prop: "⛔ Cancel",
-  },
-  ar: {
-    app_title: "صوت منظمة DAO",
-    sub_title: "تطبيق التحقق والتصويت Web3",
-    nav_home: "🔑 التسجيل",
-    nav_proposal: "📄 التصويت",
-    nav_verify: "🗳️ التصويت السريع",
-    nav_admin: "🛡️ الإدارة",
-    step1_title: "تسجيل الناخبين والمحفظة",
-    label_wallet: "عنوان محفظة Pi",
-    label_category: "فئة الناخب",
-    label_chapter: "منطقة المجتمع",
-    label_role: "دور الحوكمة",
-    btn_register: "التحقق من البيانات",
-    prop_bg_title: "📄 الخلفية والوصف",
-    prop_gallery_title: "📸 معرض الصور",
-    vote_step_title: "وحدة التصويت السريع",
-    vote_dir_label: "1. اتجاه صوتك",
-    vote_agree: "👍 موافق (+1)",
-    vote_neutral: "😐 محايد (0)",
-    vote_disagree: "👎 غير موافق (-1)",
-    confidence_label: "2. مستوى الثقة",
-    btn_submit_vote: "إرسال الصوت المشفر",
-    admin_title: "🛡️ جناح الإدارة",
-    btn_publish_prop: "🚀 نشر",
-    btn_cancel_prop: "⛔ إلغاء",
-  },
-  zh: {
-    app_title: "THE VOICE OF DAO",
-    sub_title: "WEB3 验证与投票 dAPP",
-    nav_home: "🔑 入职",
-    nav_proposal: "📄 投票",
-    nav_verify: "🗳️ 快速投票",
-    nav_admin: "🛡️ 管理员",
-    step1_title: "选民注册与 Pi 钱包",
-    label_wallet: "Pi 钱包地址 (前缀 G / M)",
-    label_category: "选民类别",
-    label_chapter: "社区分会",
-    label_role: "治理角色",
-    btn_register: "验证数据并开启权限",
-    prop_bg_title: "📄 背景与描述",
-    prop_gallery_title: "📸 照片图库",
-    vote_step_title: "快速投票模块",
-    vote_dir_label: "1. 您的投票方向",
-    vote_agree: "👍 赞成 (+1)",
-    vote_neutral: "😐 中立 (0)",
-    vote_disagree: "👎 反对 (-1)",
-    confidence_label: "2. 置信度等级",
-    btn_submit_vote: "提交加密投票并领取 Pi",
-    admin_title: "🛡️ 管理员套件",
-    btn_publish_prop: "🚀 发布",
-    btn_cancel_prop: "⛔ 取消",
   }
 };
 
@@ -141,14 +94,6 @@ function changeLanguage(lang) {
   const targetLang = lang.toLowerCase().substring(0, 2);
   currentLanguage = i18nDictionary[targetLang] ? targetLang : "en";
   localStorage.setItem("tvod_lang", currentLanguage);
-  
-  if (currentLanguage === "ar") {
-    document.documentElement.dir = "rtl";
-    document.body.classList.add("rtl");
-  } else {
-    document.documentElement.dir = "ltr";
-    document.body.classList.remove("rtl");
-  }
   document.documentElement.lang = currentLanguage;
 
   const dict = i18nDictionary[currentLanguage];
@@ -261,7 +206,7 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   try {
     const res = await fetch('/api/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
       body: JSON.stringify({ garudaId, username })
     });
 
@@ -348,7 +293,7 @@ async function handlePiAuth() {
   const accessToken = auth.accessToken;
   const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-TVOD-Secret": TVOD_SECRET_KEY },
     body: JSON.stringify({ accessToken: accessToken })
   });
 
@@ -357,13 +302,10 @@ async function handlePiAuth() {
   }
 
   const data = await response.json();
-  const sessionToken = data.sessionToken;
-  const user = data.user;
-
   const verifiedUser = {
-    username: user.username,
-    uid: user.uid,
-    sessionToken: sessionToken,
+    username: data.user.username,
+    uid: data.user.uid,
+    sessionToken: data.sessionToken,
     accessToken: accessToken,
     demo: false
   };
@@ -431,7 +373,7 @@ async function fetchVoterProfileFromSupabase(username) {
 
     if (error || !data) {
       if (username === "afifmasfiqo") {
-        activeUser.walletAddress = "GCVGSZJOHN467T5QYFMJFSKIDDNC3N6EHCOSSEC7X3PKSK3YI733D2OO";
+        activeUser.walletAddress = TVOD_APP_WALLET;
         activeUser.garudaId = 911;
         if ($("#walletAddress")) $("#walletAddress").value = activeUser.walletAddress;
         if ($("#garudaId")) $("#garudaId").value = "911";
@@ -595,6 +537,8 @@ async function fetchActiveProposalFromSupabase() {
 
 async function checkAppWalletBalance() {
   const display = $("#appWalletDisplay");
+  const addrText = $("#appWalletAddrText");
+  if (addrText) addrText.textContent = TVOD_APP_WALLET;
   if (display) display.textContent = "⏳ Checking...";
   try {
     const res = await fetch(`https://api.testnet.minepi.com/accounts/${TVOD_APP_WALLET}`);
@@ -1052,7 +996,7 @@ async function handleCastVote(e) {
   try {
     const payoutRes = await fetch('/api/payout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
       body: JSON.stringify({
         walletAddress: currentWallet,
         amount: 1.0,
@@ -1089,7 +1033,7 @@ async function toggleGarudaBan(isBan) {
     const endpoint = isBan ? '/api/admin/freeze' : '/api/admin/unfreeze';
     await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
       body: JSON.stringify({ garudaId: String(garudaIdNum) })
     });
     if (supabaseClient) {
@@ -1399,7 +1343,7 @@ async function generateVoterAuditLogPDF() {
       const dirText = v.vote_direction === 1 ? "Agree (+1)" : (v.vote_direction === 0 ? "Neutral (0)" : "Disagree (-1)");
       const prof = profileMap[v.username] || {};
       const garudaIdStr = prof.garuda_id ? `#${prof.garuda_id}` : 'Delegate';
-      const notesStr = prof.garuda_id ? `Verified On-Chain (Garuda #${prof.garuda_id})` : `Delegate Verified`;
+      const timestampFormatted = v.created_at ? new Date(v.created_at).toUTCString().replace("GMT", "UTC") : new Date().toUTCString().replace("GMT", "UTC");
       
       tableRowsHtml += `
         <tr>
@@ -1413,7 +1357,7 @@ async function generateVoterAuditLogPDF() {
           <td style="border: 1px solid #cbd5e1; padding: 5px;">${dirText}</td>
           <td style="border: 1px solid #cbd5e1; padding: 5px; text-align:center;">${v.confidence || 3}</td>
           <td style="border: 1px solid #cbd5e1; padding: 5px; text-align:center; font-weight:bold;">${(v.weighted_score >= 0 ? '+' : '') + (v.weighted_score || 0).toFixed(1)}</td>
-          <td style="border: 1px solid #cbd5e1; padding: 5px; font-size: 8.5px;">${notesStr}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 5px; font-size: 8px; font-family: monospace;">${timestampFormatted}</td>
         </tr>
       `;
     });
@@ -1436,19 +1380,20 @@ async function generateVoterAuditLogPDF() {
       </div>
 
       <div style="overflow-x: auto; margin-bottom: 15px;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 8.5px;">
           <thead>
             <tr style="background: #581c87; color: #ffffff; text-align: center;">
-              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">No. Name</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">No</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Username</th>
               <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Garuda ID</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Community</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Chapter</th>
               <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Role</th>
               <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Weight</th>
               <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Voting Source</th>
               <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Vote</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Confidence</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Conf</th>
               <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Score</th>
-              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Notes</th>
+              <th style="padding: 6px; border: 1px solid #4c1d95; color: #ffffff; background-color: #581c87;">Timestamp (UTC)</th>
             </tr>
           </thead>
           <tbody>
