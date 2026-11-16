@@ -32,6 +32,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+// Kamus Multi-Bahasa Lengkap (ID, EN, AR, ZH)
 const i18nDictionary = {
   id: {
     app_title: "THE VOICE OF DAO",
@@ -40,24 +41,24 @@ const i18nDictionary = {
     nav_proposal: "📄 Voting",
     nav_verify: "🗳️ Fast Vote",
     nav_admin: "🛡️ Admin",
-    step1_title: "Voter Registration & Pi Wallet",
-    label_wallet: "Pi Wallet Address (Prefix G / M, 56 Characters)",
-    label_category: "Voter Category",
-    label_chapter: "Community Chapter",
-    label_role: "Governance Role",
-    btn_register: "Verify Data & Enable Voting",
-    prop_bg_title: "📄 BACKGROUND & DESCRIPTION",
-    prop_gallery_title: "📸 PHOTO PROOF GALLERY",
-    vote_step_title: "Fast Voting Module",
-    vote_dir_label: "1. Your Vote Direction",
-    vote_agree: "👍 Agree (+1)",
-    vote_neutral: "😐 Neutral (0)",
-    vote_disagree: "👎 Disagree (-1)",
-    confidence_label: "2. Confidence Level (Scale 1 - 5)",
-    btn_submit_vote: "Submit Encrypted Vote & Claim Pi",
+    step1_title: "Pendaftaran Pemilih & Verifikasi Pi Wallet",
+    label_wallet: "Alamat Pi Wallet (Awalan G / M, 56 Karakter)",
+    label_category: "Kategori Pemilih",
+    label_chapter: "Wilayah Komunitas",
+    label_role: "Peran Tata Kelola",
+    btn_register: "Verifikasi Data & Buka Akses Voting",
+    prop_bg_title: "📄 LATAR BELAKANG & DESKRIPSI OBJEK",
+    prop_gallery_title: "📸 GALERI BUKTI FOTO & VIDEO",
+    vote_step_title: "Modul Fast Voting",
+    vote_dir_label: "1. Arah Voting Anda",
+    vote_agree: "👍 Setuju (+1)",
+    vote_neutral: "😐 Netral (0)",
+    vote_disagree: "👎 Tidak Setuju (-1)",
+    confidence_label: "2. Tingkat Keyakinan (Skala 1 - 5)",
+    btn_submit_vote: "Kirim Vote Enkripsi & Klaim Pi",
     admin_title: "🛡️ Admin Suite",
-    btn_publish_prop: "🚀 Publish",
-    btn_cancel_prop: "⛔ Cancel",
+    btn_publish_prop: "🚀 Publikasikan",
+    btn_cancel_prop: "⛔ Batalkan",
   },
   en: {
     app_title: "THE VOICE OF DAO",
@@ -84,6 +85,58 @@ const i18nDictionary = {
     admin_title: "🛡️ Admin Suite",
     btn_publish_prop: "🚀 Publish",
     btn_cancel_prop: "⛔ Cancel",
+  },
+  ar: {
+    app_title: "صوت منظمة DAO",
+    sub_title: "تطبيق التحقق والتصويت Web3",
+    nav_home: "🔑 التسجيل",
+    nav_proposal: "📄 التصويت",
+    nav_verify: "🗳️ تصويت سريع",
+    nav_admin: "🛡️ المشرف",
+    step1_title: "تسجيل الناخبين ومحفظة Pi",
+    label_wallet: "عنوان محفظة Pi (يبدأ بـ G / M، 56 حرفاً)",
+    label_category: "فئة الناخب",
+    label_chapter: "فصل المجتمع",
+    label_role: "دور الحوكمة",
+    btn_register: "التحقق من البيانات وتمكين التصويت",
+    prop_bg_title: "📄 الخلفية والوصف",
+    prop_gallery_title: "📸 معرض الصور",
+    vote_step_title: "وحدة التصويت السريع",
+    vote_dir_label: "1. اتجاه تصويتك",
+    vote_agree: "👍 موافق (+1)",
+    vote_neutral: "😐 محايد (0)",
+    vote_disagree: "👎 غير موافق (-1)",
+    confidence_label: "2. مستوى الثقة (مقياس 1 - 5)",
+    btn_submit_vote: "إرسال التصويت المشفر والمطالبة بـ Pi",
+    admin_title: "🛡️ لوحة المشرف",
+    btn_publish_prop: "🚀 نشر",
+    btn_cancel_prop: "⛔ إلغاء",
+  },
+  zh: {
+    app_title: "DAO 之声",
+    sub_title: "Web3 验证与投票 dAPP",
+    nav_home: "🔑 注册入门",
+    nav_proposal: "📄 提案投票",
+    nav_verify: "🗳️ 快速投票",
+    nav_admin: "🛡️ 管理员",
+    step1_title: "选民注册与 Pi 钱包",
+    label_wallet: "Pi 钱包地址（G / M 前缀，56个字符）",
+    label_category: "选民类别",
+    label_chapter: "社区分会",
+    label_role: "治理角色",
+    btn_register: "验证数据并启用投票",
+    prop_bg_title: "📄 背景与描述",
+    prop_gallery_title: "📸 照片证据库",
+    vote_step_title: "快速投票模块",
+    vote_dir_label: "1. 您的投票倾向",
+    vote_agree: "👍 赞成 (+1)",
+    vote_neutral: "😐 中立 (0)",
+    vote_disagree: "👎 反对 (-1)",
+    confidence_label: "2. 置信度级别（1 - 5 级）",
+    btn_submit_vote: "提交加密投票并领取 Pi",
+    admin_title: "🛡️ 管理员套件",
+    btn_publish_prop: "🚀 发布",
+    btn_cancel_prop: "⛔ 取消",
   }
 };
 
@@ -266,11 +319,23 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   return false;
 }
 
+// DIPERBAIKI: initPiSDK dengan retry agar tidak macet di Pi Browser
 async function initPiSDK() {
   if (isPiSDKInitialized) return true;
-  if (!window.Pi) return false;
+
+  let attempts = 30;
+  while (!window.Pi && attempts > 0) {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    attempts--;
+  }
+
+  if (!window.Pi) {
+    console.warn("Pi SDK injection timeout. window.Pi not found.");
+    return false;
+  }
+
   try {
-    await window.Pi.init({ version: "2.0" });
+    await window.Pi.init({ version: "2.0", sandbox: true });
     isPiSDKInitialized = true;
     return true;
   } catch (err) {
@@ -293,7 +358,6 @@ async function handlePiAuth() {
 
   const accessToken = auth.accessToken;
   
-  // DIUBAH: Menggunakan API Route Vercel internal (/api/auth/login) agar terhindar dari CORS Block
   const response = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
