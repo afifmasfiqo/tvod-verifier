@@ -6,7 +6,7 @@ const $ = (selector) => document.querySelector(selector);
 /* ==========================================================
    CONFIGURATIONS: APP WALLET & SECRETS MANAGEMENT
    ================================================---------- */
-const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
+const TVOD_APP_WALLET = "GD55ZUR66BTWP7THRLQITYBG3DRVQ773RMHKRLHOWEFZ5RH7T3ME6DWD";
 const TVOD_SECRET_KEY = process.env.TVOD_SECRET_KEY || "SD_TVOD_SECURE_ADMIN_KEY_2026";
 const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak", "insya", "Rasj81"];
 
