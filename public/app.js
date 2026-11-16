@@ -270,7 +270,6 @@ async function initPiSDK() {
   if (isPiSDKInitialized) return true;
   if (!window.Pi) return false;
   try {
-    // Await Pi.init fully without passing "sandbox" as requested by official guide
     await window.Pi.init({ version: "2.0" });
     isPiSDKInitialized = true;
     return true;
@@ -294,15 +293,16 @@ async function handlePiAuth() {
 
   const accessToken = auth.accessToken;
   
-  // STEP 2: Exchange accessToken with App Studio backend endpoint
-  const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
+  // DIUBAH: Menggunakan API Route Vercel internal (/api/auth/login) agar terhindar dari CORS Block
+  const response = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accessToken: accessToken })
   });
 
   if (!response.ok) {
-    throw new Error(`Login failed with status ${response.status}`);
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || `Login failed with status ${response.status}`);
   }
 
   const data = await response.json();
