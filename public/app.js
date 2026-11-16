@@ -270,7 +270,7 @@ async function initPiSDK() {
   if (isPiSDKInitialized) return true;
   if (!window.Pi) return false;
   try {
-    await window.Pi.init({ version: "2.0" });
+    await window.Pi.init({ version: "2.0", sandbox: true });
     isPiSDKInitialized = true;
     return true;
   } catch (err) {
