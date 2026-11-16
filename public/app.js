@@ -1229,6 +1229,17 @@ async function downloadPdfDirect() {
   }
 }
 
+function copyDocumentText() {
+  const contentDiv = document.getElementById("documentViewerContent");
+  if (!contentDiv) return;
+  const textToCopy = contentDiv.innerText || contentDiv.textContent;
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    alert("✅ Teks dokumen berhasil disalin ke clipboard!");
+  }).catch(err => {
+    alert("⚠️ Gagal menyalin teks dokumen.");
+  });
+}
+
 async function generateOfficialMinutesPDF() {
   currentOpenedDocType = "minutes";
   
@@ -1598,6 +1609,7 @@ window.generateCertificatePDF = generateCertificatePDF;
 window.closePdfModal = closePdfModal;
 window.downloadPdfDirect = downloadPdfDirect;
 window.shareToExternalBrowser = shareToExternalBrowser;
+window.copyDocumentText = copyDocumentText;
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initialize);
