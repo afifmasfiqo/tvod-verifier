@@ -270,7 +270,8 @@ async function initPiSDK() {
   if (isPiSDKInitialized) return true;
   if (!window.Pi) return false;
   try {
-    await window.Pi.init({ version: "2.0", sandbox: true });
+    // Await Pi.init fully without passing "sandbox" as requested by official guide
+    await window.Pi.init({ version: "2.0" });
     isPiSDKInitialized = true;
     return true;
   } catch (err) {
@@ -292,9 +293,11 @@ async function handlePiAuth() {
   }
 
   const accessToken = auth.accessToken;
-  const response = await fetch("/api/auth/login", {
+  
+  // STEP 2: Exchange accessToken with App Studio backend endpoint
+  const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-TVOD-Secret": TVOD_SECRET_KEY },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accessToken: accessToken })
   });
 
@@ -945,7 +948,6 @@ function showPayoutBanner(message, isSuccess = true) {
   banner.innerHTML = message;
 }
 
-// Implementasi Pembayaran User-to-App (U2A) & Automated Payout Handoff
 async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
   const btn = $("#btnSubmitVote");
@@ -986,7 +988,6 @@ async function handleCastVote(e) {
   const voteHash = window.CryptoJS ? window.CryptoJS.SHA256(rawPayload).toString() : "HASH";
   const activeSig = getSignatureDataUrl("sig-chairman");
 
-  // Integrasi Pi SDK User-to-App Payment
   if (window.Pi && typeof window.Pi.createPayment === 'function') {
     try {
       const paymentData = {
@@ -1323,7 +1324,6 @@ async function generateOfficialMinutesPDF() {
       <div style="margin-top: 15px; position: relative;" class="avoid-break">
         <h3 style="font-size: 11px; color: #1e3a8a; margin: 0 0 6px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; font-weight: bold;">OFFICIAL RATIFICATION SIGNATURES</h3>
         
-        <!-- TVOD Official Seal from /stempel-tvod.png -->
         <div style="position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: 75px; height: 75px; z-index: 10; pointer-events: none;">
           <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Official Seal" />
         </div>
@@ -1457,7 +1457,6 @@ async function generateVoterAuditLogPDF() {
       <div style="margin-top: 20px; position: relative;" class="avoid-break">
         <h3 style="font-size: 11px; color: #581c87; margin: 0 0 6px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; font-weight: bold;">AUDIT TRAIL VERIFICATION SIGNATURES</h3>
         
-        <!-- TVOD Audit Seal from /stempel-tvod.png -->
         <div style="position: absolute; left: 75%; top: 50%; transform: translate(-50%, -50%); width: 75px; height: 75px; z-index: 10; pointer-events: none;">
           <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Audit Seal" />
         </div>
@@ -1502,7 +1501,6 @@ async function generateCertificatePDF() {
       </p>
 
       <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 40px; text-align: center; position: relative;" class="avoid-break">
-        <!-- Certificate Seal from /stempel-tvod.png -->
         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; z-index: 10; pointer-events: none;">
           <img src="/stempel-tvod.png" style="width: 100%; height: 100%; object-fit: contain;" alt="TVOD Certificate Seal" />
         </div>
