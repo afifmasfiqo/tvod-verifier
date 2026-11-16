@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, shrink-to-fit=no, viewport-fit=cover">
   <meta name="theme-color" content="#090d16">
   <meta name="description" content="The Voice of Dao Web3 Verifier & Voting dApp for Pi Network.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://sdk.minepi.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://socialchain.app https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com https://*.supabase.co; frame-ancestors 'self' https://*.pinet.com https://*.minepi.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://sdk.minepi.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://socialchain.app https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com https://*.supabase.co https://api.minepi.com; frame-ancestors 'self' https://*.pinet.com https://*.minepi.com;">
   <title>TVOD Verifier | The Voice of Dao</title>
   
   <link rel="icon" href="/logo.png">
@@ -24,7 +24,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    /* PENGUNCI UTAMA LAYAR HP & OPTIMALISASI PI BROWSER (HURUF & TOMBOL BESAR) */
     html {
       font-size: 16px;
     }
@@ -42,7 +41,6 @@
       box-sizing: border-box;
     }
 
-    /* Perbesar semua Tombol agar mudah ditekan di HP / Pi Browser */
     button, .btn, input[type="submit"], input[type="button"] {
       min-height: 50px !important;
       font-size: 1rem !important;
@@ -51,7 +49,6 @@
       border-radius: 12px !important;
     }
 
-    /* Perbesar kotak Input, Select, & Textarea */
     input, select, textarea {
       min-height: 48px !important;
       font-size: 1rem !important;
@@ -59,7 +56,6 @@
       border-radius: 10px !important;
     }
 
-    /* Perbesar Label Form */
     label {
       font-size: 0.95rem !important;
       font-weight: 600 !important;
@@ -68,7 +64,6 @@
     .rtl { direction: rtl; }
     canvas.signature-pad { touch-action: none; background-color: #020617; border: 1px solid #334155; border-radius: 0.5rem; }
 
-    /* Aturan Cetak & PDF Resolusi Tinggi */
     @media print {
       body * { visibility: hidden; }
       #pdfDownloadModal, #pdfDownloadModal * { visibility: visible; }
@@ -78,7 +73,6 @@
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
 
-    /* Pengunci Tata Letak Halaman PDF & Modal Dokumen Resmi */
     .pdf-container {
       font-family: Arial, Helvetica, sans-serif;
       color: #0f172a;
@@ -171,12 +165,12 @@
       <div class="border-b border-slate-800 pb-3">
         <span class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 1</span>
         <h2 class="text-lg sm:text-xl font-bold text-slate-100 mt-0.5" data-i18n="step1_title">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
-        <p class="text-xs sm:text-sm text-slate-400 mt-0.5" data-i18n="step1_desc">Otentikasi Pi SDK dan hubungkan wallet untuk memverifikasi kepemilikan NFT secara On-Chain.</p>
+        <p class="text-xs sm:text-sm text-slate-400 mt-0.5" data-i18n="step1_desc">Otentikasi Pi SDK dengan scope pembayaran dan hubungkan wallet untuk verifikasi NFT On-Chain.</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3 p-3.5 bg-slate-950 rounded-lg border border-slate-800">
         <button id="pi-login-button" type="button" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm px-4 py-3 rounded-xl transition flex items-center gap-2 shadow">
-          <span class="font-bold text-base">π</span> Sign in with Pi SDK
+          <span class="font-bold text-base">π</span> Sign in with Pi SDK (Payments Scope)
         </button>
         <button id="demo-login-button" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm px-4 py-3 rounded-xl transition shadow">
           Simulasi Demo Mode
@@ -186,8 +180,8 @@
 
       <form id="onboardingForm" class="space-y-4">
         <div>
-          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5" data-i18n="label_wallet">Pi Wallet Address (Awalan G / M, 56 Karakter untuk Payout & Cek NFT)</label>
-          <input type="text" id="walletAddress" placeholder="Contoh: GBBIFANY...3TDQ3WL atau M..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-amber-300 font-mono focus:border-amber-500 outline-none">
+          <label class="block text-xs sm:text-sm font-semibold uppercase text-slate-300 mb-1.5" data-i18n="label_wallet">Pi Wallet Address (Awalan G / M, 56 Karakter)</label>
+          <input type="text" id="walletAddress" placeholder="Contoh: GD55ZUR66BTWP7THRLQITYBG3DRVQ773RMHKRLHOWEFZ5RH7T3ME6DWD" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-amber-300 font-mono focus:border-amber-500 outline-none">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -282,7 +276,7 @@
         <h2 id="displayPropTitle" class="text-lg sm:text-2xl font-extrabold text-slate-100 leading-tight">
           Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD
         </h2>
-        <p class="text-xs sm:text-sm text-slate-400 font-mono mt-1.5">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400 font-semibold">TVOD Development Team</span> | Tanggal: <span id="displayPropDate">30 Okt 2026</span></p>
+        <p class="text-xs sm:text-sm text-slate-400 font-mono mt-1.5">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400 font-semibold">TVOD Development Team</span> | Tanggal: <span id="displayPropDate">November 16, 2026</span></p>
       </div>
 
       <div>
@@ -359,7 +353,7 @@
         </div>
 
         <button type="submit" id="btnSubmitVote" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-4 rounded-xl text-sm sm:text-base transition shadow-lg" data-i18n="btn_submit_vote">
-          Kirim Suara Terenkripsi & Klaim Insentif Pi
+          Kirim Suara Terenkripsi & Klaim Insentif Pi (U2A Payment)
         </button>
       </form>
     </section>
@@ -378,7 +372,7 @@
           <div>
             <h3 class="font-bold text-amber-400 uppercase text-xs sm:text-sm">💰 Saldo Wallet App TVOD (Kas Payout)</h3>
             <p id="appWalletDisplay" class="text-xl font-mono font-bold text-slate-100 mt-1">Loading Saldo...</p>
-            <span id="appWalletAddrText" class="text-xs font-mono text-slate-400 truncate block mt-1">GBBIFANY...3TDQ3WL</span>
+            <span id="appWalletAddrText" class="text-xs font-mono text-slate-400 truncate block mt-1">GD55ZUR...6DWD</span>
           </div>
           <button type="button" onclick="checkAppWalletBalance()" class="self-start bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition shadow">
             🔄 Cek Saldo Wallet
