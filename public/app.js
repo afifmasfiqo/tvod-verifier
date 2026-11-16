@@ -6,7 +6,7 @@ const $ = (selector) => document.querySelector(selector);
 /* ==========================================================
    CONFIGURATIONS: APP WALLET & SECRETS MANAGEMENT
    ================================================---------- */
-const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
+const TVOD_APP_WALLET = "GD55ZUR66BTWP7THRLQITYBG3DRVQ773RMHKRLHOWEFZ5RH7T3ME6DWD";
 const TVOD_SECRET_KEY = process.env.TVOD_SECRET_KEY || "SD_TVOD_SECURE_ADMIN_KEY_2026";
 const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak", "insya", "Rasj81"];
 
@@ -116,7 +116,7 @@ let isUserBanned = false;
 
 let activeUser = {
   username: "afifmasfiqo",
-  walletAddress: "GCVGSZJOHN467T5QYFMJFSKIDDNC3N6EHCOSSEC7X3PKSK3YI733D2OO",
+  walletAddress: TVOD_APP_WALLET,
   category: "owner",
   role: "Group Leader",
   chapter: "GLOBAL",
@@ -285,7 +285,8 @@ async function handlePiAuth() {
     throw new Error("Pi SDK is not ready. Please open the dApp inside Pi Browser.");
   }
 
-  const auth = await window.Pi.authenticate(["username"], onIncompletePaymentFound);
+  const scopes = ['username', 'payments'];
+  const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
   if (!auth || !auth.accessToken) {
     throw new Error("Failed to retrieve access token from Pi Network.");
   }
@@ -317,7 +318,12 @@ async function handlePiAuth() {
 }
 
 const onIncompletePaymentFound = (payment) => {
-  console.warn("Incomplete payment found:", payment);
+  console.warn("Incomplete payment found, handling via backend/SDK:", payment);
+  fetch('/api/payments/complete-incomplete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
+    body: JSON.stringify({ paymentId: payment.identifier })
+  }).catch(err => console.error("Incomplete payment resolution error:", err));
 };
 
 function checkSavedSession() {
@@ -939,13 +945,14 @@ function showPayoutBanner(message, isSuccess = true) {
   banner.innerHTML = message;
 }
 
+// Implementasi Pembayaran User-to-App (U2A) & Automated Payout Handoff
 async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
   const btn = $("#btnSubmitVote");
   if (btn) {
     if (btn.disabled) return;
     btn.disabled = true;
-    btn.innerText = "⏳ Processing...";
+    btn.innerText = "⏳ Processing Payment & Vote...";
   }
 
   const currentUsername = activeUser.username || "Anonymous";
@@ -954,18 +961,19 @@ async function handleCastVote(e) {
   const isBanned = await checkGarudaBlacklistStatus(activeUser.garudaId, currentUsername);
   if (isBanned) {
     alert("Access denied: Account frozen.");
+    if (btn) { btn.disabled = false; btn.innerText = "Submit Encrypted Vote & Claim Pi"; }
     return;
   }
 
   if (!currentWallet || !isValidPiWalletAddress(currentWallet)) {
-    if (btn) { btn.disabled = false; btn.innerText = "Submit Vote"; }
+    if (btn) { btn.disabled = false; btn.innerText = "Submit Encrypted Vote & Claim Pi"; }
     alert("Wallet address is not valid.");
     return;
   }
 
   const selectedValue = document.querySelector('input[name="voteValue"]:checked');
   if (!selectedValue) {
-    if (btn) { btn.disabled = false; btn.innerText = "Submit Vote"; }
+    if (btn) { btn.disabled = false; btn.innerText = "Submit Encrypted Vote & Claim Pi"; }
     alert("Please select a vote direction.");
     return;
   }
@@ -977,6 +985,50 @@ async function handleCastVote(e) {
   const rawPayload = `${currentUsername}|${currentWallet}|${voteVal}|${currentConfidence}|${roleWeight}|${timestamp}`;
   const voteHash = window.CryptoJS ? window.CryptoJS.SHA256(rawPayload).toString() : "HASH";
   const activeSig = getSignatureDataUrl("sig-chairman");
+
+  // Integrasi Pi SDK User-to-App Payment
+  if (window.Pi && typeof window.Pi.createPayment === 'function') {
+    try {
+      const paymentData = {
+        amount: 1.0,
+        memo: `TVOD Voting & Ratification Fee - @${currentUsername}`,
+        metadata: { proposalId: activeProposal.id, voteVal: voteVal, username: currentUsername }
+      };
+
+      const callbacks = {
+        onReadyForServerApproval: async (paymentId) => {
+          console.log("Ready for server approval:", paymentId);
+          await fetch('/api/payments/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
+            body: JSON.stringify({ paymentId })
+          });
+        },
+        onReadyForServerCompletion: async (paymentId, txid) => {
+          console.log("Ready for server completion:", paymentId, txid);
+          await fetch('/api/payments/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
+            body: JSON.stringify({ paymentId, txid })
+          });
+        },
+        onCancel: (paymentId) => {
+          console.warn("Payment cancelled:", paymentId);
+          alert("Payment was cancelled.");
+          if (btn) { btn.disabled = false; btn.innerText = "Submit Encrypted Vote & Claim Pi"; }
+        },
+        onError: (error, payment) => {
+          console.error("Payment error:", error, payment);
+          alert("Pi Network payment error occurred.");
+          if (btn) { btn.disabled = false; btn.innerText = "Submit Encrypted Vote & Claim Pi"; }
+        }
+      };
+
+      await window.Pi.createPayment(paymentData, callbacks);
+    } catch (payErr) {
+      console.warn("Pi Payment SDK notice:", payErr);
+    }
+  }
 
   await saveVoteToSupabase({
     proposal_id: activeProposal.id,
@@ -1008,15 +1060,15 @@ async function handleCastVote(e) {
     if (payoutRes.ok && payoutData.success) {
       showPayoutBanner(`🎉 SUCCESS!<br><strong>Tx:</strong> ${payoutData.txHash}`, true);
     } else {
-      showPayoutBanner(`⚠️ Vote recorded. Payout pending.`, false);
+      showPayoutBanner(`⚠️ Vote recorded. Automated payout pending queue.`, false);
     }
   } catch (payErr) {
-    showPayoutBanner(`✅ Vote recorded in Database.`, false);
+    showPayoutBanner(`✅ Vote recorded in Database successfully.`, false);
   }
 
   if (btn) {
     btn.disabled = true;
-    btn.innerText = "✅ Vote Submitted";
+    btn.innerText = "✅ Vote Submitted & Pi Claimed";
     btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-lg text-sm border border-amber-500/30 cursor-not-allowed";
   }
 }
