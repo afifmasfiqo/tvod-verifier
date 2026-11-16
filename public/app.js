@@ -292,7 +292,7 @@ async function handlePiAuth() {
   }
 
   const accessToken = auth.accessToken;
-  const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
+  const response = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-TVOD-Secret": TVOD_SECRET_KEY },
     body: JSON.stringify({ accessToken: accessToken })
