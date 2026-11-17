@@ -1,4 +1,3 @@
-// file: app.js
 "use strict";
 
 const $ = (selector) => document.querySelector(selector);
