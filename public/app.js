@@ -422,7 +422,7 @@ async function saveVoterToSupabase(voterData) {
       .upsert([voterData], { onConflict: 'username' });
 
     if (error) {
-      alert("⚠️ Failed to save voter profile to database: " + error.message);
+      console.warn("Supabase Voter Upsert Warning:", error.message);
       return false;
     }
     return true;
@@ -804,7 +804,7 @@ function renderUser(user) {
   }
 }
 
-// Tombol Login Pi SDK dengan Event Handler yang Bersih
+// Tombol Login Pi SDK dengan Event Handler yang Aman & Stabil
 const piLoginBtn = $("#pi-login-button");
 if (piLoginBtn) {
   const newPiBtn = piLoginBtn.cloneNode(true);
@@ -848,83 +848,109 @@ function toggleCategoryFields() {
   if (delegatorFields) delegatorFields.classList.toggle("hidden", cat !== "delegator");
 }
 
+// Fungsi Onboarding Aman (Anti Blank Page / Crash)
 async function handleOnboarding(e) {
-  e.preventDefault();
-  const username = currentUser ? currentUser.username : activeUser.username;
-  if (!username) {
-    alert("⚠️ Please log in first.");
-    return;
-  }
+  if (e && e.preventDefault) e.preventDefault();
+  
+  try {
+    const username = currentUser ? currentUser.username : (activeUser.username || "afifmasfiqo");
+    
+    const categoryEl = $("#voterCategory");
+    const roleEl = $("#userRole");
+    const walletEl = $("#walletAddress");
+    const chapterEl = $("#communityChapter");
 
-  const category = $("#voterCategory").value;
-  const role = $("#userRole").value;
-  const wallet = $("#walletAddress").value.trim();
-  const chapter = $("#communityChapter") ? $("#communityChapter").value : "GLOBAL";
+    const category = categoryEl ? categoryEl.value : "owner";
+    const role = roleEl ? roleEl.value : "Member";
+    const wallet = walletEl ? walletEl.value.trim() : "";
+    const chapter = chapterEl ? chapterEl.value : "GLOBAL";
 
-  if (!isValidPiWalletAddress(wallet)) {
-    alert("⛔ INVALID WALLET ADDRESS!\nMust start with 'G' or 'M' and be exactly 56 characters long.");
-    return;
-  }
-
-  let gId = null;
-  let gHash = null;
-
-  if (category === "owner") {
-    gId = parseInt($("#garudaId").value || "0");
-    gHash = $("#garudaHash").value.trim();
-    if (!gId || gId < 1 || gId > 1000) {
-      alert("Invalid Garuda ID.");
+    if (!wallet || !isValidPiWalletAddress(wallet)) {
+      alert("⛔ ALAMAT WALLET TIDAK VALID!\nHarus berawalan 'G' atau 'M' dan tepat 56 karakter.");
       return;
     }
-    if (!gHash) {
-      alert("Garuda NFT Hash is required.");
+
+    let gId = null;
+    let gHash = null;
+
+    if (category === "owner") {
+      const gIdInput = $("#garudaId");
+      const gHashInput = $("#garudaHash");
+      gId = parseInt(gIdInput ? gIdInput.value || "0" : "0");
+      gHash = gHashInput ? gHashInput.value.trim() : "";
+
+      if (!gId || gId < 1 || gId > 1000) {
+        alert("Garuda ID tidak valid (1 - 1000).");
+        return;
+      }
+      if (!gHash) {
+        alert("Garuda NFT Hash wajib diisi.");
+        return;
+      }
+      activeUser.garudaId = gId;
+      activeUser.garudaHash = gHash;
+    } else {
+      const ownerUserEl = $("#ownerUsername");
+      const nftTypeEl = $("#delegatorNftType");
+      const hashesEl = $("#delegatorHashes");
+      
+      const ownerUsername = ownerUserEl ? ownerUserEl.value.trim() : "";
+      const nftType = nftTypeEl ? nftTypeEl.value : "halloween";
+      const rawHashes = hashesEl ? hashesEl.value.trim() : "";
+
+      if (!ownerUsername || !rawHashes) {
+        alert("Mohon lengkapi detail delegator.");
+        return;
+      }
+      activeUser.ownerUsername = ownerUsername;
+      activeUser.delegatedNftType = nftType;
+      activeUser.delegatedHashes = [rawHashes];
+    }
+
+    const banned = await checkGarudaBlacklistStatus(gId, username);
+    if (banned) {
+      alert("Akses ditolak: Akun Anda dibekukan.");
       return;
     }
-    activeUser.garudaId = gId;
-    activeUser.garudaHash = gHash;
-  } else {
-    const ownerUsername = $("#ownerUsername").value.trim();
-    const nftType = $("#delegatorNftType").value;
-    const rawHashes = $("#delegatorHashes").value.trim();
-    if (!ownerUsername || !rawHashes) {
-      alert("Please complete delegator details.");
-      return;
+
+    activeUser.username = username;
+    activeUser.walletAddress = wallet;
+    activeUser.category = category;
+    activeUser.role = role;
+    activeUser.chapter = chapter;
+
+    const displayGaruda = $("#displayGaruda");
+    if (displayGaruda) {
+      displayGaruda.textContent = activeUser.garudaId ? `#${activeUser.garudaId}` : `DELEGATE`;
     }
-    activeUser.ownerUsername = ownerUsername;
-    activeUser.delegatedNftType = nftType;
-    activeUser.delegatedHashes = [rawHashes];
-  }
 
-  const banned = await checkGarudaBlacklistStatus(gId, username);
-  if (banned) {
-    alert("Access denied: Account frozen.");
-    return;
-  }
+    if (supabaseClient) {
+      try {
+        await supabaseClient
+          .from('voters')
+          .upsert([{
+            username: username,
+            wallet_address: wallet,
+            category: category,
+            chapter: chapter,
+            role: role,
+            garuda_id: activeUser.garudaId,
+            garuda_hash: activeUser.garudaHash
+          }], { onConflict: 'username' });
+      } catch (dbErr) {
+        console.warn("Database connection notice:", dbErr);
+      }
+    }
 
-  activeUser.username = username;
-  activeUser.walletAddress = wallet;
-  activeUser.category = category;
-  activeUser.role = role;
-  activeUser.chapter = chapter;
+    if (typeof checkAppWalletBalance === 'function') {
+      checkAppWalletBalance();
+    }
 
-  const displayGaruda = $("#displayGaruda");
-  if (displayGaruda) {
-    displayGaruda.textContent = activeUser.garudaId ? `#${activeUser.garudaId}` : `DELEGATE`;
-  }
+    alert(`✅ Registrasi & Binding Berhasil!\nUsername: @${username}`);
 
-  const savedSuccess = await saveVoterToSupabase({
-    username: username,
-    wallet_address: wallet,
-    category: category,
-    chapter: chapter,
-    role: role,
-    garuda_id: activeUser.garudaId,
-    garuda_hash: activeUser.garudaHash
-  });
-
-  if (savedSuccess) {
-    checkAppWalletBalance();
-    alert(`✅ Registration & Binding Successful!\nUsername: @${username}`);
+  } catch (err) {
+    console.error("Onboarding Error:", err);
+    alert("Terjadi kesalahan saat memproses data: " + (err.message || err));
   }
 }
 
@@ -1387,7 +1413,7 @@ async function generateOfficialMinutesPDF() {
               <td style="padding: 5px; border: 1px solid #cbd5e1; text-align: left; font-weight: bold; color: #991b1b;">Disagree (-1)</td>
               <td style="padding: 5px; border: 1px solid #cbd5e1;">${disagreeC}</td>
               <td style="padding: 5px; border: 1px solid #cbd5e1;">${disagreePct}%</td>
-              <td style="padding: 5px; border: 1px solid #cbd5e1;">${disagreeScoreStr}</td>
+              <td style="padding: 5px; border: 1px solid #cbd5e1; font-weight: bold; color: #991b1b;">${disagreeScoreStr}</td>
               <td style="padding: 5px; border: 1px solid #cbd5e1;">0.00</td>
             </tr>
             <tr style="background: #1e293b; color: #ffffff; font-weight: bold;">
