@@ -120,7 +120,7 @@
       </a>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-slate-800 border border-slate-700 text-xs rounded-lg px-2.5 py-1 text-slate-200 outline-none cursor-pointer">
+        <select id="langSelect" class="bg-slate-800 border border-slate-700 text-xs rounded-lg px-2.5 py-1 text-slate-200 outline-none cursor-pointer">
           <option value="id">Indonesian (ID)</option>
           <option value="en">English (EN)</option>
           <option value="ar">Arabic (AR)</option>
@@ -165,7 +165,7 @@
       <div class="border-b border-slate-800 pb-3">
         <span class="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono">Langkah 1</span>
         <h2 class="text-lg sm:text-xl font-bold text-slate-100 mt-0.5" data-i18n="step1_title">Pendaftaran Pemilih & Verifikasi Pi Wallet</h2>
-        <p class="text-xs sm:text-sm text-slate-400 mt-0.5" data-i18n="step1_desc">Otentikasi Pi SDK dengan scope pembayaran dan hubungkan wallet untuk verifikasi NFT On-Chain.</p>
+        <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Otentikasi Pi SDK dengan scope pembayaran dan hubungkan wallet untuk verifikasi NFT On-Chain.</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3 p-3.5 bg-slate-950 rounded-lg border border-slate-800">
@@ -276,7 +276,7 @@
         <h2 id="displayPropTitle" class="text-lg sm:text-2xl font-extrabold text-slate-100 leading-tight">
           Ratifikasi Sistem Verifikasi Web3 & Distribusi Insentif Voting TVOD
         </h2>
-        <p class="text-xs sm:text-sm text-slate-400 font-mono mt-1.5">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400 font-semibold">TVOD Development Team</span> | Tanggal: <span id="displayPropDate">November 16, 2026</span></p>
+        <p class="text-xs sm:text-sm text-slate-400 font-mono mt-1.5">Diterbitkan oleh: <span id="displayPropAuthor" class="text-amber-400 font-semibold">TVOD Development Team</span></p>
       </div>
 
       <div>
@@ -291,17 +291,6 @@
         <h3 class="text-xs sm:text-sm font-bold text-amber-400 uppercase tracking-wider mb-3" data-i18n="prop_gallery_title">📸 GALERI BUKTI FOTO & VIDEO OBJEK</h3>
         <div class="space-y-4">
           <div id="mediaGalleryContainer" class="flex flex-col gap-4"></div>
-          
-          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center">
-            <span class="text-xs sm:text-sm font-semibold text-slate-400 self-start mb-2">Bukti Rekaman Video:</span>
-            <div id="videoContainer" class="w-full h-56 sm:h-80 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
-              <video id="displayMediaVideo" controls class="w-full h-full object-contain hidden">
-                <source src="" type="video/mp4">
-              </video>
-              <iframe id="displayMediaIframe" class="w-full h-full hidden" frameborder="0" allowfullscreen></iframe>
-              <p id="videoPlaceholder" class="text-xs sm:text-sm text-slate-500 font-mono">Belum ada video dilampirkan</p>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -406,19 +395,6 @@
             </div>
           </div>
         </div>
-
-        <div class="bg-slate-950 p-4 sm:p-5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
-          <div>
-            <h3 class="font-bold text-slate-300 uppercase text-xs sm:text-sm mb-1.5">Atur Rate Insentif Pi / Suara</h3>
-            <div class="flex gap-3 mb-3">
-              <input type="number" id="payoutRate" step="0.1" min="0.8" max="100" value="1.0" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm font-mono text-slate-100">
-              <button type="button" onclick="savePayoutRate()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-3 rounded-xl text-xs sm:text-sm">Simpan</button>
-            </div>
-          </div>
-          <button type="button" id="btnRetryPayouts" onclick="retryFailedPayouts()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition shadow" data-i18n="btn_retry_payouts">
-            🔄 Process Pending Payouts Queue
-          </button>
-        </div>
       </div>
 
       <!-- PUBLISH SUITE PROPOSAL BARU -->
@@ -445,7 +421,7 @@
               </select>
             </div>
             <div>
-              <label class="block text-slate-300 font-semibold mb-1.5">Durasi (Jam, contoh: 0.08 = 5 Menit)</label>
+              <label class="block text-slate-300 font-semibold mb-1.5">Durasi (Jam, contoh: 24)</label>
               <input type="number" id="inputPropDuration" value="24" min="0.01" step="0.01" placeholder="Contoh: 24" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-100 font-mono text-sm">
             </div>
           </div>
@@ -456,23 +432,11 @@
           </div>
 
           <div class="border-t border-slate-800 pt-3.5">
-            <label class="block text-amber-300 font-bold mb-2 text-xs sm:text-sm">📷 GALERI MEDIA & BUKTI FOTO / VIDEO</label>
-            <div class="space-y-3.5">
-              <div>
-                <label class="block text-slate-300 text-xs sm:text-sm font-semibold mb-1.5">📱 Upload Foto dari Galeri HP / Laptop</label>
-                <input type="file" id="inputPropFileImages" accept="image/*" multiple class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-300 text-xs cursor-pointer">
-                <span id="galleryFilesCount" class="text-xs text-amber-400 font-mono mt-1.5 block"></span>
-              </div>
-
-              <div>
-                <label class="block text-slate-400 text-xs sm:text-sm mb-1.5">Link Foto Eksternal (Pisahkan koma)</label>
-                <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-100 text-xs sm:text-sm">
-              </div>
-
-              <div>
-                <label class="block text-slate-400 text-xs sm:text-sm mb-1.5">URL Video Bukti (YouTube Embed / MP4)</label>
-                <input type="text" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-100 text-xs sm:text-sm">
-              </div>
+            <label class="block text-amber-300 font-bold mb-2 text-xs sm:text-sm">📷 GALERI MEDIA & BUKTI FOTO</label>
+            <div>
+              <label class="block text-slate-300 text-xs sm:text-sm font-semibold mb-1.5">📱 Upload Foto dari Galeri HP / Laptop</label>
+              <input type="file" id="inputPropFileImages" accept="image/*" multiple class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-300 text-xs cursor-pointer">
+              <span id="galleryFilesCount" class="text-xs text-amber-400 font-mono mt-1.5 block"></span>
             </div>
           </div>
 
@@ -526,7 +490,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 rounded-xl text-xs sm:text-sm transition flex flex-col items-center justify-center text-center gap-2.5 shadow" data-i18n="btn_official_minutes">
+          <button type="button" onclick="generateOfficialMinutesPDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 rounded-xl text-xs sm:text-sm transition flex flex-col items-center justify-center text-center gap-2.5 shadow">
             <span class="text-3xl">📄</span>
             <span>Generate Official Minutes Document (English)</span>
           </button>
@@ -536,7 +500,7 @@
             <span>Individual Voter Audit Log (PDF & Excel Format)</span>
           </button>
 
-          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 rounded-xl text-xs sm:text-sm transition flex flex-col items-center justify-center text-center gap-2.5 shadow" data-i18n="btn_digital_cert">
+          <button type="button" onclick="generateCertificatePDF()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold p-4 rounded-xl text-xs sm:text-sm transition flex flex-col items-center justify-center text-center gap-2.5 shadow">
             <span class="text-3xl">🎓</span>
             <span>Generate Digital Verification Certificate</span>
           </button>
@@ -567,21 +531,19 @@
       <div id="documentViewerContent" class="pdf-container flex-1 overflow-y-auto bg-white p-4 sm:p-6 rounded-xl border border-slate-300 text-slate-900 text-xs sm:text-sm font-sans space-y-4 shadow-inner">
       </div>
 
-      <div id="directDownloadFallbackLink" class="hidden text-center py-2.5 bg-emerald-950 border border-emerald-500/40 rounded-xl text-xs sm:text-sm"></div>
-
       <div class="flex flex-wrap gap-3 pt-2 border-t border-slate-800">
-        <button type="button" id="btnModalDownload" onclick="downloadPdfDirect()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3.5 px-4 rounded-xl text-sm sm:text-base transition shadow flex items-center justify-center gap-2" data-i18n="btn_print_pdf">
+        <button type="button" id="btnModalDownload" onclick="downloadPdfDirect()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3.5 px-4 rounded-xl text-sm sm:text-base transition shadow flex items-center justify-center gap-2">
           <span>📥</span> Download PDF Directly (1-Klik)
         </button>
 
-        <button type="button" onclick="shareToExternalBrowser()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl text-sm sm:text-base transition flex items-center justify-center gap-2 shadow" data-i18n="btn_share_chrome">
+        <button type="button" onclick="shareToExternalBrowser()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl text-sm sm:text-base transition flex items-center justify-center gap-2 shadow">
           🌐 Salin Link Chrome
         </button>
 
-        <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3.5 px-4 rounded-xl text-sm sm:text-base border border-slate-700 transition" data-i18n="btn_copy_text">
+        <button type="button" onclick="copyDocumentText()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-3.5 px-4 rounded-xl text-sm sm:text-base border border-slate-700 transition">
           📋 Salin Teks
         </button>
-        <button type="button" onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3.5 px-4 rounded-xl text-sm sm:text-base transition" data-i18n="btn_close_modal">
+        <button type="button" onclick="closePdfModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3.5 px-4 rounded-xl text-sm sm:text-base transition">
           Tutup
         </button>
       </div>
