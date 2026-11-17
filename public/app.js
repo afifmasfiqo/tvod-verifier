@@ -319,7 +319,7 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   return false;
 }
 
-// DIPERBAIKI: initPiSDK dengan retry agar tidak macet di Pi Browser
+// DIPERBAIKI: initPiSDK sesuai standar App Studio (tanpa parameter sandbox manual)
 async function initPiSDK() {
   if (isPiSDKInitialized) return true;
 
@@ -335,7 +335,7 @@ async function initPiSDK() {
   }
 
   try {
-    await window.Pi.init({ version: "2.0", sandbox: true });
+    await window.Pi.init({ version: "2.0" });
     isPiSDKInitialized = true;
     return true;
   } catch (err) {
@@ -358,7 +358,7 @@ async function handlePiAuth() {
 
   const accessToken = auth.accessToken;
   
-  const response = await fetch("/api/auth/login", {
+  const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accessToken: accessToken })
