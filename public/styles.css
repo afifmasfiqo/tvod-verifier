@@ -1,79 +1,65 @@
-/* ==========================================================================
-   TVOD dAPP - STYLESHEET UTAMA (RESPONSIVE & MOBILE OPTIMIZED)
-   ========================================================================== */
+/* file: styles.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
 
 :root {
   color-scheme: dark;
-  --bg: #090d16;
-  --panel: #0f172a;
-  --line: #334155;
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --gold: #f59e0b;
-}
-
-*, ::before, ::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  font-size: 16px;
-  background-color: var(--bg);
-  color: var(--text);
-  scroll-behavior: smooth;
 }
 
 body {
-  min-height: 100vh;
-  width: 100%;
-  max-width: 100%; /* Mengizinkan dApp merespons penuh di layar besar maupun Pi Browser */
-  margin: 0 auto;
-  background: var(--bg);
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
-  overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
-}
-
-input, select, textarea {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
   background-color: #020617;
-  color: var(--text);
-  font-size: 1rem;
+  color: #f8fafc;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-input:focus, select:focus, textarea:focus {
-  border-color: var(--gold) !important;
-  outline: none;
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
 }
 
-canvas.signature-pad {
-  touch-action: none;
-  background-color: #020617 !important;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
-}
-
-img {
-  max-width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: #0f172a;
 }
 ::-webkit-scrollbar-thumb {
   background: #334155;
   border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #f59e0b;
+}
+
+/* Canvas & Signature Pad */
+canvas.signature-pad {
+  touch-action: none;
+  background-color: #020617;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  width: 100% !important;
+}
+
+/* Print Rules for PDF and Documentation */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #pdfDownloadModal, #pdfDownloadModal * {
+    visibility: visible;
+  }
+  #pdfDownloadModal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
 }
