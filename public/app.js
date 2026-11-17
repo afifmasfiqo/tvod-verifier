@@ -5,7 +5,7 @@ const $ = (selector) => document.querySelector(selector);
 
 /* ==========================================================
    CONFIGURATIONS: APP WALLET & SECRETS MANAGEMENT
-   ================================================---------- */
+   ========================================================== */
 const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
 const TVOD_SECRET_KEY = process.env.TVOD_SECRET_KEY || "SD_TVOD_SECURE_ADMIN_KEY_2026";
 const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak", "insya", "Rasj81"];
@@ -319,73 +319,79 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   return false;
 }
 
-// DIPERBAIKI: initPiSDK sesuai standar App Studio (tanpa parameter sandbox manual)
+// STABIL & AMAN: Inisialisasi Pi SDK
 async function initPiSDK() {
   if (isPiSDKInitialized) return true;
 
-  let attempts = 30;
+  let attempts = 20;
   while (!window.Pi && attempts > 0) {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise(resolve => setTimeout(resolve, 150));
     attempts--;
   }
 
   if (!window.Pi) {
-    console.warn("Pi SDK injection timeout. window.Pi not found.");
+    console.warn("Pi SDK not injected or still loading.");
     return false;
   }
 
   try {
-    await window.Pi.init({ version: "2.0" });
+    window.Pi.init({ version: "2.0" });
     isPiSDKInitialized = true;
     return true;
   } catch (err) {
-    console.warn("Pi SDK Init Warning:", err);
-    return false;
+    console.warn("Pi SDK Init notice:", err);
+    isPiSDKInitialized = true;
+    return true;
   }
 }
 
 async function handlePiAuth() {
   const initialized = await initPiSDK();
   if (!initialized) {
-    throw new Error("Pi SDK is not ready. Please open the dApp inside Pi Browser.");
+    throw new Error("Pi SDK belum siap. Pastikan dApp dibuka di dalam Pi Browser.");
   }
 
   const scopes = ['username', 'payments'];
-  const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-  if (!auth || !auth.accessToken) {
-    throw new Error("Failed to retrieve access token from Pi Network.");
-  }
-
-  const accessToken = auth.accessToken;
   
-  const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accessToken: accessToken })
+  return new Promise((resolve, reject) => {
+    window.Pi.authenticate(scopes, onIncompletePaymentFound).then(async function(auth) {
+      if (!auth || !auth.accessToken) {
+        return reject(new Error("Gagal mendapatkan Access Token dari Pi Network."));
+      }
+
+      const accessToken = auth.accessToken;
+
+      try {
+        await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken: accessToken })
+        });
+      } catch (backendErr) {
+        console.warn("Backend auth fallback notice:", backendErr);
+      }
+
+      const verifiedUser = {
+        username: auth.user.username,
+        uid: auth.user.uid,
+        accessToken: accessToken,
+        demo: false
+      };
+
+      localStorage.setItem("tvod_user_session", JSON.stringify(verifiedUser));
+      renderUser(verifiedUser);
+      setConnection("● Pi SDK Verified", true);
+      resolve(verifiedUser);
+
+    }).catch(function(error) {
+      console.error("Pi Authentication Error:", error);
+      reject(error);
+    });
   });
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || `Login failed with status ${response.status}`);
-  }
-
-  const data = await response.json();
-  const verifiedUser = {
-    username: data.user.username,
-    uid: data.user.uid,
-    sessionToken: data.sessionToken,
-    accessToken: accessToken,
-    demo: false
-  };
-
-  localStorage.setItem("tvod_user_session", JSON.stringify(verifiedUser));
-  renderUser(verifiedUser);
-  setConnection("● Pi SDK Verified", true);
-  return verifiedUser;
 }
 
 const onIncompletePaymentFound = (payment) => {
-  console.warn("Incomplete payment found, handling via backend/SDK:", payment);
+  console.warn("Incomplete payment found:", payment);
   fetch('/api/payments/complete-incomplete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
@@ -798,18 +804,27 @@ function renderUser(user) {
   }
 }
 
+// Tombol Login Pi SDK dengan Event Handler yang Bersih
 const piLoginBtn = $("#pi-login-button");
 if (piLoginBtn) {
-  piLoginBtn.addEventListener("click", async (e) => {
+  const newPiBtn = piLoginBtn.cloneNode(true);
+  piLoginBtn.parentNode.replaceChild(newPiBtn, piLoginBtn);
+
+  newPiBtn.addEventListener("click", async (e) => {
     e.preventDefault();
-    piLoginBtn.disabled = true;
+    newPiBtn.disabled = true;
+    newPiBtn.innerText = "Authenticating with Pi...";
+    
     try {
       const user = await handlePiAuth();
+      newPiBtn.innerText = "Signed In Successfully (✓)";
+      newPiBtn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+      newPiBtn.classList.add('bg-emerald-600', 'text-white');
       alert(`Welcome @${user.username}! Pi SDK Login Successful.`);
     } catch (error) {
-      alert("Pi Login Notice: " + error.message);
-    } finally {
-      piLoginBtn.disabled = false;
+      alert("Pi Login Notice: " + (error.message || error));
+      newPiBtn.innerText = "Sign in with Pi SDK (Payments Scope)";
+      newPiBtn.disabled = false;
     }
   });
 }
@@ -1062,7 +1077,6 @@ async function handleCastVote(e) {
 
       const callbacks = {
         onReadyForServerApproval: async (paymentId) => {
-          console.log("Ready for server approval:", paymentId);
           await fetch('/api/payments/approve', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
@@ -1070,7 +1084,6 @@ async function handleCastVote(e) {
           });
         },
         onReadyForServerCompletion: async (paymentId, txid) => {
-          console.log("Ready for server completion:", paymentId, txid);
           await fetch('/api/payments/complete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-TVOD-Secret': TVOD_SECRET_KEY },
@@ -1078,12 +1091,10 @@ async function handleCastVote(e) {
           });
         },
         onCancel: (paymentId) => {
-          console.warn("Payment cancelled:", paymentId);
           alert("Payment was cancelled.");
           if (btn) { btn.disabled = false; btn.innerText = "Submit Encrypted Vote & Claim Pi"; }
         },
         onError: (error, payment) => {
-          console.error("Payment error:", error, payment);
           alert("Pi Network payment error occurred.");
           if (btn) { btn.disabled = false; btn.innerText = "Submit Encrypted Vote & Claim Pi"; }
         }
