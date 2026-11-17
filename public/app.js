@@ -319,13 +319,15 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   return false;
 }
 
-// STABIL & AMAN: Inisialisasi Pi SDK
+// ==========================================================
+// PI SDK INITIALIZATION & AUTHENTICATION (STABLE & SECURE)
+// ==========================================================
 async function initPiSDK() {
   if (isPiSDKInitialized) return true;
 
-  let attempts = 20;
+  let attempts = 30;
   while (!window.Pi && attempts > 0) {
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await new Promise(resolve => setTimeout(resolve, 100));
     attempts--;
   }
 
@@ -335,7 +337,7 @@ async function initPiSDK() {
   }
 
   try {
-    window.Pi.init({ version: "2.0" });
+    window.Pi.init({ version: "2.0", sandbox: false });
     isPiSDKInitialized = true;
     return true;
   } catch (err) {
@@ -346,47 +348,40 @@ async function initPiSDK() {
 }
 
 async function handlePiAuth() {
-  const initialized = await initPiSDK();
-  if (!initialized) {
-    throw new Error("Pi SDK belum siap. Pastikan dApp dibuka di dalam Pi Browser.");
+  const ready = await initPiSDK();
+  if (!ready || !window.Pi) {
+    throw new Error("Pi SDK tidak tersedia. Pastikan dApp dibuka di dalam Pi Browser.");
   }
 
   const scopes = ['username', 'payments'];
-  
+
   return new Promise((resolve, reject) => {
-    window.Pi.authenticate(scopes, onIncompletePaymentFound).then(async function(auth) {
-      if (!auth || !auth.accessToken) {
-        return reject(new Error("Gagal mendapatkan Access Token dari Pi Network."));
-      }
+    try {
+      window.Pi.authenticate(scopes, onIncompletePaymentFound).then(function(auth) {
+        if (!auth || !auth.user || !auth.accessToken) {
+          return reject(new Error("Data autentikasi Pi kosong atau ditolak."));
+        }
 
-      const accessToken = auth.accessToken;
+        const verifiedUser = {
+          username: auth.user.username,
+          uid: auth.user.uid,
+          accessToken: auth.accessToken,
+          demo: false
+        };
 
-      try {
-        await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken: accessToken })
-        });
-      } catch (backendErr) {
-        console.warn("Backend auth fallback notice:", backendErr);
-      }
+        localStorage.setItem("tvod_user_session", JSON.stringify(verifiedUser));
+        renderUser(verifiedUser);
+        setConnection("● Pi SDK Verified", true);
+        resolve(verifiedUser);
 
-      const verifiedUser = {
-        username: auth.user.username,
-        uid: auth.user.uid,
-        accessToken: accessToken,
-        demo: false
-      };
-
-      localStorage.setItem("tvod_user_session", JSON.stringify(verifiedUser));
-      renderUser(verifiedUser);
-      setConnection("● Pi SDK Verified", true);
-      resolve(verifiedUser);
-
-    }).catch(function(error) {
-      console.error("Pi Authentication Error:", error);
-      reject(error);
-    });
+      }).catch(function(authErr) {
+        console.error("Pi authenticate promise error:", authErr);
+        reject(authErr);
+      });
+    } catch (ex) {
+      console.error("Pi authenticate exception:", ex);
+      reject(ex);
+    }
   });
 }
 
@@ -804,7 +799,7 @@ function renderUser(user) {
   }
 }
 
-// Tombol Login Pi SDK dengan Event Handler yang Aman & Stabil
+// Tombol Login Pi SDK dengan Event Handler yang Stabil
 const piLoginBtn = $("#pi-login-button");
 if (piLoginBtn) {
   const newPiBtn = piLoginBtn.cloneNode(true);
@@ -813,16 +808,17 @@ if (piLoginBtn) {
   newPiBtn.addEventListener("click", async (e) => {
     e.preventDefault();
     newPiBtn.disabled = true;
-    newPiBtn.innerText = "Authenticating with Pi...";
+    newPiBtn.innerText = "Connecting to Pi Network...";
     
     try {
       const user = await handlePiAuth();
       newPiBtn.innerText = "Signed In Successfully (✓)";
       newPiBtn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
       newPiBtn.classList.add('bg-emerald-600', 'text-white');
-      alert(`Welcome @${user.username}! Pi SDK Login Successful.`);
+      alert(`Berhasil Login! Selamat datang @${user.username}`);
     } catch (error) {
-      alert("Pi Login Notice: " + (error.message || error));
+      console.error("Login Error Detail:", error);
+      alert("Gagal Login Pi SDK: " + (error.message || error));
       newPiBtn.innerText = "Sign in with Pi SDK (Payments Scope)";
       newPiBtn.disabled = false;
     }
@@ -848,7 +844,6 @@ function toggleCategoryFields() {
   if (delegatorFields) delegatorFields.classList.toggle("hidden", cat !== "delegator");
 }
 
-// Fungsi Onboarding Aman (Anti Blank Page / Crash)
 async function handleOnboarding(e) {
   if (e && e.preventDefault) e.preventDefault();
   
