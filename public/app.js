@@ -1,4 +1,3 @@
-// file: app.js (Versi Lengkap, Utuh & Siap Salin-Tempel)
 "use strict";
 
 const $ = (selector) => document.querySelector(selector);
@@ -325,11 +324,40 @@ function clearOfficerSig(id) {
   localStorage.removeItem(`tvod_sig_${id}`);
 }
 
-// 🚫 1. PENGECEKAN STATUS BLACKLIST / PEMBEKUAN SUPABASE
+// 🚫 1. PENGECEKAN STATUS BLACKLIST / PEMBEKUAN SERVER & SUPABASE
 async function checkGarudaBlacklistStatus(garudaId, username) {
   const banBanner = $("#banBanner");
   const banReason = $("#banReason");
   isUserBanned = false;
+
+  try {
+    const res = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ garudaId, username })
+    });
+
+    if (res.status === 403) {
+      isUserBanned = true;
+      const data = await res.json().catch(() => ({}));
+      const errorMsg = data.message || "Access denied: Your Garuda ID is temporarily frozen by Founder's directive. Voting and login are restricted.";
+      
+      if (banReason) banReason.textContent = `⚠️ ${errorMsg}`;
+      if (banBanner) banBanner.classList.remove("hidden");
+
+      localStorage.removeItem("tvod_user_session");
+
+      const btnSubmit = $("#btnSubmitVote");
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "Access denied: Account Frozen";
+        btnSubmit.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
+      }
+      return true;
+    }
+  } catch (err) {
+    console.warn("Gagal mengecek status frozen server:", err);
+  }
 
   if (supabaseClient) {
     try {
@@ -398,9 +426,24 @@ async function handlePiAuth() {
     throw new Error("Gagal memperoleh otentikasi dari Pi SDK.");
   }
 
+  // 🌐 KIRIM ACCESS TOKEN KE PI APP STUDIO PARENT WINDOW (MENGATASI "We didn't detect a verified sign-in")
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage({
+        type: "pi_access_token",
+        accessToken: auth.accessToken,
+        token: auth.accessToken,
+        user: auth.user
+      }, "*");
+    } catch (e) {
+      console.warn("Failed to post message to parent window:", e);
+    }
+  }
+
   const verifiedUser = {
     username: auth.user.username,
     uid: auth.user.uid,
+    accessToken: auth.accessToken,
     demo: false
   };
 
@@ -418,6 +461,20 @@ function checkSavedSession() {
       if (user && user.username) {
         renderUser(user);
         setConnection(user.demo ? "● Mode Demo" : "● Verified by Pi SDK", true);
+
+        // Jika tersimpan, teruskan token ke App Studio parent window jika berjalan di iframe preview
+        if (user.accessToken && window.parent && window.parent !== window) {
+          try {
+            window.parent.postMessage({
+              type: "pi_access_token",
+              accessToken: user.accessToken,
+              token: user.accessToken,
+              user: { username: user.username, uid: user.uid }
+            }, "*");
+          } catch (e) {
+            console.warn("Failed to post saved session token to parent window:", e);
+          }
+        }
       }
     } catch (e) {
       console.warn("Gagal membaca saved session:", e);
@@ -428,11 +485,19 @@ function checkSavedSession() {
 async function saveVoterToSupabase(voterData) {
   if (!supabaseClient) return false;
   try {
-    const { error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from('voters')
       .upsert([voterData], { onConflict: 'username' });
 
     if (error) {
+      if (error.code === '23505' || error.message.includes('unique_garuda_id')) {
+        alert(`⛔ REGISTRASI DITOLAK!\n\nNomor Garuda #${voterData.garuda_id} sudah terdaftar atas nama username lain.`);
+        return false;
+      }
+      if (error.code === '23505' || error.message.includes('unique_wallet_address')) {
+        alert("⛔ REGISTRASI DITOLAK!\n\nAlamat Pi Wallet ini sudah terdaftar atas nama username lain.");
+        return false;
+      }
       alert("⚠️ Gagal menyimpan profil ke Database: " + error.message);
       return false;
     }
@@ -469,6 +534,13 @@ async function fetchVoterProfileFromSupabase(username) {
         if ($("#garudaId")) $("#garudaId").value = "911";
         const displayGaruda = $("#displayGaruda");
         if (displayGaruda) displayGaruda.textContent = "#911";
+      } else {
+        activeUser.walletAddress = "";
+        activeUser.garudaId = null;
+        if ($("#walletAddress")) $("#walletAddress").value = "";
+        if ($("#garudaId")) $("#garudaId").value = "";
+        const displayGaruda = $("#displayGaruda");
+        if (displayGaruda) displayGaruda.textContent = "BELUM VERIFIKASI";
       }
       await checkGarudaBlacklistStatus(activeUser.garudaId, username);
       return;
@@ -507,6 +579,7 @@ async function fetchVoterProfileFromSupabase(username) {
   }
 }
 
+// 🚫 PENGAMBILAN DAFTAR FROZEN DI CLIENT UNTUK FILTER LAPORAN
 async function getFrozenListClient() {
   try {
     const res = await fetch('/frozen_list.json');
@@ -543,6 +616,12 @@ async function fetchVoterStatsForAdmin() {
 
     if (error || !voteRows) {
       if (display) display.textContent = "0 Voter Aktif";
+      activeProposal.totalVotes = 0;
+      activeProposal.netScore = 0;
+      activeProposal.agreeCount = 0;
+      activeProposal.neutralCount = 0;
+      activeProposal.disagreeCount = 0;
+      activeProposal.avgConfidence = 0;
     } else {
       const validVotes = voteRows.filter(v => {
         const prof = profileMap[v.username] || {};
@@ -1105,7 +1184,7 @@ async function publishNewProposal(e) {
     combinedImages = combinedImages.concat(extList);
   }
 
-  activeProposal.images = combinedImages.length > 0 ? combinedImages : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Objek+Voting"];
+  activeProposal.images = combinedImages.length > 0 ? combinedImages : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"];
 
   const rawVideo = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
   activeProposal.videoUrl = rawVideo ? ensureHttps(rawVideo) : "";
@@ -1359,7 +1438,7 @@ async function handleCastVote(e) {
   }
 }
 
-// 🚫 MODUL PEMBEKUAN (BLACK-LISTING) ID GARUDA LANGSUNG KE SUPABASE
+// 🚫 MODUL PEMBEKUAN (BLACK-LISTING) ID GARUDA / USERNAME OLEH ADMIN
 async function toggleGarudaBan(isBan) {
   const garudaIdInput = $("#targetGarudaId") ? $("#targetGarudaId").value.trim() : "";
   const reasonInput = $("#targetBanReason") ? $("#targetBanReason").value.trim() : "";
@@ -1371,7 +1450,7 @@ async function toggleGarudaBan(isBan) {
 
   const garudaIdNum = parseInt(garudaIdInput);
   if (isNaN(garudaIdNum) || garudaIdNum < 1 || garudaIdNum > 1000) {
-    alert("⚠️ Nomor Garuda ID tidak valid (1 - 1000).");
+    alert("⚠️ Nomor Garuda ID tidak valid.");
     return;
   }
 
@@ -1380,33 +1459,37 @@ async function toggleGarudaBan(isBan) {
     return;
   }
 
-  if (!supabaseClient) {
-    alert("❌ Supabase Client belum terhubung.");
-    return;
-  }
-
   try {
-    if (isBan) {
-      const { error } = await supabaseClient.from('garuda_blacklist').upsert([{
-        garuda_id: garudaIdNum,
-        reason: reasonInput,
-        banned_by: activeUser.username || 'admin',
-        created_at: new Date().toISOString()
-      }], { onConflict: 'garuda_id' });
+    const endpoint = isBan ? '/api/admin/freeze' : '/api/admin/unfreeze';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ garudaId: String(garudaIdNum) })
+    });
 
-      if (error) throw error;
-      alert(`✅ Sukses: Garuda ID #${garudaIdNum} berhasil dibekukan dan tercatat di database Supabase.`);
+    const result = await res.json();
+    if (res.ok && result.success) {
+      alert(result.message);
     } else {
-      const { error } = await supabaseClient.from('garuda_blacklist').delete().eq('garuda_id', garudaIdNum);
+      alert("⚠️ " + (result.message || "Gagal mengubah status pembekuan."));
+    }
 
-      if (error) throw error;
-      alert(`✅ Sukses: Pembekuan Garuda ID #${garudaIdNum} telah dibuka.`);
+    if (supabaseClient) {
+      if (isBan) {
+        await supabaseClient.from('garuda_blacklist').upsert([{
+          garuda_id: garudaIdNum,
+          reason: reasonInput,
+          banned_by: activeUser.username || 'admin',
+          created_at: new Date().toISOString()
+        }], { onConflict: 'garuda_id' });
+      } else {
+        await supabaseClient.from('garuda_blacklist').delete().eq('garuda_id', garudaIdNum);
+      }
     }
 
     location.reload();
   } catch (err) {
-    console.error("Gagal memperbarui status blacklist:", err);
-    alert("❌ Gagal menyimpan ke tabel garuda_blacklist: " + err.message);
+    alert("❌ Gagal memperbarui status blacklist: " + err.message);
   }
 }
 
@@ -1548,7 +1631,7 @@ function closePdfModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-// 📥 FUNGSI UNDUH PDF LANGSUNG
+// 📥 FUNGSI UNDUH PDF LANGSUNG (RESPONSIF HIGH-DPI UNTUK HP VERTIKAL)
 async function downloadPdfDirect() {
   const contentDiv = document.getElementById("documentViewerContent");
   const btnDownload = document.getElementById("btnModalDownload");
@@ -1596,6 +1679,7 @@ async function downloadPdfDirect() {
 
       const worker = window.html2pdf().set(opt).from(contentDiv);
       const pdfBlob = await worker.output('blob');
+
       const blobUrl = URL.createObjectURL(pdfBlob);
       
       const downloadAnchor = document.createElement("a");
@@ -1725,7 +1809,7 @@ window.downloadPdfModal = downloadPdfModal;
 window.shareToExternalBrowser = shareToExternalBrowser;
 window.copyDocumentText = copyDocumentText;
 
-// 📄 1. GENERATE OFFICIAL MINUTES DOKUMEN
+// 📄 1. GENERATE OFFICIAL MINUTES DOKUMEN (DI FILTER AGAR AKUN FROZEN TIDAK MASUK)
 async function generateOfficialMinutesPDF() {
   currentOpenedDocType = "minutes";
   await fetchVoterStatsForAdmin();
@@ -1752,6 +1836,7 @@ async function generateOfficialMinutesPDF() {
   const docHtml = `
     <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 16px 14px; box-sizing: border-box; line-height: 1.5; background: #ffffff;">
       
+      <!-- HEADER LOGO & TITLE -->
       <div style="text-align: center; border-bottom: 3px double #1e3a8a; padding-bottom: 12px; margin-bottom: 16px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 65px; margin: 0 auto 6px auto; display: block;" />
         <h1 style="font-size: 22px; font-weight: 800; color: #1e3a8a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">OFFICIAL MINUTES REPORT</h1>
@@ -1759,6 +1844,7 @@ async function generateOfficialMinutesPDF() {
         <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
       </div>
 
+      <!-- DOCUMENT CONTROL RECORD -->
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1.5px solid #cbd5e1; page-break-inside: avoid;">
         <tr style="background: #1e293b; color: #ffffff;">
           <td colspan="2" style="padding: 8px 10px; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">DOCUMENT CONTROL RECORD</td>
@@ -1789,6 +1875,7 @@ async function generateOfficialMinutesPDF() {
         </tr>
       </table>
 
+      <!-- SECTION II: VOTING RESULTS -->
       <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">II. AGGREGATED VOTING METRICS (CLEANED & VERIFIED)</h3>
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1.5px solid #cbd5e1; text-align: center; page-break-inside: avoid;">
         <thead>
@@ -1832,12 +1919,14 @@ async function generateOfficialMinutesPDF() {
         </tbody>
       </table>
 
+      <!-- SECTION III: FINAL VERDICT -->
       <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">III. OFFICIAL RATIFICATION VERDICT</h3>
       <div class="avoid-break" style="text-align: center; padding: 14px; background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid;">
         <h2 style="font-size: 20px; font-weight: 800; color: #166534; margin: 0; letter-spacing: 1px;">RATIFICATION VERDICT: ${verdictText}</h2>
         <p style="font-size: 11px; color: #475569; margin: 6px 0 0 0; font-weight: 600;">Net Weighted Score: +${netScoreVal.toFixed(2)} | Average Confidence Scale: ${avgConf} / 5.0</p>
       </div>
 
+      <!-- SECTION IV: OFFICIAL SIGNATURES & STAMP -->
       <div class="avoid-break" style="position: relative; margin-top: 24px; border-top: 2px solid #cbd5e1; padding-top: 14px; page-break-inside: avoid;">
         <img src="/stempel-tvod.png" alt="Official TVOD Stamp" style="position: absolute; left: 50%; transform: translateX(-50%); top: 30px; width: 140px; height: 140px; opacity: 0.75; pointer-events: none; z-index: 10;" />
 
@@ -1886,7 +1975,7 @@ async function generateOfficialMinutesPDF() {
   renderDocumentInModal(`Official Minutes: ${activeProposal.id}`, docHtml);
 }
 
-// 📊 2. GENERATE AUDIT TRAIL LOG REPORT
+// 📊 2. GENERATE INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT (DI FILTER AGAR AKUN FROZEN DI-EXCLUDE)
 async function generateVoterAuditLogPDF() {
   currentOpenedDocType = "audit_log";
   await fetchVoterStatsForAdmin();
@@ -1959,6 +2048,7 @@ async function generateVoterAuditLogPDF() {
   const docHtml = `
     <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 14px 10px; box-sizing: border-box; line-height: 1.45; background: #ffffff;">
       
+      <!-- HEADER LOGO & TITLE -->
       <div style="text-align: center; border-bottom: 3px double #4c1d95; padding-bottom: 10px; margin-bottom: 14px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 60px; margin: 0 auto 6px auto; display: block;" />
         <h1 style="font-size: 20px; font-weight: 800; color: #4c1d95; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT</h1>
@@ -1966,10 +2056,12 @@ async function generateVoterAuditLogPDF() {
         <p style="font-size: 10.5px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
       </div>
 
+      <!-- CONTROL BANNER -->
       <div style="background: #1e1b4b; color: #ffffff; text-align: center; padding: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; border-radius: 4px;">
         ⚠️ RESTRICTED · CONTROLLED AUDIT LOG DOCUMENT [FROZEN ACCOUNTS EXCLUDED]
       </div>
 
+      <!-- AUDIT DATA TABLE -->
       <div style="overflow-x: auto; margin-bottom: 18px;">
         <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1.5px solid #4c1d95; text-align: center;">
           <thead>
@@ -1993,6 +2085,7 @@ async function generateVoterAuditLogPDF() {
         </table>
       </div>
 
+      <!-- VERIFICATION SIGNATURES -->
       <div class="avoid-break" style="position: relative; margin-top: 18px; border-top: 2px solid #cbd5e1; padding-top: 10px; page-break-inside: avoid;">
         <img src="/stempel-tvod.png" alt="Official TVOD Stamp" style="position: absolute; right: 20px; top: 15px; width: 90px; height: 90px; opacity: 0.75; pointer-events: none;" />
 
@@ -2025,7 +2118,7 @@ async function generateVoterAuditLogPDF() {
   renderDocumentInModal(`Voter Audit Log: ${activeProposal.id}`, docHtml);
 }
 
-// 🎓 3. GENERATE DIGITAL CERTIFICATE
+// 🎓 3. GENERATE SERTIFIKAT VERIFIKASI DIGITAL
 async function generateCertificatePDF() {
   currentOpenedDocType = "certificate";
   await fetchVoterStatsForAdmin();
