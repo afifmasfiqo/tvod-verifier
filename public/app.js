@@ -1972,7 +1972,7 @@ async function generateOfficialMinutesPDF() {
   renderDocumentInModal(`Official Minutes: ${activeProposal.id}`, docHtml);
 }
 
-// 📊 2. GENERATE INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT (DI FILTER AGAR AKUN FROZEN DI-EXCLUDE)
+// 📊 2. GENERATE INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT (DENGAN KOLOM TIMESTAMP & DI-FILTER DARI AKUN FROZEN)
 async function generateVoterAuditLogPDF() {
   currentOpenedDocType = "audit_log";
   await fetchVoterStatsForAdmin();
@@ -2017,21 +2017,28 @@ async function generateVoterAuditLogPDF() {
           const voteBgColor = v.vote_direction === 1 ? '#dcfce7' : (v.vote_direction === 0 ? '#fef9c3' : '#fee2e2');
           const voteTextColor = v.vote_direction === 1 ? '#166534' : (v.vote_direction === 0 ? '#854d0e' : '#991b1b');
           const scoreVal = (parseFloat(v.weighted_score) || 0);
+          
+          // Format Timestamp dari created_at
+          let formattedTimestamp = "-";
+          if (v.created_at) {
+            formattedTimestamp = v.created_at.replace('T', ' ').substring(0, 19);
+          }
+
           const noteText = prof.category === 'owner' ? `Verified On-Chain (Garuda #${prof.garuda_id || ''})` : `Delegator (@${prof.owner_username || 'Garuda Owner'})`;
 
           return `
-            <tr style="border-bottom: 1px solid #cbd5e1; font-size: 10px;">
-              <td style="padding: 6px 4px; font-weight: bold; background: #f8fafc; text-align: center;">${idx + 1}</td>
-              <td style="padding: 6px 6px; font-weight: bold; text-align: left; color: #0f172a;">@${v.username}</td>
-              <td style="padding: 6px 4px; font-family: monospace; font-weight: bold; color: #1e3a8a; text-align: center;">${garudaDisplay}</td>
-              <td style="padding: 6px 4px; font-weight: 600; text-align: center;">${communityDisplay}</td>
-              <td style="padding: 6px 4px; text-align: center;">${prof.role || 'Member'}</td>
-              <td style="padding: 6px 4px; font-weight: bold; text-align: center;">${v.role_weight || 0.5}</td>
-              <td style="padding: 6px 4px; font-weight: 600; color: #2563eb; text-align: center;">TVOD Verifier dApp</td>
-              <td style="padding: 6px 4px; font-weight: bold; text-align: center; background: ${voteBgColor}; color: ${voteTextColor};">${voteDirectionText}</td>
-              <td style="padding: 6px 4px; font-weight: bold; text-align: center;">${v.confidence || 3}</td>
-              <td style="padding: 6px 4px; font-weight: bold; text-align: center; color: ${scoreVal >= 0 ? '#15803d' : '#b91c1c'};">${scoreVal >= 0 ? '+' : ''}${scoreVal.toFixed(1)}</td>
-              <td style="padding: 6px 6px; text-align: left; font-size: 9px; color: #475569;">${noteText}</td>
+            <tr style="border-bottom: 1px solid #cbd5e1; font-size: 9.5px;">
+              <td style="padding: 6px 3px; font-weight: bold; background: #f8fafc; text-align: center;">${idx + 1}</td>
+              <td style="padding: 6px 5px; font-weight: bold; text-align: left; color: #0f172a;">@${v.username}</td>
+              <td style="padding: 6px 3px; font-family: monospace; font-weight: bold; color: #1e3a8a; text-align: center;">${garudaDisplay}</td>
+              <td style="padding: 6px 3px; font-weight: 600; text-align: center;">${communityDisplay}</td>
+              <td style="padding: 6px 3px; text-align: center;">${prof.role || 'Member'}</td>
+              <td style="padding: 6px 3px; font-weight: bold; text-align: center;">${v.role_weight || 0.5}</td>
+              <td style="padding: 6px 3px; font-weight: bold; text-align: center; background: ${voteBgColor}; color: ${voteTextColor};">${voteDirectionText}</td>
+              <td style="padding: 6px 3px; font-weight: bold; text-align: center;">${v.confidence || 3}</td>
+              <td style="padding: 6px 3px; font-weight: bold; text-align: center; color: ${scoreVal >= 0 ? '#15803d' : '#b91c1c'};">${scoreVal >= 0 ? '+' : ''}${scoreVal.toFixed(1)}</td>
+              <td style="padding: 6px 4px; font-family: monospace; font-size: 8.5px; text-align: center; color: #334155;">${formattedTimestamp}</td>
+              <td style="padding: 6px 5px; text-align: left; font-size: 8.5px; color: #475569;">${noteText}</td>
             </tr>
           `;
         });
@@ -2048,32 +2055,32 @@ async function generateVoterAuditLogPDF() {
       <!-- HEADER LOGO & TITLE -->
       <div style="text-align: center; border-bottom: 3px double #4c1d95; padding-bottom: 10px; margin-bottom: 14px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 60px; margin: 0 auto 6px auto; display: block;" />
-        <h1 style="font-size: 20px; font-weight: 800; color: #4c1d95; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT</h1>
-        <h2 style="font-size: 13px; font-weight: 700; color: #6b21a8; margin: 4px 0 0 0; text-transform: uppercase;">PROPOSAL: ${activeProposal.title}</h2>
-        <p style="font-size: 10.5px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
+        <h1 style="font-size: 19px; font-weight: 800; color: #4c1d95; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT</h1>
+        <h2 style="font-size: 12px; font-weight: 700; color: #6b21a8; margin: 4px 0 0 0; text-transform: uppercase;">PROPOSAL: ${activeProposal.title}</h2>
+        <p style="font-size: 10px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
       </div>
 
       <!-- CONTROL BANNER -->
-      <div style="background: #1e1b4b; color: #ffffff; text-align: center; padding: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; border-radius: 4px;">
+      <div style="background: #1e1b4b; color: #ffffff; text-align: center; padding: 5px; font-size: 9.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-radius: 4px;">
         ⚠️ RESTRICTED · CONTROLLED AUDIT LOG DOCUMENT [FROZEN ACCOUNTS EXCLUDED]
       </div>
 
       <!-- AUDIT DATA TABLE -->
-      <div style="overflow-x: auto; margin-bottom: 18px;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1.5px solid #4c1d95; text-align: center;">
+      <div style="overflow-x: auto; margin-bottom: 16px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; border: 1.5px solid #4c1d95; text-align: center;">
           <thead>
             <tr style="background: #4c1d95; color: #ffffff; font-weight: bold;">
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8; width: 25px;">No.</th>
-              <th style="padding: 7px 6px; border: 1px solid #6b21a8; text-align: left;">Name</th>
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Garuda ID</th>
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Community</th>
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Role</th>
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Weight</th>
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Voting Source</th>
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Vote</th>
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Confidence</th>
-              <th style="padding: 7px 4px; border: 1px solid #6b21a8;">Score</th>
-              <th style="padding: 7px 6px; border: 1px solid #6b21a8; text-align: left;">Notes</th>
+              <th style="padding: 6px 3px; border: 1px solid #6b21a8; width: 22px;">No.</th>
+              <th style="padding: 6px 5px; border: 1px solid #6b21a8; text-align: left;">Name</th>
+              <th style="padding: 6px 3px; border: 1px solid #6b21a8;">Garuda ID</th>
+              <th style="padding: 6px 3px; border: 1px solid #6b21a8;">Chapter</th>
+              <th style="padding: 6px 3px; border: 1px solid #6b21a8;">Role</th>
+              <th style="padding: 6px 3px; border: 1px solid #6b21a8;">Wgt</th>
+              <th style="padding: 6px 3px; border: 1px solid #6b21a8;">Vote</th>
+              <th style="padding: 6px 3px; border: 1px solid #6b21a8;">Conf</th>
+              <th style="padding: 6px 3px; border: 1px solid #6b21a8;">Score</th>
+              <th style="padding: 6px 4px; border: 1px solid #6b21a8;">Timestamp (UTC)</th>
+              <th style="padding: 6px 5px; border: 1px solid #6b21a8; text-align: left;">Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -2083,7 +2090,7 @@ async function generateVoterAuditLogPDF() {
       </div>
 
       <!-- VERIFICATION SIGNATURES -->
-      <div class="avoid-break" style="position: relative; margin-top: 18px; border-top: 2px solid #cbd5e1; padding-top: 10px; page-break-inside: avoid;">
+      <div class="avoid-break" style="position: relative; margin-top: 16px; border-top: 2px solid #cbd5e1; padding-top: 10px; page-break-inside: avoid;">
         <img src="/stempel-tvod.png" alt="Official TVOD Stamp" style="position: absolute; right: 20px; top: 15px; width: 90px; height: 90px; opacity: 0.75; pointer-events: none;" />
 
         <h4 style="font-size: 11px; font-weight: bold; color: #4c1d95; margin: 0 0 8px 0; text-transform: uppercase;">AUDIT TRAIL VERIFICATION SIGNATURES</h4>
