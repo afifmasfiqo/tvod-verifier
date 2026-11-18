@@ -1459,37 +1459,35 @@ async function toggleGarudaBan(isBan) {
     return;
   }
 
+  if (!supabaseClient) {
+    alert("❌ Supabase Client belum terhubung.");
+    return;
+  }
+
   try {
-    const endpoint = isBan ? '/api/admin/freeze' : '/api/admin/unfreeze';
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ garudaId: String(garudaIdNum) })
-    });
+    if (isBan) {
+      // Simpan langsung ke tabel Supabase garuda_blacklist
+      const { error } = await supabaseClient.from('garuda_blacklist').upsert([{
+        garuda_id: garudaIdNum,
+        reason: reasonInput,
+        banned_by: activeUser.username || 'admin',
+        created_at: new Date().toISOString()
+      }], { onConflict: 'garuda_id' });
 
-    const result = await res.json();
-    if (res.ok && result.success) {
-      alert(result.message);
+      if (error) throw error;
+      alert(`✅ Sukses: Garuda ID #${garudaIdNum} berhasil dibekukan & disimpan ke Supabase.`);
     } else {
-      alert("⚠️ " + (result.message || "Gagal mengubah status pembekuan."));
-    }
+      // Hapus dari tabel Supabase garuda_blacklist (Unfreeze)
+      const { error } = await supabaseClient.from('garuda_blacklist').delete().eq('garuda_id', garudaIdNum);
 
-    if (supabaseClient) {
-      if (isBan) {
-        await supabaseClient.from('garuda_blacklist').upsert([{
-          garuda_id: garudaIdNum,
-          reason: reasonInput,
-          banned_by: activeUser.username || 'admin',
-          created_at: new Date().toISOString()
-        }], { onConflict: 'garuda_id' });
-      } else {
-        await supabaseClient.from('garuda_blacklist').delete().eq('garuda_id', garudaIdNum);
-      }
+      if (error) throw error;
+      alert(`✅ Sukses: Pembekuan Garuda ID #${garudaIdNum} berhasil dicabut.`);
     }
 
     location.reload();
   } catch (err) {
-    alert("❌ Gagal memperbarui status blacklist: " + err.message);
+    console.error("Detail Error Supabase:", err);
+    alert("❌ Gagal menyimpan ke Supabase: " + (err.message || JSON.stringify(err)));
   }
 }
 
