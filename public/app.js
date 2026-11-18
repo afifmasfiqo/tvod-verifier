@@ -2,7 +2,7 @@
 
 const $ = (selector) => document.querySelector(selector);
 const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
-const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak", "insya", "Rasj81"];
+const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak"];
 
 function ensureHttps(url) {
   if (!url) return "";
