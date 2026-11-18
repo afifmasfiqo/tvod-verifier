@@ -1466,11 +1466,10 @@ async function toggleGarudaBan(isBan) {
 
   try {
     if (isBan) {
-      // Simpan langsung ke tabel Supabase garuda_blacklist
+      // Simpan langsung ke tabel Supabase garuda_blacklist (aman tanpa error cache schema)
       const { error } = await supabaseClient.from('garuda_blacklist').upsert([{
         garuda_id: garudaIdNum,
         reason: reasonInput,
-        banned_by: activeUser.username || 'admin',
         created_at: new Date().toISOString()
       }], { onConflict: 'garuda_id' });
 
