@@ -2264,6 +2264,16 @@ async function generateVoterAuditLogPDF() {
       console.warn("Gagal membaca voter log Supabase:", err);
     }
   }
+  
+  if (!voterLogRowsHtml) {
+    voterLogRowsHtml = `
+      <tr>
+        <td colspan="11" style="padding: 12px; text-align: center; color: #64748b; font-style: italic;">
+          No valid &amp; non-frozen ballots recorded yet for this proposal.
+        </td>
+      </tr>
+    `;
+  }
 
   const safeTitle = escapeHtml(activeProposal.title);
   const safeId = escapeHtml(activeProposal.id);
