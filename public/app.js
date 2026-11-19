@@ -764,17 +764,33 @@ function setWaitingForProposalState() {
 }
 
 async function fetchActiveProposalFromSupabase() {
-  if (!supabaseClient) return;
+  if (!supabaseClient) {
+    setWaitingForProposalState();
+    return;
+  }
+
   try {
     const { data, error } = await supabaseClient
       .from('proposals')
       .select('*')
+      .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
       .limit(1);
 
-    if (error || !data || data.length === 0) return;
+    if (error || !data || data.length === 0) {
+      setWaitingForProposalState();
+      return;
+    }
 
     const p = data[0];
+    const endTimeCandidate = p.voting_end_time ? new Date(p.voting_end_time) : null;
+
+    // Jika tidak ada waktu selesai atau waktunya sudah lewat, kembalikan ke mode menunggu
+    if (!endTimeCandidate || Number.isNaN(endTimeCandidate.getTime()) || endTimeCandidate.getTime() <= Date.now()) {
+      setWaitingForProposalState();
+      return;
+    }
+
     activeProposal = {
       id: p.id,
       title: p.title,
@@ -796,30 +812,21 @@ async function fetchActiveProposalFromSupabase() {
       status: p.status || 'ACTIVE'
     };
 
-    if (p.voting_end_time) {
-      votingEndTime = new Date(p.voting_end_time);
-    }
+    votingEndTime = endTimeCandidate;
     renderProposalMaterials();
 
-    if (p.status === 'CANCELLED') {
-      const display = $("#countdownDisplay");
-      if (display) {
-        display.textContent = "⚠️ PROPOSAL DIBATALKAN / DITUTUP";
-        display.className = "bg-red-500/10 text-red-500 border border-red-500/30 text-xs px-3 py-1 rounded-full font-mono font-bold animate-pulse";
-      }
-      const btn = $("#btnSubmitVote");
-      if (btn) {
-        btn.disabled = true;
-        btn.innerText = "⛔ Proposal Dibatalkan / Ditutup Admin";
-        btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
-      }
-    } else {
-      startCountdownTimer();
+    const btn = $("#btnSubmitVote");
+    if (btn && !isUserBanned) {
+      btn.disabled = false;
+      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+      btn.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-4 rounded-xl text-sm transition shadow-lg";
     }
 
+    startCountdownTimer();
     await fetchVoterStatsForAdmin();
   } catch (err) {
     console.error("Fetch Proposal Error:", err);
+    setWaitingForProposalState();
   }
 }
 
