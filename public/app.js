@@ -615,7 +615,8 @@ async function fetchVoterStatsForAdmin() {
     const { data: voteRows, error } = await supabaseClient
       .from('votes')
       .select('*')
-      .eq('proposal_id', activeProposal.id);
+      .eq('proposal_id', activeProposal.id)
+      .order('created_at', { ascending: true });
 
     const { data: voterProfiles } = await supabaseClient
       .from('voters')
@@ -623,10 +624,35 @@ async function fetchVoterStatsForAdmin() {
 
     const profileMap = {};
     if (voterProfiles) {
-      voterProfiles.forEach(p => { profileMap[p.username] = p; });
+      voterProfiles.forEach(p => {
+        if (p.username) profileMap[p.username.toLowerCase()] = p;
+      });
     }
 
-    const frozenIds = await getFrozenListClient();
+    // 1. Gabungkan daftar ID terblokir dari frozen_list.json dan tabel Supabase garuda_blacklist
+    const frozenIdSet = new Set(
+      (await getFrozenListClient()).map(id => String(id).trim())
+    );
+    const frozenUsernameSet = new Set();
+
+    try {
+      const { data: blacklistRows } = await supabaseClient
+        .from('garuda_blacklist')
+        .select('garuda_id, username');
+
+      if (blacklistRows) {
+        blacklistRows.forEach(b => {
+          if (b.garuda_id !== null && b.garuda_id !== undefined) {
+            frozenIdSet.add(String(b.garuda_id).trim());
+          }
+          if (b.username) {
+            frozenUsernameSet.add(String(b.username).trim().toLowerCase());
+          }
+        });
+      }
+    } catch (blErr) {
+      console.warn("Warning membaca garuda_blacklist:", blErr);
+    }
 
     if (error || !voteRows) {
       if (display) display.textContent = "0 Voter Aktif";
@@ -642,11 +668,37 @@ async function fetchVoterStatsForAdmin() {
       return;
     }
 
+    // 2. Filter ID/akun terblokir & cegah double suara (1 suara per username & per garuda_id)
+    const seenUsernames = new Set();
+    const seenGarudaIds = new Set();
+
     const validVotes = voteRows.filter(v => {
-      const prof = profileMap[v.username] || {};
-      if (prof.garuda_id && frozenIds.includes(String(prof.garuda_id))) {
+      const uname = (v.username || "").trim().toLowerCase();
+      if (!uname || uname === "anonymous") return false;
+
+      if (frozenUsernameSet.has(uname)) return false;
+
+      const prof = profileMap[uname] || {};
+      const garudaIdStr = prof.garuda_id !== null && prof.garuda_id !== undefined
+        ? String(prof.garuda_id).trim()
+        : "";
+
+      if (garudaIdStr && frozenIdSet.has(garudaIdStr)) {
         return false;
       }
+
+      // Cegah double suara berdasarkan username
+      if (seenUsernames.has(uname)) {
+        return false;
+      }
+
+      // Cegah double suara jika ada 2 username berbeda memakai Garuda ID yang sama
+      if (garudaIdStr && seenGarudaIds.has(garudaIdStr)) {
+        return false;
+      }
+
+      seenUsernames.add(uname);
+      if (garudaIdStr) seenGarudaIds.add(garudaIdStr);
       return true;
     });
 
@@ -685,7 +737,7 @@ async function fetchVoterStatsForAdmin() {
     activeProposal.avgConfidence = count > 0 ? (totalConf / count).toFixed(2) : 0;
 
     if (display) {
-      display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts) [Frozen Excluded]`;
+      display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts) [Frozen & Dupes Excluded]`;
     }
   } catch (err) {
     if (display) display.textContent = "0 Voter Aktif";
