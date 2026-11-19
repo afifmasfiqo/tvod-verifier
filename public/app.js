@@ -268,7 +268,7 @@ let currentConfidence = 3;
 const signaturePads = {};
 let uploadedGalleryBase64Images = [];
 
-let votingEndTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+let votingEndTime = null;
 let countdownInterval = null;
 
 let activeProposal = {
