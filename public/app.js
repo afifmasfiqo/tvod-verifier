@@ -527,34 +527,36 @@ async function saveVoteToSupabase(voteData) {
 }
 
 async function fetchVoterProfileFromSupabase(username) {
-  if (!supabaseClient) return;
+  if (!supabaseClient || !username) return;
 
   try {
     const { data, error } = await supabaseClient
       .from('voters')
       .select('*')
-      .eq('username', targetUsername)
+      .eq('username', username)
       .maybeSingle();
 
     if (error || !data) {
-      // Fallback data Anda
-      if (targetUsername === "afifmasfiqo") {
-        activeUser.username = "afifmasfiqo";
-        activeUser.walletAddress = "GCVGSZJOHN467T5QYFMJFSKIDDNC3N6EHCOSSEC7X3PKSK3YI733D2OO";
-        activeUser.garudaId = 911;
-        activeUser.category = "owner";
-        activeUser.role = "Group Leader";
-        activeUser.chapter = "GLOBAL";
-        
-        if ($("#walletAddress")) $("#walletAddress").value = activeUser.walletAddress;
-        if ($("#garudaId")) $("#garudaId").value = "911";
-        const displayGaruda = $("#displayGaruda");
-        if (displayGaruda) displayGaruda.textContent = "#911";
-      }
+      // Voter baru: kosongkan field agar wajib mengisi datanya sendiri dengan benar
+      activeUser.username = username;
+      activeUser.walletAddress = "";
+      activeUser.garudaId = null;
+      activeUser.garudaHash = null;
+      activeUser.ownerUsername = null;
+      activeUser.delegatedNftType = null;
+      activeUser.delegatedHashes = [];
+
+      if ($("#walletAddress")) $("#walletAddress").value = "";
+      if ($("#garudaId")) $("#garudaId").value = "";
+      if ($("#garudaHash")) $("#garudaHash").value = "";
+      if ($("#ownerUsername")) $("#ownerUsername").value = "";
+      if ($("#delegatorHashes")) $("#delegatorHashes").value = "";
+
+      const displayGaruda = $("#displayGaruda");
+      if (displayGaruda) displayGaruda.textContent = "BELUM TERDAFTAR";
       return;
     }
 
-    // Masukkan ke activeUser hanya jika sesuai
     activeUser.username = data.username;
     activeUser.walletAddress = data.wallet_address || "";
     activeUser.category = data.category || "owner";
@@ -566,22 +568,22 @@ async function fetchVoterProfileFromSupabase(username) {
     activeUser.delegatedNftType = data.delegated_nft_type;
     activeUser.delegatedHashes = data.delegated_hashes || [];
 
-    // Update tampilan input di form
     if ($("#walletAddress")) $("#walletAddress").value = data.wallet_address || "";
     if ($("#voterCategory")) {
       $("#voterCategory").value = data.category === 'owner' ? 'owner' : 'delegator';
       toggleCategoryFields();
     }
-    if ($("#communityChapter")) $("#communityChapter").value = data.chapter;
-    if ($("#userRole")) $("#userRole").value = data.role;
+    if ($("#communityChapter")) $("#communityChapter").value = data.chapter || "GLOBAL";
+    if ($("#userRole")) $("#userRole").value = data.role || "Member";
     if ($("#garudaId")) $("#garudaId").value = data.garuda_id || "";
+    if ($("#garudaHash")) $("#garudaHash").value = data.garuda_hash || "";
 
     const displayGaruda = $("#displayGaruda");
     if (displayGaruda) {
       displayGaruda.textContent = data.garuda_id ? `#${data.garuda_id}` : `DELEGATE (${(data.category || 'owner').toUpperCase()})`;
     }
 
-    await checkGarudaBlacklistStatus(data.garuda_id, targetUsername);
+    await checkGarudaBlacklistStatus(data.garuda_id, username);
   } catch (err) {
     console.error("Fetch Profile Error:", err);
   }
