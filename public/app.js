@@ -261,6 +261,19 @@ function changeLanguage(lang) {
 
     const optFounder = document.querySelector("#userRole option[value='Founder']");
     if (optFounder && dict.role_founder) optFounder.textContent = dict.role_founder;
+
+    // Perbarui Teks Label di Materi Voting
+    const authorLbl = document.querySelector("#propAuthorLabel");
+    if (authorLbl && dict.prop_author_label) authorLbl.textContent = dict.prop_author_label;
+
+    const dateLbl = document.querySelector("#propDateLabel");
+    if (dateLbl && dict.prop_date_label) dateLbl.textContent = dict.prop_date_label;
+
+    const videoLbl = document.querySelector("#propVideoLabel");
+    if (videoLbl && dict.prop_video_label) videoLbl.textContent = dict.prop_video_label;
+
+    const videoPlaceholder = document.querySelector("#videoPlaceholder");
+    if (videoPlaceholder && dict.prop_no_video) videoPlaceholder.textContent = dict.prop_no_video;
   }
 }
 
