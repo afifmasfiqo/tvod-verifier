@@ -1907,6 +1907,9 @@ async function generateOfficialMinutesPDF() {
   const agreeCount = activeProposal.agreeCount || 0;
   const neutralCount = activeProposal.neutralCount || 0;
   const disagreeCount = activeProposal.disagreeCount || 0;
+  const agreeScore = activeProposal.agreeScore || 0;
+  const neutralScore = activeProposal.neutralScore || 0;
+  const disagreeScore = activeProposal.disagreeScore || 0;
   const avgConf = activeProposal.avgConfidence || 0;
 
   const agreePct = totalCount > 0 ? ((agreeCount / totalCount) * 100).toFixed(1) : "0.0";
@@ -1914,7 +1917,15 @@ async function generateOfficialMinutesPDF() {
   const disagreePct = totalCount > 0 ? ((disagreeCount / totalCount) * 100).toFixed(1) : "0.0";
 
   const verdictText = netScoreVal > 0 ? "AGREE" : (netScoreVal < 0 ? "DISAGREE" : "NEUTRAL / TIED");
-  const integrityHash = window.CryptoJS ? window.CryptoJS.SHA256(`TVOD-HASH-${activeProposal.id}`).toString().substring(0, 16).toUpperCase() : "8F97D023B35F5C67";
+  const verdictColor = netScoreVal > 0 ? "#166534" : (netScoreVal < 0 ? "#991b1b" : "#854d0e");
+  const safeTitle = escapeHtml(activeProposal.title);
+  const safeId = escapeHtml(activeProposal.id);
+  const safeChapter = escapeHtml(activeUser.chapter || "GLOBAL");
+  const netPrefix = netScoreVal >= 0 ? "+" : "";
+
+  const integrityHash = window.CryptoJS
+    ? window.CryptoJS.SHA256(`TVOD-HASH-${activeProposal.id}`).toString().substring(0, 16).toUpperCase()
+    : "8F97D023B35F5C67";
 
   const docHtml = `
     <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 16px 14px; box-sizing: border-box; line-height: 1.5; background: #ffffff;">
@@ -1923,7 +1934,7 @@ async function generateOfficialMinutesPDF() {
       <div style="text-align: center; border-bottom: 3px double #1e3a8a; padding-bottom: 12px; margin-bottom: 16px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 65px; margin: 0 auto 6px auto; display: block;" />
         <h1 style="font-size: 22px; font-weight: 800; color: #1e3a8a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">OFFICIAL MINUTES REPORT</h1>
-        <h2 style="font-size: 14px; font-weight: 700; color: #2563eb; margin: 4px 0 0 0; text-transform: uppercase;">WEB3 RATIFICATION — ${activeProposal.title}</h2>
+        <h2 style="font-size: 14px; font-weight: 700; color: #2563eb; margin: 4px 0 0 0; text-transform: uppercase;">WEB3 RATIFICATION — ${safeTitle}</h2>
         <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
       </div>
 
@@ -1934,7 +1945,7 @@ async function generateOfficialMinutesPDF() {
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; width: 160px; background: #f1f5f9; color: #334155;">Document ID</td>
-          <td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #0f172a; word-break: break-all;">${activeProposal.id}</td>
+          <td style="padding: 7px 10px; font-family: monospace; font-weight: bold; color: #0f172a; word-break: break-all;">${safeId}</td>
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Integrity Hash</td>
@@ -1942,7 +1953,7 @@ async function generateOfficialMinutesPDF() {
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Classification</td>
-          <td style="padding: 7px 10px; color: #dc2626; font-weight: bold;">RESTRICTED — Official DAO Ratification Minutes [Frozen Accounts Excluded]</td>
+          <td style="padding: 7px 10px; color: #dc2626; font-weight: bold;">RESTRICTED — Official DAO Ratification Minutes [Frozen & Duplicate Votes Excluded]</td>
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Generated Date</td>
@@ -1950,11 +1961,11 @@ async function generateOfficialMinutesPDF() {
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Proposal Subject</td>
-          <td style="padding: 7px 10px; font-weight: 600;">${activeProposal.title}</td>
+          <td style="padding: 7px 10px; font-weight: 600;">${safeTitle}</td>
         </tr>
         <tr>
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Voting System</td>
-          <td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp / ${activeUser.chapter || "GLOBAL"}</td>
+          <td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp / ${safeChapter}</td>
         </tr>
       </table>
 
@@ -1975,28 +1986,28 @@ async function generateOfficialMinutesPDF() {
             <td style="padding: 8px; font-weight: bold; color: #166534;">Agree (+1)</td>
             <td style="padding: 8px; font-weight: 600;">${agreeCount}</td>
             <td style="padding: 8px; font-weight: 600;">${agreePct}%</td>
-            <td style="padding: 8px; font-weight: bold; color: #15803d;">+${(agreeCount * avgConf).toFixed(2)}</td>
+            <td style="padding: 8px; font-weight: bold; color: #15803d;">${agreeScore >= 0 ? '+' : ''}${agreeScore.toFixed(2)}</td>
             <td style="padding: 8px;">${avgConf}</td>
           </tr>
           <tr style="background: #fef9c3; border-bottom: 1px solid #cbd5e1;">
             <td style="padding: 8px; font-weight: bold; color: #854d0e;">Neutral (0)</td>
             <td style="padding: 8px; font-weight: 600;">${neutralCount}</td>
             <td style="padding: 8px; font-weight: 600;">${neutralPct}%</td>
-            <td style="padding: 8px;">0.00</td>
+            <td style="padding: 8px;">${neutralScore.toFixed(2)}</td>
             <td style="padding: 8px;">${avgConf}</td>
           </tr>
           <tr style="background: #fee2e2; border-bottom: 1px solid #cbd5e1;">
             <td style="padding: 8px; font-weight: bold; color: #991b1b;">Disagree (-1)</td>
             <td style="padding: 8px; font-weight: 600;">${disagreeCount}</td>
             <td style="padding: 8px; font-weight: 600;">${disagreePct}%</td>
-            <td style="padding: 8px; font-weight: bold; color: #b91c1c;">0.00</td>
-            <td style="padding: 8px;">0.00</td>
+            <td style="padding: 8px; font-weight: bold; color: #b91c1c;">${disagreeScore.toFixed(2)}</td>
+            <td style="padding: 8px;">${avgConf}</td>
           </tr>
           <tr style="background: #1e293b; color: #ffffff; font-weight: bold;">
             <td style="padding: 9px;">TOTAL METRICS</td>
             <td style="padding: 9px; font-size: 13px;">${totalCount}</td>
             <td style="padding: 9px; font-size: 13px;">100%</td>
-            <td style="padding: 9px; font-size: 14px; color: #fbbf24;">+${netScoreVal.toFixed(2)} Pts</td>
+            <td style="padding: 9px; font-size: 14px; color: #fbbf24;">${netPrefix}${netScoreVal.toFixed(2)} Pts</td>
             <td style="padding: 9px; font-size: 13px;">${avgConf}</td>
           </tr>
         </tbody>
@@ -2005,8 +2016,8 @@ async function generateOfficialMinutesPDF() {
       <!-- SECTION III: FINAL VERDICT -->
       <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">III. OFFICIAL RATIFICATION VERDICT</h3>
       <div class="avoid-break" style="text-align: center; padding: 14px; background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid;">
-        <h2 style="font-size: 20px; font-weight: 800; color: #166534; margin: 0; letter-spacing: 1px;">RATIFICATION VERDICT: ${verdictText}</h2>
-        <p style="font-size: 11px; color: #475569; margin: 6px 0 0 0; font-weight: 600;">Net Weighted Score: +${netScoreVal.toFixed(2)} | Average Confidence Scale: ${avgConf} / 5.0</p>
+        <h2 style="font-size: 20px; font-weight: 800; color: ${verdictColor}; margin: 0; letter-spacing: 1px;">RATIFICATION VERDICT: ${verdictText}</h2>
+        <p style="font-size: 11px; color: #475569; margin: 6px 0 0 0; font-weight: 600;">Net Weighted Score: ${netPrefix}${netScoreVal.toFixed(2)} | Average Confidence Scale: ${avgConf} / 5.0</p>
       </div>
 
       <!-- SECTION IV: OFFICIAL SIGNATURES & STAMP -->
