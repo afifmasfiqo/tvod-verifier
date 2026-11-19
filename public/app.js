@@ -252,12 +252,12 @@ let currentOpenedDocType = null;
 let isUserBanned = false;
 
 let activeUser = {
-  username: "afifmasfiqo",
-  walletAddress: "GCVGSZJOHN467T5QYFMJFSKIDDNC3N6EHCOSSEC7X3PKSK3YI733D2OO",
+  username: null,
+  walletAddress: "",
   category: "owner",
-  role: "Group Leader",
+  role: "Member",
   chapter: "GLOBAL",
-  garudaId: 911,
+  garudaId: null,
   garudaHash: null,
   ownerUsername: null,
   delegatedNftType: null,
