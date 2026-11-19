@@ -895,7 +895,7 @@ async function initialize() {
 
   toggleCategoryFields();
   renderProposalMaterials();
-  startCountdownTimer();
+  setWaitingForProposalState();
 
   await initPiSDK();
   checkSavedSession();
