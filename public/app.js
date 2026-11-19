@@ -1424,7 +1424,7 @@ async function handleCastVote(e) {
     return;
   }
 
-  if (activeProposal.status === 'CANCELLED' || new Date().getTime() > votingEndTime.getTime()) {
+ if (activeProposal.status !== 'ACTIVE' || !votingEndTime || new Date().getTime() > votingEndTime.getTime()) {
     if (btn) {
       btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis / Dibatalkan)";
       btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
