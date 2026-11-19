@@ -974,6 +974,10 @@ async function handleGalleryImagesSelect(event) {
 
 function startCountdownTimer() {
   if (countdownInterval) clearInterval(countdownInterval);
+  if (activeProposal.status !== "ACTIVE" || !votingEndTime) {
+    setWaitingForProposalState();
+    return;
+  }
 
   countdownInterval = setInterval(() => {
     const now = new Date().getTime();
