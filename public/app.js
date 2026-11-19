@@ -2226,7 +2226,7 @@ async function generateVoterAuditLogPDF() {
         const rowList = validVoteRows.map((v, idx) => {
           const unameLower = (v.username || "").trim().toLowerCase();
           const prof = profileMap[unameLower] || {};
-          const garudaDisplay = prof.garuda_id ? `#${prof.garuda_id}` : `DELEGATE (${(prof.delegated_nft_type || 'NFT').toUpperCase()})`;
+         const garudaDisplay = prof.garuda_id ? `#${prof.garuda_id}` : `DELEGATE (${escapeHtml((prof.delegated_nft_type || 'NFT').toUpperCase())})`;
           const communityDisplay = escapeHtml(prof.chapter || 'GLOBAL');
           const safeUname = escapeHtml(v.username || "Unknown");
           const voteDirectionText = v.vote_direction === 1 ? 'Agree (+1)' : (v.vote_direction === 0 ? 'Neutral (0)' : 'Disagree (-1)');
