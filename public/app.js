@@ -2078,7 +2078,33 @@ async function generateVoterAuditLogPDF() {
   let sigInspector = getSignatureDataUrl("sig-inspector");
 
   let voterLogRowsHtml = "";
-  const frozenIds = await getFrozenListClient();
+
+  // Ambil daftar ID terblokir gabungan (frozen_list.json + garuda_blacklist Supabase)
+  const frozenIdSet = new Set(
+    (await getFrozenListClient()).map(id => String(id).trim())
+  );
+  const frozenUsernameSet = new Set();
+
+  if (supabaseClient) {
+    try {
+      const { data: blacklistRows } = await supabaseClient
+        .from('garuda_blacklist')
+        .select('garuda_id, username');
+
+      if (blacklistRows) {
+        blacklistRows.forEach(b => {
+          if (b.garuda_id !== null && b.garuda_id !== undefined) {
+            frozenIdSet.add(String(b.garuda_id).trim());
+          }
+          if (b.username) {
+            frozenUsernameSet.add(String(b.username).trim().toLowerCase());
+          }
+        });
+      }
+    } catch (e) {
+      console.warn("Warning membaca blacklist untuk audit log:", e);
+    }
+  }
 
   if (supabaseClient && activeProposal.id) {
     try {
@@ -2094,42 +2120,62 @@ async function generateVoterAuditLogPDF() {
 
       const profileMap = {};
       if (voterProfiles) {
-        voterProfiles.forEach(p => { profileMap[p.username] = p; });
+        voterProfiles.forEach(p => {
+          if (p.username) profileMap[p.username.toLowerCase()] = p;
+        });
       }
 
       if (voteData && voteData.length > 0) {
+        const seenUsernames = new Set();
+        const seenGarudaIds = new Set();
+
         const validVoteRows = voteData.filter(v => {
-          const prof = profileMap[v.username] || {};
-          if (prof.garuda_id && frozenIds.includes(String(prof.garuda_id))) {
-            return false;
-          }
+          const uname = (v.username || "").trim().toLowerCase();
+          if (!uname || uname === "anonymous") return false;
+          if (frozenUsernameSet.has(uname)) return false;
+
+          const prof = profileMap[uname] || {};
+          const garudaIdStr = prof.garuda_id !== null && prof.garuda_id !== undefined
+            ? String(prof.garuda_id).trim()
+            : "";
+
+          if (garudaIdStr && frozenIdSet.has(garudaIdStr)) return false;
+
+          // Cegah duplikasi suara
+          if (seenUsernames.has(uname)) return false;
+          if (garudaIdStr && seenGarudaIds.has(garudaIdStr)) return false;
+
+          seenUsernames.add(uname);
+          if (garudaIdStr) seenGarudaIds.add(garudaIdStr);
           return true;
         });
 
         const rowList = validVoteRows.map((v, idx) => {
-          const prof = profileMap[v.username] || {};
+          const unameLower = (v.username || "").trim().toLowerCase();
+          const prof = profileMap[unameLower] || {};
           const garudaDisplay = prof.garuda_id ? `#${prof.garuda_id}` : `DELEGATE (${(prof.delegated_nft_type || 'NFT').toUpperCase()})`;
-          const communityDisplay = prof.chapter || 'GLOBAL';
+          const communityDisplay = escapeHtml(prof.chapter || 'GLOBAL');
+          const safeUname = escapeHtml(v.username || "Unknown");
           const voteDirectionText = v.vote_direction === 1 ? 'Agree (+1)' : (v.vote_direction === 0 ? 'Neutral (0)' : 'Disagree (-1)');
           const voteBgColor = v.vote_direction === 1 ? '#dcfce7' : (v.vote_direction === 0 ? '#fef9c3' : '#fee2e2');
           const voteTextColor = v.vote_direction === 1 ? '#166534' : (v.vote_direction === 0 ? '#854d0e' : '#991b1b');
           const scoreVal = (parseFloat(v.weighted_score) || 0);
           
-          // Format Timestamp dari created_at
           let formattedTimestamp = "-";
           if (v.created_at) {
             formattedTimestamp = v.created_at.replace('T', ' ').substring(0, 19);
           }
 
-          const noteText = prof.category === 'owner' ? `Verified On-Chain (Garuda #${prof.garuda_id || ''})` : `Delegator (@${prof.owner_username || 'Garuda Owner'})`;
+          const ownerName = escapeHtml(prof.owner_username || 'Garuda Owner');
+          const noteText = prof.category === 'owner' ? `Verified On-Chain (Garuda #${prof.garuda_id || ''})` : `Delegator (@${ownerName})`;
 
           return `
             <tr style="border-bottom: 1px solid #cbd5e1; font-size: 9.5px;">
               <td style="padding: 6px 3px; font-weight: bold; background: #f8fafc; text-align: center;">${idx + 1}</td>
-              <td style="padding: 6px 5px; font-weight: bold; text-align: left; color: #0f172a;">@${v.username}</td>
+              <td style="padding: 6px 5px; font-weight: bold; text-align: left; color: #0f172a;">@${safeUname}</td>
               <td style="padding: 6px 3px; font-family: monospace; font-weight: bold; color: #1e3a8a; text-align: center;">${garudaDisplay}</td>
               <td style="padding: 6px 3px; font-weight: 600; text-align: center;">${communityDisplay}</td>
-              <td style="padding: 6px 3px; text-align: center;">${prof.role || 'Member'}</td>
+              <td style="padding: 6px 3px; text-align: center;">${escapeHtml(prof.role || 'Member')}</td>
               <td style="padding: 6px 3px; font-weight: bold; text-align: center;">${v.role_weight || 0.5}</td>
               <td style="padding: 6px 3px; font-weight: bold; text-align: center; background: ${voteBgColor}; color: ${voteTextColor};">${voteDirectionText}</td>
               <td style="padding: 6px 3px; font-weight: bold; text-align: center;">${v.confidence || 3}</td>
@@ -2146,6 +2192,9 @@ async function generateVoterAuditLogPDF() {
     }
   }
 
+  const safeTitle = escapeHtml(activeProposal.title);
+  const safeId = escapeHtml(activeProposal.id);
+
   const docHtml = `
     <div class="pdf-container" style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; width: 100%; max-width: 100%; margin: 0; padding: 14px 10px; box-sizing: border-box; line-height: 1.45; background: #ffffff;">
       
@@ -2153,13 +2202,13 @@ async function generateVoterAuditLogPDF() {
       <div style="text-align: center; border-bottom: 3px double #4c1d95; padding-bottom: 10px; margin-bottom: 14px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 60px; margin: 0 auto 6px auto; display: block;" />
         <h1 style="font-size: 19px; font-weight: 800; color: #4c1d95; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">INDIVIDUAL VOTER AUDIT TRAIL LOG REPORT</h1>
-        <h2 style="font-size: 12px; font-weight: 700; color: #6b21a8; margin: 4px 0 0 0; text-transform: uppercase;">PROPOSAL: ${activeProposal.title}</h2>
+        <h2 style="font-size: 12px; font-weight: 700; color: #6b21a8; margin: 4px 0 0 0; text-transform: uppercase;">PROPOSAL: ${safeTitle}</h2>
         <p style="font-size: 10px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
       </div>
 
       <!-- CONTROL BANNER -->
       <div style="background: #1e1b4b; color: #ffffff; text-align: center; padding: 5px; font-size: 9.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-radius: 4px;">
-        ⚠️ RESTRICTED · CONTROLLED AUDIT LOG DOCUMENT [FROZEN ACCOUNTS EXCLUDED]
+        ⚠️ RESTRICTED · CONTROLLED AUDIT LOG DOCUMENT [FROZEN & DUPLICATE VOTES EXCLUDED]
       </div>
 
       <!-- AUDIT DATA TABLE -->
@@ -2216,7 +2265,7 @@ async function generateVoterAuditLogPDF() {
     </div>
   `;
 
-  renderDocumentInModal(`Voter Audit Log: ${activeProposal.id}`, docHtml);
+  renderDocumentInModal(`Voter Audit Log: ${safeId}`, docHtml);
 }
 
 // 🎓 3. GENERATE SERTIFIKAT VERIFIKASI DIGITAL
