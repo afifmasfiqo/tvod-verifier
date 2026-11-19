@@ -529,12 +529,6 @@ async function saveVoteToSupabase(voteData) {
 async function fetchVoterProfileFromSupabase(username) {
   if (!supabaseClient) return;
 
-  // 🔒 KUNCI UTAMA: Jika Anda ingin dasbor ini tetap konsisten menggunakan data Anda (@afifmasfiqo)
-  // meskipun ada user lain yang login di sesi browser tersebut, tambahkan pengecekan ini:
-  const lockedOwnerUsername = "afifmasfiqo"; 
-  const targetUsername = (username === lockedOwnerUsername || AUTHORIZED_ADMINS.includes(username)) ? username : username; 
-  // Catatan: Jika ingin murni terkunci untuk Anda sebagai admin utama, ganti targetUsername dengan "afifmasfiqo"
-
   try {
     const { data, error } = await supabaseClient
       .from('voters')
