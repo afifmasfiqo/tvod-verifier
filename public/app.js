@@ -333,6 +333,52 @@ function clearOfficerSig(id) {
   localStorage.removeItem(`tvod_sig_${id}`);
 }
 
+async function isVoterBlockedForVoting(garudaId, username) {
+  const cleanUsername = String(username || "").trim().toLowerCase();
+  const cleanGarudaId = (garudaId !== null && garudaId !== undefined && String(garudaId).trim() !== "")
+    ? String(garudaId).trim()
+    : "";
+
+  const frozenIdSet = new Set(
+    (await getFrozenListClient()).map((id) => String(id).trim())
+  );
+  const frozenUsernameSet = new Set();
+
+  if (cleanGarudaId && frozenIdSet.has(cleanGarudaId)) {
+    return true;
+  }
+
+  if (supabaseClient) {
+    try {
+      const { data: blacklistRows } = await supabaseClient
+        .from("garuda_blacklist")
+        .select("garuda_id, username");
+
+      if (blacklistRows && blacklistRows.length > 0) {
+        blacklistRows.forEach((b) => {
+          if (b.garuda_id !== null && b.garuda_id !== undefined) {
+            frozenIdSet.add(String(b.garuda_id).trim());
+          }
+          if (b.username) {
+            frozenUsernameSet.add(String(b.username).trim().toLowerCase());
+          }
+        });
+      }
+    } catch (err) {
+      console.warn("Gagal memeriksa daftar blokir Supabase saat voting:", err);
+    }
+  }
+
+  if (cleanUsername && frozenUsernameSet.has(cleanUsername)) {
+    return true;
+  }
+  if (cleanGarudaId && frozenIdSet.has(cleanGarudaId)) {
+    return true;
+  }
+
+  return false;
+}
+
 // 🚫 1. PENGECEKAN STATUS BLACKLIST / PEMBEKUAN SERVER & SUPABASE
 async function checkGarudaBlacklistStatus(garudaId, username) {
   const banBanner = $("#banBanner");
