@@ -1907,7 +1907,10 @@ async function generateOfficialMinutesPDF() {
   const agreeScore = activeProposal.agreeScore || 0;
   const neutralScore = activeProposal.neutralScore || 0;
   const disagreeScore = activeProposal.disagreeScore || 0;
-  const avgConf = activeProposal.avgConfidence || 0;
+  const agreeAvgConf = activeProposal.agreeAvgConf || "0.00";
+  const neutralAvgConf = activeProposal.neutralAvgConf || "0.00";
+  const disagreeAvgConf = activeProposal.disagreeAvgConf || "0.00";
+  const avgConf = activeProposal.avgConfidence || "0.00";
 
   const agreePct = totalCount > 0 ? ((agreeCount / totalCount) * 100).toFixed(1) : "0.0";
   const neutralPct = totalCount > 0 ? ((neutralCount / totalCount) * 100).toFixed(1) : "0.0";
@@ -1915,10 +1918,23 @@ async function generateOfficialMinutesPDF() {
 
   const verdictText = netScoreVal > 0 ? "AGREE" : (netScoreVal < 0 ? "DISAGREE" : "NEUTRAL / TIED");
   const verdictColor = netScoreVal > 0 ? "#166534" : (netScoreVal < 0 ? "#991b1b" : "#854d0e");
+
   const safeTitle = escapeHtml(activeProposal.title);
   const safeId = escapeHtml(activeProposal.id);
   const safeChapter = escapeHtml(activeUser.chapter || "GLOBAL");
   const netPrefix = netScoreVal >= 0 ? "+" : "";
+
+  const nowDate = new Date();
+  const parsedPropDate = activeProposal.date ? new Date(activeProposal.date) : null;
+  const eventDate = (parsedPropDate && !Number.isNaN(parsedPropDate.getTime())) ? parsedPropDate : nowDate;
+
+  const formattedOnThisDay = eventDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+  const generatedUtc = nowDate.toISOString().replace("T", " ").substring(0, 16) + " UTC";
 
   const integrityHash = window.CryptoJS
     ? window.CryptoJS.SHA256(`TVOD-HASH-${activeProposal.id}`).toString().substring(0, 16).toUpperCase()
@@ -1930,13 +1946,13 @@ async function generateOfficialMinutesPDF() {
       <!-- HEADER LOGO & TITLE -->
       <div style="text-align: center; border-bottom: 3px double #1e3a8a; padding-bottom: 12px; margin-bottom: 16px;">
         <img src="/logo.png" alt="TVOD Logo" style="height: 65px; margin: 0 auto 6px auto; display: block;" />
-        <h1 style="font-size: 22px; font-weight: 800; color: #1e3a8a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">OFFICIAL MINUTES REPORT</h1>
-        <h2 style="font-size: 14px; font-weight: 700; color: #2563eb; margin: 4px 0 0 0; text-transform: uppercase;">WEB3 RATIFICATION — ${safeTitle}</h2>
+        <h1 style="font-size: 22px; font-weight: 800; color: #1e3a8a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">OFFICIAL MINUTES</h1>
+        <h2 style="font-size: 13px; font-weight: 700; color: #2563eb; margin: 4px 0 0 0; text-transform: uppercase;">WEB3 VOTING — ${safeTitle}</h2>
         <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0; font-family: monospace; font-weight: 600;">THE VOICE OF DAO (TVOD) X PI NETWORK ECOSYSTEM</p>
       </div>
 
       <!-- DOCUMENT CONTROL RECORD -->
-      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1.5px solid #cbd5e1; page-break-inside: avoid;">
+      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px; border: 1.5px solid #cbd5e1; page-break-inside: avoid;">
         <tr style="background: #1e293b; color: #ffffff;">
           <td colspan="2" style="padding: 8px 10px; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">DOCUMENT CONTROL RECORD</td>
         </tr>
@@ -1950,28 +1966,54 @@ async function generateOfficialMinutesPDF() {
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Classification</td>
-          <td style="padding: 7px 10px; color: #dc2626; font-weight: bold;">RESTRICTED — Official DAO Ratification Minutes [Frozen & Duplicate Votes Excluded]</td>
+          <td style="padding: 7px 10px; color: #dc2626; font-weight: bold;">RESTRICTED — Official DAO Verification Record [Frozen & Duplicate Votes Excluded]</td>
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Generated Date</td>
-          <td style="padding: 7px 10px; font-family: monospace; font-weight: bold;">${new Date().toISOString().replace('T', ' ').substring(0, 16)} UTC</td>
+          <td style="padding: 7px 10px; font-family: monospace; font-weight: bold;">${generatedUtc}</td>
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Proposal Subject</td>
-          <td style="padding: 7px 10px; font-weight: 600;">${safeTitle}</td>
+          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Subject</td>
+          <td style="padding: 7px 10px; font-weight: 600;">Conduct and Final Verdict of Web3 Voting — ${safeTitle}</td>
         </tr>
         <tr>
-          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Voting System</td>
+          <td style="padding: 7px 10px; font-weight: bold; background: #f1f5f9; color: #334155;">Source / Chapter</td>
           <td style="padding: 7px 10px; font-weight: 600;">TVOD Verifier dApp / ${safeChapter}</td>
         </tr>
       </table>
 
-      <!-- SECTION II: VOTING RESULTS -->
-      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">II. AGGREGATED VOTING METRICS (CLEANED & VERIFIED)</h3>
+      <!-- ON THIS DAY STATEMENT -->
+      <p style="font-size: 11.5px; color: #334155; margin: 0 0 14px 0; line-height: 1.55;">
+        On this day, <strong>${escapeHtml(formattedOnThisDay)}</strong>, the Web3 Voting process for "<strong>${safeTitle}</strong>" was officially conducted and cryptographic records were committed under the following governance parameters:
+      </p>
+
+      <!-- SECTION I: ACTIVITY & GOVERNANCE DETAILS -->
+      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 14px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">I. ACTIVITY &amp; GOVERNANCE DETAILS</h3>
+      <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1.5px solid #cbd5e1; page-break-inside: avoid;">
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; width: 160px; background: #f8fafc; color: #334155;">Activity Name</td>
+          <td style="padding: 7px 10px; font-weight: 600; color: #0f172a;">${safeTitle}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #334155;">Platform</td>
+          <td style="padding: 7px 10px; font-weight: 600; color: #0f172a;">TVOD Verifier dApp</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #334155;">Voting Method</td>
+          <td style="padding: 7px 10px; font-weight: 600; color: #0f172a;">On-Chain NFT Verification &amp; Weighted Role Voting</td>
+        </tr>
+        <tr>
+          <td style="padding: 7px 10px; font-weight: bold; background: #f8fafc; color: #334155;">Scoring Formula</td>
+          <td style="padding: 7px 10px; font-family: monospace; font-weight: 600; color: #0f172a;">Score = Direction &times; Confidence &times; Role Weight</td>
+        </tr>
+      </table>
+
+      <!-- SECTION II: VOTING RESULTS & WEIGHTED METRICS -->
+      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">II. VOTING RESULTS &amp; WEIGHTED METRICS</h3>
       <table class="avoid-break" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; border: 1.5px solid #cbd5e1; text-align: center; page-break-inside: avoid;">
         <thead>
           <tr style="background: #0f172a; color: #ffffff; font-weight: bold;">
-            <th style="padding: 8px; border: 1px solid #334155;">Vote Option</th>
+            <th style="padding: 8px; border: 1px solid #334155;">Category</th>
             <th style="padding: 8px; border: 1px solid #334155;">Ballots Count</th>
             <th style="padding: 8px; border: 1px solid #334155;">% Total Votes</th>
             <th style="padding: 8px; border: 1px solid #334155;">Weighted Score</th>
@@ -1984,24 +2026,24 @@ async function generateOfficialMinutesPDF() {
             <td style="padding: 8px; font-weight: 600;">${agreeCount}</td>
             <td style="padding: 8px; font-weight: 600;">${agreePct}%</td>
             <td style="padding: 8px; font-weight: bold; color: #15803d;">${agreeScore >= 0 ? '+' : ''}${agreeScore.toFixed(2)}</td>
-            <td style="padding: 8px;">${avgConf}</td>
+            <td style="padding: 8px;">${agreeAvgConf}</td>
           </tr>
           <tr style="background: #fef9c3; border-bottom: 1px solid #cbd5e1;">
             <td style="padding: 8px; font-weight: bold; color: #854d0e;">Neutral (0)</td>
             <td style="padding: 8px; font-weight: 600;">${neutralCount}</td>
             <td style="padding: 8px; font-weight: 600;">${neutralPct}%</td>
             <td style="padding: 8px;">${neutralScore.toFixed(2)}</td>
-            <td style="padding: 8px;">${avgConf}</td>
+            <td style="padding: 8px;">${neutralAvgConf}</td>
           </tr>
           <tr style="background: #fee2e2; border-bottom: 1px solid #cbd5e1;">
             <td style="padding: 8px; font-weight: bold; color: #991b1b;">Disagree (-1)</td>
             <td style="padding: 8px; font-weight: 600;">${disagreeCount}</td>
             <td style="padding: 8px; font-weight: 600;">${disagreePct}%</td>
             <td style="padding: 8px; font-weight: bold; color: #b91c1c;">${disagreeScore.toFixed(2)}</td>
-            <td style="padding: 8px;">${avgConf}</td>
+            <td style="padding: 8px;">${disagreeAvgConf}</td>
           </tr>
           <tr style="background: #1e293b; color: #ffffff; font-weight: bold;">
-            <td style="padding: 9px;">TOTAL METRICS</td>
+            <td style="padding: 9px;">FINAL TOTAL</td>
             <td style="padding: 9px; font-size: 13px;">${totalCount}</td>
             <td style="padding: 9px; font-size: 13px;">100%</td>
             <td style="padding: 9px; font-size: 14px; color: #fbbf24;">${netPrefix}${netScoreVal.toFixed(2)} Pts</td>
@@ -2010,8 +2052,8 @@ async function generateOfficialMinutesPDF() {
         </tbody>
       </table>
 
-      <!-- SECTION III: FINAL VERDICT -->
-      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">III. OFFICIAL RATIFICATION VERDICT</h3>
+      <!-- SECTION III: OFFICIAL VERDICT -->
+      <h3 style="font-size: 13px; font-weight: bold; color: #1e3a8a; margin: 16px 0 6px 0; text-transform: uppercase; border-left: 4px solid #2563eb; padding-left: 8px;">III. OFFICIAL VERDICT</h3>
       <div class="avoid-break" style="text-align: center; padding: 14px; background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid;">
         <h2 style="font-size: 20px; font-weight: 800; color: ${verdictColor}; margin: 0; letter-spacing: 1px;">RATIFICATION VERDICT: ${verdictText}</h2>
         <p style="font-size: 11px; color: #475569; margin: 6px 0 0 0; font-weight: 600;">Net Weighted Score: ${netPrefix}${netScoreVal.toFixed(2)} | Average Confidence Scale: ${avgConf} / 5.0</p>
