@@ -14,6 +14,15 @@ function ensureHttps(url) {
   return cleanUrl;
 }
 
+function escapeHtml(str = "") {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // 🛑 VALIDASI ALAMAT WALLET PI (Mendukung awalan 'G' Pi Browser & 'M' PiBox/PiPet, 56 Karakter)
 function isValidPiWalletAddress(address) {
   if (!address) return false;
