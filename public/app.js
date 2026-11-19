@@ -1198,16 +1198,21 @@ function updateDelegatorHint() {
 async function handleOnboarding(e) {
   e.preventDefault();
 
-  const username = currentUser ? currentUser.username : activeUser.username;
-  if (!username) {
-    alert("⚠️ Silakan login via Pi SDK / Demo Login terlebih dahulu.");
+  const username = currentUser && currentUser.username ? currentUser.username.trim() : "";
+  if (!username || currentUser.demo) {
+    alert("⚠️ Silakan login resmi via Pi SDK terlebih dahulu.");
     return;
   }
 
-  const category = $("#voterCategory").value;
-  const role = $("#userRole").value;
-  const wallet = $("#walletAddress").value.trim();
-  const chapter = $("#communityChapter") ? $("#communityChapter").value : "GLOBAL";
+  const category = $("#voterCategory") ? $("#voterCategory").value.trim() : "";
+  const role = $("#userRole") ? $("#userRole").value.trim() : "";
+  const wallet = $("#walletAddress") ? $("#walletAddress").value.trim() : "";
+  const chapter = $("#communityChapter") ? $("#communityChapter").value.trim() : "";
+
+  if (!category || !role || !chapter || !wallet) {
+    alert("⚠️ LENGKAPI SEMUA DATA!\n\nPastikan Pi Wallet, Kategori Pemilih, Wilayah (Chapter), dan Peran (Role) terisi lengkap sebelum mendaftar.");
+    return;
+  }
 
   if (!isValidPiWalletAddress(wallet)) {
     alert("⛔ ALAMAT WALLET TIDAK VALID!\n\nPastikan Anda memasukkan Public Key Alamat Wallet Pi yang sah (Pi Browser, PiPet, atau PiBox).\n\nCiri wallet sah:\n- Diawali huruf kapital 'G' atau 'M'\n- Memiliki panjang tepat 56 karakter");
