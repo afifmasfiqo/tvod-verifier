@@ -494,17 +494,72 @@ function checkSavedSession() {
 async function saveVoterToSupabase(voterData) {
   if (!supabaseClient) return false;
   try {
-    const { data, error } = await supabaseClient
+    const cleanUsername = String(voterData.username || "").trim();
+    if (!cleanUsername) return false;
+
+    // 1. Cek apakah akun ini sudah memiliki data terkunci di Supabase
+    const { data: existingOwn } = await supabaseClient
+      .from('voters')
+      .select('username, wallet_address, garuda_id, garuda_hash, category')
+      .eq('username', cleanUsername)
+      .maybeSingle();
+
+    if (existingOwn) {
+      if (
+        existingOwn.garuda_id &&
+        voterData.garuda_id &&
+        Number(existingOwn.garuda_id) !== Number(voterData.garuda_id)
+      ) {
+        alert(`⛔ DATA TERKUNCI (1 AKUN = 1 DATA)!\n\nAkun @${cleanUsername} sudah terikat pada Garuda ID #${existingOwn.garuda_id} dan tidak dapat diubah ke #${voterData.garuda_id}.`);
+        return false;
+      }
+      if (
+        existingOwn.wallet_address &&
+        voterData.wallet_address &&
+        existingOwn.wallet_address.trim().toLowerCase() !== voterData.wallet_address.trim().toLowerCase()
+      ) {
+        alert(`⛔ WALLET TERKUNCI (1 AKUN = 1 DATA)!\n\nAkun @${cleanUsername} sudah terikat pada Pi Wallet yang terdaftar sebelumnya.`);
+        return false;
+      }
+    }
+
+    // 2. Cegah Garuda ID dipakai username lain (hash boleh sama antar ID #1-#1000)
+    if (voterData.garuda_id) {
+      const { data: ownerByGaruda } = await supabaseClient
+        .from('voters')
+        .select('username, garuda_id')
+        .eq('garuda_id', voterData.garuda_id)
+        .neq('username', cleanUsername)
+        .maybeSingle();
+
+      if (ownerByGaruda) {
+        alert(`⛔ REGISTRASI DITOLAK!\n\nGaruda ID #${voterData.garuda_id} sudah terikat pada akun @${ownerByGaruda.username}.`);
+        return false;
+      }
+    }
+
+    // 3. Cegah Wallet dipakai username lain
+    if (voterData.wallet_address) {
+      const { data: ownerByWallet } = await supabaseClient
+        .from('voters')
+        .select('username, wallet_address')
+        .eq('wallet_address', voterData.wallet_address)
+        .neq('username', cleanUsername)
+        .maybeSingle();
+
+      if (ownerByWallet) {
+        alert(`⛔ REGISTRASI DITOLAK!\n\nAlamat Pi Wallet ini sudah terikat pada akun @${ownerByWallet.username}.`);
+        return false;
+      }
+    }
+
+    const { error } = await supabaseClient
       .from('voters')
       .upsert([voterData], { onConflict: 'username' });
 
     if (error) {
-      if (error.code === '23505' || error.message.includes('unique_garuda_id')) {
-        alert(`⛔ REGISTRASI DITOLAK!\n\nNomor Garuda #${voterData.garuda_id} sudah terdaftar atas nama username lain.`);
-        return false;
-      }
-      if (error.code === '23505' || error.message.includes('unique_wallet_address')) {
-        alert("⛔ REGISTRASI DITOLAK!\n\nAlamat Pi Wallet ini sudah terdaftar atas nama username lain.");
+      if (error.code === '23505') {
+        alert("⛔ REGISTRASI DITOLAK!\n\nUsername, Garuda ID, atau Pi Wallet sudah terdaftar di sistem.");
         return false;
       }
       alert("⚠️ Gagal menyimpan profil ke Database: " + error.message);
