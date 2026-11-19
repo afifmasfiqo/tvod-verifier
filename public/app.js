@@ -635,37 +635,57 @@ async function fetchVoterStatsForAdmin() {
       activeProposal.agreeCount = 0;
       activeProposal.neutralCount = 0;
       activeProposal.disagreeCount = 0;
+      activeProposal.agreeScore = 0;
+      activeProposal.neutralScore = 0;
+      activeProposal.disagreeScore = 0;
       activeProposal.avgConfidence = 0;
-    } else {
-      const validVotes = voteRows.filter(v => {
-        const prof = profileMap[v.username] || {};
-        if (prof.garuda_id && frozenIds.includes(String(prof.garuda_id))) {
-          return false;
-        }
-        return true;
-      });
+      return;
+    }
 
-      const count = validVotes.length;
-      let totalNetScore = 0;
-      let agreeC = 0, neutralC = 0, disagreeC = 0;
-      let totalConf = 0;
+    const validVotes = voteRows.filter(v => {
+      const prof = profileMap[v.username] || {};
+      if (prof.garuda_id && frozenIds.includes(String(prof.garuda_id))) {
+        return false;
+      }
+      return true;
+    });
 
-      validVotes.forEach((v) => {
-        totalNetScore += (parseFloat(v.weighted_score) || 0);
-        totalConf += (parseFloat(v.confidence) || 0);
-        if (v.vote_direction === 1) agreeC++;
-        else if (v.vote_direction === 0) neutralC++;
-        else if (v.vote_direction === -1) disagreeC++;
-      });
+    const count = validVotes.length;
+    let totalNetScore = 0;
+    let agreeC = 0, neutralC = 0, disagreeC = 0;
+    let agreeScore = 0, neutralScore = 0, disagreeScore = 0;
+    let totalConf = 0;
 
-      activeProposal.totalVotes = count;
-      activeProposal.netScore = totalNetScore;
-      activeProposal.agreeCount = agreeC;
-      activeProposal.neutralCount = neutralC;
-      activeProposal.disagreeCount = disagreeC;
-      activeProposal.avgConfidence = count > 0 ? (totalConf / count).toFixed(2) : 0;
+    validVotes.forEach((v) => {
+      const score = parseFloat(v.weighted_score) || 0;
+      const conf = parseFloat(v.confidence) || 0;
+      totalNetScore += score;
+      totalConf += conf;
 
-      if (display) display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts) [Frozen Excluded]`;
+      if (v.vote_direction === 1) {
+        agreeC++;
+        agreeScore += score;
+      } else if (v.vote_direction === 0) {
+        neutralC++;
+        neutralScore += score;
+      } else if (v.vote_direction === -1) {
+        disagreeC++;
+        disagreeScore += score;
+      }
+    });
+
+    activeProposal.totalVotes = count;
+    activeProposal.netScore = totalNetScore;
+    activeProposal.agreeCount = agreeC;
+    activeProposal.neutralCount = neutralC;
+    activeProposal.disagreeCount = disagreeC;
+    activeProposal.agreeScore = agreeScore;
+    activeProposal.neutralScore = neutralScore;
+    activeProposal.disagreeScore = disagreeScore;
+    activeProposal.avgConfidence = count > 0 ? (totalConf / count).toFixed(2) : 0;
+
+    if (display) {
+      display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts) [Frozen Excluded]`;
     }
   } catch (err) {
     if (display) display.textContent = "0 Voter Aktif";
