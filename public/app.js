@@ -1915,7 +1915,8 @@ async function generateOfficialMinutesPDF() {
   const agreePct = totalCount > 0 ? ((agreeCount / totalCount) * 100).toFixed(1) : "0.0";
   const neutralPct = totalCount > 0 ? ((neutralCount / totalCount) * 100).toFixed(1) : "0.0";
   const disagreePct = totalCount > 0 ? ((disagreeCount / totalCount) * 100).toFixed(1) : "0.0";
-
+const totalPctDisplay = totalCount > 0 ? "100%" : "0.0%";
+  
   const verdictText = netScoreVal > 0 ? "AGREE" : (netScoreVal < 0 ? "DISAGREE" : "NEUTRAL / TIED");
   const verdictColor = netScoreVal > 0 ? "#166534" : (netScoreVal < 0 ? "#991b1b" : "#854d0e");
 
@@ -2044,7 +2045,7 @@ async function generateOfficialMinutesPDF() {
           </tr>
           <tr style="background: #1e293b; color: #ffffff; font-weight: bold;">
             <td style="padding: 9px;">FINAL TOTAL</td>
-            <td style="padding: 9px; font-size: 13px;">${totalCount}</td>
+            <td style="padding: 9px; font-size: 13px;">${totalPctDisplay}</td>
             <td style="padding: 9px; font-size: 13px;">100%</td>
             <td style="padding: 9px; font-size: 14px; color: #fbbf24;">${netPrefix}${netScoreVal.toFixed(2)} Pts</td>
             <td style="padding: 9px; font-size: 13px;">${avgConf}</td>
