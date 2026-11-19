@@ -629,7 +629,6 @@ async function fetchVoterStatsForAdmin() {
       });
     }
 
-    // 1. Gabungkan daftar ID terblokir dari frozen_list.json dan tabel Supabase garuda_blacklist
     const frozenIdSet = new Set(
       (await getFrozenListClient()).map(id => String(id).trim())
     );
@@ -664,18 +663,19 @@ async function fetchVoterStatsForAdmin() {
       activeProposal.agreeScore = 0;
       activeProposal.neutralScore = 0;
       activeProposal.disagreeScore = 0;
-      activeProposal.avgConfidence = 0;
+      activeProposal.agreeAvgConf = "0.00";
+      activeProposal.neutralAvgConf = "0.00";
+      activeProposal.disagreeAvgConf = "0.00";
+      activeProposal.avgConfidence = "0.00";
       return;
     }
 
-    // 2. Filter ID/akun terblokir & cegah double suara (1 suara per username & per garuda_id)
     const seenUsernames = new Set();
     const seenGarudaIds = new Set();
 
     const validVotes = voteRows.filter(v => {
       const uname = (v.username || "").trim().toLowerCase();
       if (!uname || uname === "anonymous") return false;
-
       if (frozenUsernameSet.has(uname)) return false;
 
       const prof = profileMap[uname] || {};
@@ -683,19 +683,9 @@ async function fetchVoterStatsForAdmin() {
         ? String(prof.garuda_id).trim()
         : "";
 
-      if (garudaIdStr && frozenIdSet.has(garudaIdStr)) {
-        return false;
-      }
-
-      // Cegah double suara berdasarkan username
-      if (seenUsernames.has(uname)) {
-        return false;
-      }
-
-      // Cegah double suara jika ada 2 username berbeda memakai Garuda ID yang sama
-      if (garudaIdStr && seenGarudaIds.has(garudaIdStr)) {
-        return false;
-      }
+      if (garudaIdStr && frozenIdSet.has(garudaIdStr)) return false;
+      if (seenUsernames.has(uname)) return false;
+      if (garudaIdStr && seenGarudaIds.has(garudaIdStr)) return false;
 
       seenUsernames.add(uname);
       if (garudaIdStr) seenGarudaIds.add(garudaIdStr);
@@ -706,6 +696,7 @@ async function fetchVoterStatsForAdmin() {
     let totalNetScore = 0;
     let agreeC = 0, neutralC = 0, disagreeC = 0;
     let agreeScore = 0, neutralScore = 0, disagreeScore = 0;
+    let agreeConfSum = 0, neutralConfSum = 0, disagreeConfSum = 0;
     let totalConf = 0;
 
     validVotes.forEach((v) => {
@@ -717,12 +708,15 @@ async function fetchVoterStatsForAdmin() {
       if (v.vote_direction === 1) {
         agreeC++;
         agreeScore += score;
+        agreeConfSum += conf;
       } else if (v.vote_direction === 0) {
         neutralC++;
         neutralScore += score;
+        neutralConfSum += conf;
       } else if (v.vote_direction === -1) {
         disagreeC++;
         disagreeScore += score;
+        disagreeConfSum += conf;
       }
     });
 
@@ -734,7 +728,10 @@ async function fetchVoterStatsForAdmin() {
     activeProposal.agreeScore = agreeScore;
     activeProposal.neutralScore = neutralScore;
     activeProposal.disagreeScore = disagreeScore;
-    activeProposal.avgConfidence = count > 0 ? (totalConf / count).toFixed(2) : 0;
+    activeProposal.agreeAvgConf = agreeC > 0 ? (agreeConfSum / agreeC).toFixed(2) : "0.00";
+    activeProposal.neutralAvgConf = neutralC > 0 ? (neutralConfSum / neutralC).toFixed(2) : "0.00";
+    activeProposal.disagreeAvgConf = disagreeC > 0 ? (disagreeConfSum / disagreeC).toFixed(2) : "0.00";
+    activeProposal.avgConfidence = count > 0 ? (totalConf / count).toFixed(2) : "0.00";
 
     if (display) {
       display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts) [Frozen & Dupes Excluded]`;
