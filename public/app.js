@@ -1512,12 +1512,44 @@ async function handleCastVote(e) {
     btn.innerText = "⏳ Memeriksa Hak Suara & Status Etika...";
   }
 
-  const currentUsername = activeUser.username || "Anonymous";
-  const currentWallet = activeUser.walletAddress || "";
+ const currentUsername = (activeUser.username || (currentUser && currentUser.username) || "").trim();
+  const currentWallet = (activeUser.walletAddress || "").trim();
 
-  const isBanned = await checkGarudaBlacklistStatus(activeUser.garudaId, currentUsername);
-  if (isBanned) {
-    alert("Access denied: Your Garuda ID is temporarily frozen by Founder's directive. Voting and login are restricted.");
+  if (!currentUsername) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+    }
+    alert("⚠️ Silakan login terlebih dahulu sebelum memberikan suara.");
+    return;
+  }
+
+  let effectiveGarudaId = activeUser.garudaId;
+  if (supabaseClient && !effectiveGarudaId) {
+    try {
+      const { data: profRow } = await supabaseClient
+        .from("voters")
+        .select("garuda_id")
+        .eq("username", currentUsername)
+        .maybeSingle();
+      if (profRow && profRow.garuda_id) {
+        effectiveGarudaId = profRow.garuda_id;
+      }
+    } catch (e) {
+      console.warn("Gagal mengambil garuda_id profil saat cek blokir:", e);
+    }
+  }
+
+  const isBannedBanner = await checkGarudaBlacklistStatus(effectiveGarudaId, currentUsername);
+  const isBlockedInList = await isVoterBlockedForVoting(effectiveGarudaId, currentUsername);
+
+  if (isBannedBanner || isBlockedInList || isUserBanned) {
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = "⛔ ID / Akun Terblokir — Tidak Bisa Voting";
+      btn.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
+    }
+    alert("⛔ VOTING DITOLAK!\n\nGaruda ID atau akun Anda tercatat terblokir (frozen/blacklist) sehingga tidak diizinkan ikut voting.");
     return;
   }
 
