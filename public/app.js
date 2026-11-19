@@ -741,6 +741,28 @@ async function fetchVoterStatsForAdmin() {
   }
 }
 
+function setWaitingForProposalState() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  votingEndTime = null;
+  activeProposal.status = "DRAFT";
+
+  const display = $("#countdownDisplay");
+  if (display) {
+    display.textContent = "⏳ Menunggu Proposal Diterbitkan";
+    display.className = "bg-slate-800 text-amber-300 border border-amber-500/30 text-xs px-3 py-1 rounded-full font-mono font-bold";
+  }
+
+  const btn = $("#btnSubmitVote");
+  if (btn && !isUserBanned) {
+    btn.disabled = true;
+    btn.innerText = "⏳ Menunggu Proposal Aktif Diterbitkan Admin";
+    btn.className = "w-full bg-slate-800 text-slate-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-slate-700";
+  }
+}
+
 async function fetchActiveProposalFromSupabase() {
   if (!supabaseClient) return;
   try {
