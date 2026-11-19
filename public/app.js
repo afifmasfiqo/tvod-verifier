@@ -1032,8 +1032,8 @@ function renderUser(user) {
       userBadge.classList.add("flex");
     }
     if (displayUsername) displayUsername.textContent = "@" + user.username;
-    if (loginStatusText) loginStatusText.textContent = `Terautentikasi: @${user.username} ${user.demo ? "(DEMO)" : ""}`;
-
+    if (loginStatusText) loginStatusText.textContent = `Terautentikasi: @${user.username}`;
+    
     const isAdmin = AUTHORIZED_ADMINS.includes(user.username);
     if (adminSection) adminSection.classList.toggle("hidden", !isAdmin);
     if (adminNavLink) adminNavLink.classList.toggle("hidden", !isAdmin);
