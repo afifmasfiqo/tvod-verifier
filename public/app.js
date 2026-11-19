@@ -467,7 +467,7 @@ function checkSavedSession() {
   if (saved) {
     try {
       const user = JSON.parse(saved);
-      if (user && user.username) {
+      if (user && user.username && !user.demo) {
         renderUser(user);
         setConnection(user.demo ? "● Mode Demo" : "● Verified by Pi SDK", true);
 
