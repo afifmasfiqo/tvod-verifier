@@ -1791,10 +1791,36 @@ async function handleCastVote(e) {
   }
 
   const voteVal = parseInt(selectedValue.value);
-  let roleWeight = 0.5;
-  if (activeUser.role === "Group Leader") roleWeight = 1.0;
-  if (activeUser.role === "Founder") roleWeight = 2.0;
+let effectiveRole = activeUser.role || "Member";
 
+  // Proteksi: Jika bukan akun Founder sah, secara otomatis turunkan ke Member
+  if (
+    effectiveRole === "Founder" &&
+    (String(currentUsername).trim().toLowerCase() !== "nalaktak" || Number(effectiveGarudaId) !== 999)
+  ) {
+    effectiveRole = "Member";
+  }
+
+  const govVoteCheck = await validateRestrictedGovernanceSelection(
+    currentUsername,
+    activeUser.chapter,
+    effectiveRole,
+    effectiveGarudaId
+  );
+
+  if (!govVoteCheck.ok) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+    }
+    alert(govVoteCheck.message);
+    return;
+  }
+
+  let roleWeight = 0.5;
+  if (effectiveRole === "Group Leader") roleWeight = 1.0;
+  if (effectiveRole === "Founder") roleWeight = 2.0;
+  
   const individualScore = voteVal * currentConfidence * roleWeight;
   const timestamp = new Date().toISOString();
   const rawPayload = `${currentUsername}|${currentWallet}|${voteVal}|${currentConfidence}|${roleWeight}|${timestamp}`;
