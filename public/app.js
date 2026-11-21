@@ -684,11 +684,19 @@ async function saveVoterToSupabase(voterData) {
 }
 
 async function saveVoteToSupabase(voteData) {
-  if (!supabaseClient) return;
+  if (!supabaseClient) {
+    return { ok: false, message: "Supabase Client belum terhubung." };
+  }
   try {
-    await supabaseClient.from('votes').insert([voteData]);
+    const { error } = await supabaseClient.from('votes').insert([voteData]);
+    if (error) {
+      console.error("Supabase Vote Error:", error);
+      return { ok: false, message: error.message || "Gagal insert ke tabel votes." };
+    }
+    return { ok: true };
   } catch (err) {
     console.error("Supabase Vote Error:", err);
+    return { ok: false, message: err.message || "Terjadi kesalahan jaringan saat menyimpan suara." };
   }
 }
 
