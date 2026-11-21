@@ -1549,6 +1549,7 @@ function renderProposalMaterials() {
     } else {
       if (videoElem) {
         videoElem.src = activeProposal.videoUrl;
+        videoElem.load();
         videoElem.classList.remove("hidden");
       }
       if (iframeElem) iframeElem.classList.add("hidden");
