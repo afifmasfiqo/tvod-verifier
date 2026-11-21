@@ -1705,6 +1705,17 @@ async function handleCastVote(e) {
     }
   }
 
+  const governanceCheck = await validateRestrictedGovernanceSelection(
+    currentUsername,
+    chapter,
+    role,
+    effectiveGarudaId
+  );
+  if (!governanceCheck.ok) {
+    alert(governanceCheck.message);
+    return;
+  }
+
   const isBannedBanner = await checkGarudaBlacklistStatus(effectiveGarudaId, currentUsername);
   const isBlockedInList = await isVoterBlockedForVoting(effectiveGarudaId, currentUsername);
 
