@@ -750,6 +750,7 @@ async function fetchVoterProfileFromSupabase(username) {
     }
 
     await checkGarudaBlacklistStatus(data.garuda_id, username);
+    syncRestrictedDropdownOptions();
   } catch (err) {
     console.error("Fetch Profile Error:", err);
   }
