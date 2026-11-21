@@ -411,8 +411,14 @@
                 <input type="text" id="inputPropImages" placeholder="https://domain.com/foto1.jpg, https://domain.com/foto2.jpg" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
               </div>
 
-             <div>
-                <label class="block text-slate-400 text-xs mb-1">URL Video Bukti (YouTube Embed / Link Direct MP4)</label>
+            <div>
+                <label class="block text-slate-300 text-xs font-semibold mb-1">🎬 Upload Video dari Galeri HP / Laptop</label>
+                <input type="file" id="inputPropFileVideo" accept="video/*" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-300 text-xs cursor-pointer">
+                <span id="videoFileStatus" class="text-xs text-amber-400 font-mono mt-1 block"></span>
+              </div>
+
+              <div>
+                <label class="block text-slate-400 text-xs mb-1">URL Video Bukti (YouTube Embed / Link Direct MP4 - Opsional jika sudah upload video)</label>
                 <input type="text" id="inputPropVideo" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-100 text-sm">
               </div>
             </div>
