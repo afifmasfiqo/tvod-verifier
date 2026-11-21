@@ -218,6 +218,39 @@ const i18nDictionary = {
 };
 let currentLanguage = "id";
 
+function syncRestrictedDropdownOptions() {
+  const currentU = String((currentUser && currentUser.username) || activeUser.username || "").trim().toLowerCase();
+  const currentG = Number(activeUser.garudaId || 0);
+
+  // 1. Sembunyikan Opsi TVOD dari dropdown jika bukan Ketua TVOD
+  const chapterSelect = $("#communityChapter");
+  if (chapterSelect) {
+    const tvodOpt = chapterSelect.querySelector("option[value='TVOD']");
+    if (tvodOpt) {
+      const canSeeTvod = (currentU === "afifmasfiqo");
+      tvodOpt.hidden = !canSeeTvod;
+      tvodOpt.disabled = !canSeeTvod;
+      if (!canSeeTvod && chapterSelect.value === "TVOD") {
+        chapterSelect.value = "GLOBAL";
+      }
+    }
+  }
+
+  // 2. Sembunyikan Opsi Founder dari dropdown jika bukan Founder (#999)
+  const roleSelect = $("#userRole");
+  if (roleSelect) {
+    const founderOpt = roleSelect.querySelector("option[value='Founder']");
+    if (founderOpt) {
+      const canSeeFounder = (currentU === "nalaktak" && currentG === 999);
+      founderOpt.hidden = !canSeeFounder;
+      founderOpt.disabled = !canSeeFounder;
+      if (!canSeeFounder && roleSelect.value === "Founder") {
+        roleSelect.value = "Member";
+      }
+    }
+  }
+}
+
 function changeLanguage(lang) {
   if (!lang) return;
   const targetLang = lang.toLowerCase().substring(0, 2);
