@@ -1664,8 +1664,13 @@ async function publishNewProposal(e) {
 
   activeProposal.images = combinedImages.length > 0 ? combinedImages : ["https://via.placeholder.com/600x350/0f172a/f59e0b?text=Bukti+Foto+Utama+Objek+Voting"];
 
-  const rawVideo = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
-  activeProposal.videoUrl = rawVideo ? ensureHttps(rawVideo) : "";
+ const rawVideo = $("#inputPropVideo") ? $("#inputPropVideo").value.trim() : "";
+  try {
+    activeProposal.videoUrl = await uploadProposalVideoToStorage(rawVideo);
+  } catch (vidErr) {
+    alert(`⚠️ ${vidErr.message}`);
+    return;
+  }
 
   renderProposalMaterials();
   await fetchVoterStatsForAdmin();
