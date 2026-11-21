@@ -1680,85 +1680,106 @@ async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   const btn = $("#btnSubmitVote");
+  const defaultBtnText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
 
-  if (btn) {
-    if (btn.disabled) return;
-    btn.disabled = true;
-    btn.innerText = "⏳ Memeriksa Hak Suara & Status Etika...";
-  }
-
- const currentUsername = (activeUser.username || (currentUser && currentUser.username) || "").trim();
-  const currentWallet = (activeUser.walletAddress || "").trim();
-
-  if (!currentUsername) {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+  // Helper untuk reset status tombol jika terjadi pembatalan/error
+  const resetVoteButton = (text = defaultBtnText, enabled = true) => {
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.innerText = text;
+    if (enabled) {
+      btn.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-4 rounded-xl text-sm transition shadow-lg";
     }
-    alert("⚠️ Silakan login terlebih dahulu sebelum memberikan suara.");
-    return;
-  }
+  };
 
-  let effectiveGarudaId = activeUser.garudaId;
-  if (supabaseClient && !effectiveGarudaId) {
-    try {
-      const { data: profRow } = await supabaseClient
-        .from("voters")
-        .select("garuda_id")
-        .eq("username", currentUsername)
-        .maybeSingle();
-      if (profRow && profRow.garuda_id) {
-        effectiveGarudaId = profRow.garuda_id;
+  if (btn && btn.disabled) return;
+  resetVoteButton("⏳ Memeriksa Hak Suara & Status Etika...", false);
+
+  try {
+    const currentUsername = (activeUser.username || (currentUser && currentUser.username) || "").trim();
+    const currentWallet = (activeUser.walletAddress || "").trim();
+
+    if (!currentUsername) {
+      resetVoteButton(defaultBtnText, true);
+      alert("⚠️ Silakan login terlebih dahulu sebelum memberikan suara.");
+      return;
+    }
+
+    let effectiveGarudaId = activeUser.garudaId;
+    if (supabaseClient && !effectiveGarudaId) {
+      try {
+        const { data: profRow } = await supabaseClient
+          .from("voters")
+          .select("garuda_id")
+          .eq("username", currentUsername)
+          .maybeSingle();
+        if (profRow && profRow.garuda_id) {
+          effectiveGarudaId = profRow.garuda_id;
+          activeUser.garudaId = profRow.garuda_id;
+        }
+      } catch (err) {
+        console.warn("Gagal mengambil garuda_id profil saat cek blokir:", err);
       }
-    } catch (e) {
-      console.warn("Gagal mengambil garuda_id profil saat cek blokir:", e);
     }
-  }
 
-  const governanceCheck = await validateRestrictedGovernanceSelection(
-    currentUsername,
-    chapter,
-    role,
-    effectiveGarudaId
-  );
-  if (!governanceCheck.ok) {
-    alert(governanceCheck.message);
-    return;
-  }
-
-  const isBannedBanner = await checkGarudaBlacklistStatus(effectiveGarudaId, currentUsername);
-  const isBlockedInList = await isVoterBlockedForVoting(effectiveGarudaId, currentUsername);
-
-  if (isBannedBanner || isBlockedInList || isUserBanned) {
-    if (btn) {
-      btn.disabled = true;
-      btn.innerText = "⛔ ID / Akun Terblokir — Tidak Bisa Voting";
-      btn.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
+    let effectiveRole = activeUser.role || "Member";
+    // Proteksi: Jika bukan akun Founder sah (@nalaktak #999), otomatis turunkan ke Member
+    if (
+      effectiveRole === "Founder" &&
+      (String(currentUsername).trim().toLowerCase() !== "nalaktak" || Number(effectiveGarudaId) !== 999)
+    ) {
+      effectiveRole = "Member";
     }
-    alert("⛔ VOTING DITOLAK!\n\nGaruda ID atau akun Anda tercatat terblokir (frozen/blacklist) sehingga tidak diizinkan ikut voting.");
-    return;
-  }
 
- if (activeProposal.status !== 'ACTIVE' || !votingEndTime || new Date().getTime() > votingEndTime.getTime()) {
-    if (btn) {
-      btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis / Dibatalkan)";
-      btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
+    const effectiveChapter = activeUser.chapter || "GLOBAL";
+
+    // Validasi tata kelola restricted (Menggunakan effectiveChapter & effectiveRole)
+    const governanceCheck = await validateRestrictedGovernanceSelection(
+      currentUsername,
+      effectiveChapter,
+      effectiveRole,
+      effectiveGarudaId
+    );
+    if (!governanceCheck.ok) {
+      resetVoteButton(defaultBtnText, true);
+      alert(governanceCheck.message);
+      return;
     }
-    alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin.");
-    return;
-  }
 
-  if (!currentWallet || !isValidPiWalletAddress(currentWallet)) {
-    if (btn) {
-      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-      btn.disabled = false;
+    // Cek pembekuan akun (Blacklist)
+    const isBannedBanner = await checkGarudaBlacklistStatus(effectiveGarudaId, currentUsername);
+    const isBlockedInList = await isVoterBlockedForVoting(effectiveGarudaId, currentUsername);
+
+    if (isBannedBanner || isBlockedInList || isUserBanned) {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⛔ ID / Akun Terblokir — Tidak Bisa Voting";
+        btn.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
+      }
+      alert("⛔ VOTING DITOLAK!\n\nGaruda ID atau akun Anda tercatat terblokir (frozen/blacklist) sehingga tidak diizinkan ikut voting.");
+      return;
     }
-    alert("⚠️ Alamat Wallet belum diisi atau tidak valid! Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu.");
-    return;
-  }
 
-  if (supabaseClient && currentUsername !== "Anonymous") {
-    try {
+    // Cek status proposal aktif
+    if (activeProposal.status !== 'ACTIVE' || !votingEndTime || new Date().getTime() > votingEndTime.getTime()) {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis / Dibatalkan)";
+        btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
+      }
+      alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin.");
+      return;
+    }
+
+    // Validasi alamat wallet
+    if (!currentWallet || !isValidPiWalletAddress(currentWallet)) {
+      resetVoteButton(defaultBtnText, true);
+      alert("⚠️ Alamat Wallet belum diisi atau tidak valid! Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu.");
+      return;
+    }
+
+    // Cek apakah suara ganda (Double voting prevention)
+    if (supabaseClient && currentUsername !== "Anonymous") {
       const { data: existingVotes } = await supabaseClient
         .from('votes')
         .select('id')
@@ -1768,130 +1789,113 @@ async function handleCastVote(e) {
 
       if (existingVotes && existingVotes.length > 0) {
         if (btn) {
+          btn.disabled = true;
           btn.innerText = "✅ Anda Sudah Mengirim Suara";
           btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
         }
         showPayoutBanner(`ℹ️ Suara Anda (@${currentUsername}) telah terdaftar sebelumnya.`, true);
         return;
       }
-    } catch (err) {
-      console.error("Error validasi suara ganda:", err);
     }
-  }
 
-  if (btn) btn.innerText = "Memeriksa Validitas Identitas Voter...";
-  const isNftValid = await verifyOnChainNftOwnership();
-  if (!isNftValid) {
-    if (btn) {
-      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-      btn.disabled = false;
+    if (btn) btn.innerText = "Memeriksa Validitas Identitas Voter...";
+    const isNftValid = await verifyOnChainNftOwnership();
+    if (!isNftValid) {
+      resetVoteButton(defaultBtnText, true);
+      alert("⛔ AKSES VOTING DITOLAK!\n\nPersyaratan NFT / Identitas tidak lengkap pada profil Anda.");
+      return;
     }
-    alert("⛔ AKSES VOTING DITOLAK!\n\nPersyaratan NFT / Identitas tidak lengkap pada profil Anda.");
-    return;
-  }
 
-  const selectedValue = document.querySelector('input[name="voteValue"]:checked');
-  if (!selectedValue) {
-    if (btn) {
-      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
-      btn.disabled = false;
+    const selectedValue = document.querySelector('input[name="voteValue"]:checked');
+    if (!selectedValue) {
+      resetVoteButton(defaultBtnText, true);
+      alert("Pilih arah suara Anda (Agree / Neutral / Disagree).");
+      return;
     }
-    alert("Pilih arah suara Anda (Agree / Neutral / Disagree).");
-    return;
-  }
 
-  const voteVal = parseInt(selectedValue.value);
-let effectiveRole = activeUser.role || "Member";
+    const voteVal = parseInt(selectedValue.value, 10);
 
-  // Proteksi: Jika bukan akun Founder sah, secara otomatis turunkan ke Member
-  if (
-    effectiveRole === "Founder" &&
-    (String(currentUsername).trim().toLowerCase() !== "nalaktak" || Number(effectiveGarudaId) !== 999)
-  ) {
-    effectiveRole = "Member";
-  }
+    let roleWeight = 0.5;
+    if (effectiveRole === "Group Leader") roleWeight = 1.0;
+    if (effectiveRole === "Founder") roleWeight = 2.0;
 
-  const govVoteCheck = await validateRestrictedGovernanceSelection(
-    currentUsername,
-    activeUser.chapter,
-    effectiveRole,
-    effectiveGarudaId
-  );
+    const individualScore = voteVal * currentConfidence * roleWeight;
+    const timestamp = new Date().toISOString();
+    const rawPayload = `${currentUsername}|${currentWallet}|${voteVal}|${currentConfidence}|${roleWeight}|${timestamp}`;
 
-  if (!govVoteCheck.ok) {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+    let voteHash = "HASH_GENERATED";
+    if (window.CryptoJS) {
+      voteHash = window.CryptoJS.SHA256(rawPayload).toString();
     }
-    alert(govVoteCheck.message);
-    return;
-  }
 
-  let roleWeight = 0.5;
-  if (effectiveRole === "Group Leader") roleWeight = 1.0;
-  if (effectiveRole === "Founder") roleWeight = 2.0;
-  
-  const individualScore = voteVal * currentConfidence * roleWeight;
-  const timestamp = new Date().toISOString();
-  const rawPayload = `${currentUsername}|${currentWallet}|${voteVal}|${currentConfidence}|${roleWeight}|${timestamp}`;
+    const activeSig = getSignatureDataUrl("sig-chairman");
 
-  let voteHash = "HASH_GENERATED";
-  if (window.CryptoJS) {
-    voteHash = window.CryptoJS.SHA256(rawPayload).toString();
-  }
-
-  const activeSig = getSignatureDataUrl("sig-chairman");
-
-  if (btn) btn.innerText = "Menyimpan Suara Terenkripsi...";
-  await saveVoteToSupabase({
-    proposal_id: activeProposal.id,
-    username: currentUsername,
-    wallet_address: currentWallet,
-    vote_direction: voteVal,
-    confidence: currentConfidence,
-    role_weight: roleWeight,
-    weighted_score: individualScore,
-    vote_hash: voteHash,
-    voter_signature_base64: activeSig
-  });
-
-  await fetchVoterStatsForAdmin();
-
-  const payoutRateEl = $("#payoutRate");
-  const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
-
-  if (btn) btn.innerText = "Memproses Insentif Pi On-Chain...";
-
-  try {
-    const payoutRes = await fetch('/api/payout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        walletAddress: currentWallet,
-        amount: baseReward,
-        username: currentUsername,
-        proposalId: activeProposal.id,
-        category: activeUser.category,
-        ownerUsername: activeUser.ownerUsername
-      })
+    if (btn) btn.innerText = "Menyimpan Suara Terenkripsi...";
+    
+    // Simpan suara ke Supabase & tunggu konfirmasinya
+    const saveResult = await saveVoteToSupabase({
+      proposal_id: activeProposal.id,
+      username: currentUsername,
+      wallet_address: currentWallet,
+      vote_direction: voteVal,
+      confidence: currentConfidence,
+      role_weight: roleWeight,
+      weighted_score: individualScore,
+      vote_hash: voteHash,
+      voter_signature_base64: activeSig
     });
 
-    const payoutData = await payoutRes.json();
-
-    if (payoutRes.ok && payoutData.success) {
-      showPayoutBanner(`🎉 SUARA & PAYOUT SUCCESS!<br><strong>Tx Hash:</strong> <span class="font-mono text-xs">${payoutData.txHash}</span><br>${payoutData.message}`, true);
-    } else {
-      showPayoutBanner(`⚠️ Suara Berhasil Disimpan di Database.<br><strong>Status Payout:</strong> ${payoutData.message || 'Dipending di Antrean'}`, false);
+    if (!saveResult || !saveResult.ok) {
+      resetVoteButton(defaultBtnText, true);
+      alert(`⚠️ Gagal menyimpan suara ke Database: ${saveResult ? saveResult.message : "Unknown error"}`);
+      return;
     }
-  } catch (payErr) {
-    console.error("Gagal klaim payout:", payErr);
-    showPayoutBanner(`✅ Suara berhasil disimpan ke Database, namun koneksi payout ke serverless mengalami waktu tunggu.`, false);
-  }
 
-  if (btn) {
-    btn.disabled = true;
-    btn.innerText = "✅ Anda Sudah Mengirim Suara";
-    btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
+    // Refresh statistik voter di Admin Suite
+    await fetchVoterStatsForAdmin();
+
+    const payoutRateEl = $("#payoutRate");
+    const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
+
+    if (btn) btn.innerText = "Memproses Insentif Pi On-Chain...";
+
+    // Eksekusi Payout Otomatis
+    try {
+      const payoutRes = await fetch('/api/payout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: currentWallet,
+          amount: baseReward,
+          username: currentUsername,
+          proposalId: activeProposal.id,
+          category: activeUser.category,
+          ownerUsername: activeUser.ownerUsername
+        })
+      });
+
+      const payoutData = await payoutRes.json();
+
+      if (payoutRes.ok && payoutData.success) {
+        showPayoutBanner(`🎉 SUARA & PAYOUT SUCCESS!<br><strong>Tx Hash:</strong> <span class="font-mono text-xs">${escapeHtml(payoutData.txHash || "")}</span><br>${escapeHtml(payoutData.message || "")}`, true);
+      } else {
+        showPayoutBanner(`⚠️ Suara Berhasil Disimpan di Database.<br><strong>Status Payout:</strong> ${escapeHtml(payoutData.message || 'Dipending di Antrean')}`, false);
+      }
+    } catch (payErr) {
+      console.error("Gagal klaim payout:", payErr);
+      showPayoutBanner(`✅ Suara berhasil disimpan ke Database, namun koneksi payout ke serverless mengalami waktu tunggu.`, false);
+    }
+
+    // Kunci tombol voting jika sudah sukses
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = "✅ Anda Sudah Mengirim Suara";
+      btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
+    }
+  } catch (err) {
+    console.error("Error saat kirim suara:", err);
+    resetVoteButton(defaultBtnText, true);
+    alert(`⚠️ Terjadi kesalahan saat memproses suara: ${err.message || err}`);
   }
 }
 
