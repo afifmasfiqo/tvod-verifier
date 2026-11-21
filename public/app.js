@@ -1213,6 +1213,7 @@ function renderUser(user) {
     if (adminSection) adminSection.classList.add("hidden");
     if (adminNavLink) adminNavLink.classList.add("hidden");
   }
+  syncRestrictedDropdownOptions();
 }
 
 const piLoginBtn = $("#pi-login-button");
