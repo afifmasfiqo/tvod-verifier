@@ -1086,6 +1086,22 @@ async function initialize() {
   const fileInputEl = $("#inputPropFileImages");
   if (fileInputEl) fileInputEl.addEventListener("change", handleGalleryImagesSelect);
 
+  const videoFileInputEl = $("#inputPropFileVideo");
+  if (videoFileInputEl) {
+    videoFileInputEl.addEventListener("change", (event) => {
+      const file = event.target.files && event.target.files[0];
+      const statusSpan = $("#videoFileStatus");
+      if (!file) {
+        if (statusSpan) statusSpan.textContent = "";
+        return;
+      }
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+      if (statusSpan) {
+        statusSpan.textContent = `🎬 File dipilih: ${file.name} (${sizeMb} MB)`;
+      }
+    });
+  }
+
   toggleCategoryFields();
   renderProposalMaterials();
   setWaitingForProposalState();
