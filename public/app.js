@@ -777,17 +777,37 @@ async function getFrozenListClient() {
 
 async function fetchVoterStatsForAdmin() {
   const display = $("#adminVoterCountDisplay");
-  if (!supabaseClient || !activeProposal.id) {
+  if (!supabaseClient || !activeProposal || !activeProposal.id) {
     if (display) display.textContent = "0 Voter Aktif";
     return;
   }
 
+  if (display) {
+    display.textContent = "⏳ Memuat statistik voter...";
+  }
+
   try {
-    const { data: voteRows, error } = await supabaseClient
+    let voteRows = null;
+    let error = null;
+
+    const resWithOrder = await supabaseClient
       .from('votes')
       .select('*')
       .eq('proposal_id', activeProposal.id)
       .order('created_at', { ascending: true });
+
+    if (resWithOrder.error) {
+      // Fallback jika kolom created_at belum ada / berbeda
+      const resFallback = await supabaseClient
+        .from('votes')
+        .select('*')
+        .eq('proposal_id', activeProposal.id);
+      voteRows = resFallback.data;
+      error = resFallback.error;
+    } else {
+      voteRows = resWithOrder.data;
+      error = resWithOrder.error;
+    }
 
     const { data: voterProfiles } = await supabaseClient
       .from('voters')
@@ -825,6 +845,7 @@ async function fetchVoterStatsForAdmin() {
     }
 
     if (error || !voteRows) {
+      console.warn("Fetch voter stats error:", error);
       if (display) display.textContent = "0 Voter Aktif";
       activeProposal.totalVotes = 0;
       activeProposal.netScore = 0;
@@ -908,6 +929,7 @@ async function fetchVoterStatsForAdmin() {
       display.textContent = `${count} Voter Aktif (${totalNetScore >= 0 ? '+' : ''}${totalNetScore.toFixed(1)} Pts) [Frozen & Dupes Excluded]`;
     }
   } catch (err) {
+    console.error("Error fetchVoterStatsForAdmin:", err);
     if (display) display.textContent = "0 Voter Aktif";
   }
 }
