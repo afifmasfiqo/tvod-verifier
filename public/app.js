@@ -1560,6 +1560,58 @@ function renderProposalMaterials() {
   }
 }
 
+async function uploadProposalVideoToStorage(fallbackYoutubeUrl = "") {
+  const videoInput = $("#inputPropFileVideo");
+  const file = videoInput && videoInput.files ? videoInput.files[0] : null;
+  const statusSpan = $("#videoFileStatus");
+
+  if (!file) {
+    return fallbackYoutubeUrl ? ensureHttps(fallbackYoutubeUrl) : "";
+  }
+
+  if (!supabaseClient) {
+    throw new Error("Supabase Client belum terhubung untuk upload video.");
+  }
+
+  const maxBytes = 30 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    throw new Error("Ukuran video melebihi batas 30 MB. Silakan pilih video yang lebih pendek.");
+  }
+
+  if (statusSpan) statusSpan.textContent = "⏳ Mengunggah video ke Supabase Storage...";
+
+  const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const cleanBaseName = file.name
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .substring(0, 40);
+  const storagePath = `proposal-videos/${Date.now()}_${cleanBaseName}.${ext || "mp4"}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from("proposal-media")
+    .upload(storagePath, file, {
+      contentType: file.type || "video/mp4",
+      upsert: false
+    });
+
+  if (uploadError) {
+    if (statusSpan) statusSpan.textContent = "❌ Gagal upload video.";
+    throw new Error(`Gagal upload video ke Storage: ${uploadError.message}`);
+  }
+
+  const { data: pubData } = supabaseClient.storage
+    .from("proposal-media")
+    .getPublicUrl(storagePath);
+
+  const publicVideoUrl = pubData && pubData.publicUrl ? pubData.publicUrl : "";
+  if (!publicVideoUrl) {
+    throw new Error("URL publik video tidak berhasil dibuat.");
+  }
+
+  if (statusSpan) statusSpan.textContent = "✅ Video berhasil diunggah ke Storage.";
+  return publicVideoUrl;
+}
+
 async function publishNewProposal(e) {
   if (e && e.preventDefault) e.preventDefault();
 
