@@ -1260,6 +1260,101 @@ function updateDelegatorHint() {
   }
 }
 
+async function validateRestrictedGovernanceSelection(username, chapter, role, garudaId) {
+  const cleanUser = String(username || "").trim();
+  const cleanUserLower = cleanUser.toLowerCase();
+  const cleanChapter = String(chapter || "").trim().toUpperCase();
+  const cleanRole = String(role || "").trim();
+  const numericGarudaId =
+    garudaId !== null && garudaId !== undefined && String(garudaId).trim() !== ""
+      ? Number(garudaId)
+      : null;
+
+  const genericDeniedMessage =
+    "⛔ Akses ditolak.\n\nPilihan wilayah atau peran yang dipilih tidak sesuai dengan otoritas akun Anda.";
+
+  // 1. Validasi chapter TVOD
+  if (cleanChapter === "TVOD") {
+    if (cleanUserLower !== "afifmasfiqo") {
+      return { ok: false, message: genericDeniedMessage };
+    }
+  }
+
+  // 2. Validasi peran Founder
+  if (cleanRole === "Founder") {
+    if (cleanUserLower !== "nalaktak" || numericGarudaId !== 999) {
+      return { ok: false, message: genericDeniedMessage };
+    }
+  }
+
+  // 3. Validasi chapter FOUNDER RECOMMENDED (Fleksibel Username / Garuda ID)
+  if (cleanChapter === "FOUNDER RECOMMENDED") {
+    let isAllowedRecommended = false;
+
+    if (supabaseClient) {
+      try {
+        const { data: recRows, error: recErr } = await supabaseClient
+          .from("founder_recommended_voters")
+          .select("username, garuda_id, active");
+
+        if (!recErr && Array.isArray(recRows) && recRows.length > 0) {
+          isAllowedRecommended = recRows.some((r) => {
+            if (r.active === false) return false;
+            const matchUser =
+              r.username && String(r.username).trim().toLowerCase() === cleanUserLower;
+            const matchGaruda =
+              numericGarudaId !== null &&
+              !Number.isNaN(numericGarudaId) &&
+              r.garuda_id !== null &&
+              r.garuda_id !== undefined &&
+              Number(r.garuda_id) === numericGarudaId;
+            return Boolean(matchUser || matchGaruda);
+          });
+        } else {
+          // Fallback ke tabel voters
+          if (cleanUser) {
+            const { data: byUser } = await supabaseClient
+              .from("voters")
+              .select("username, garuda_id, founder_recommended, is_founder_recommended")
+              .eq("username", cleanUser)
+              .maybeSingle();
+
+            if (
+              byUser &&
+              (byUser.founder_recommended === true || byUser.is_founder_recommended === true)
+            ) {
+              isAllowedRecommended = true;
+            }
+          }
+
+          if (!isAllowedRecommended && numericGarudaId !== null && !Number.isNaN(numericGarudaId)) {
+            const { data: byGaruda } = await supabaseClient
+              .from("voters")
+              .select("username, garuda_id, founder_recommended, is_founder_recommended")
+              .eq("garuda_id", numericGarudaId)
+              .maybeSingle();
+
+            if (
+              byGaruda &&
+              (byGaruda.founder_recommended === true || byGaruda.is_founder_recommended === true)
+            ) {
+              isAllowedRecommended = true;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Gagal memverifikasi status otorisasi chapter:", err);
+      }
+    }
+
+    if (!isAllowedRecommended) {
+      return { ok: false, message: genericDeniedMessage };
+    }
+  }
+
+  return { ok: true };
+}
+
 async function handleOnboarding(e) {
   e.preventDefault();
 
