@@ -1561,12 +1561,197 @@ function renderProposalMaterials() {
   }
 }
 
+async function compressVideoIfSupported(file, onProgressText) {
+  if (!file || file.size <= 6 * 1024 * 1024) {
+    return file;
+  }
+
+  if (typeof MediaRecorder === "undefined" || typeof document === "undefined") {
+    return file;
+  }
+
+  const candidateTypes = [
+    "video/mp4;codecs=avc1,mp4a.40.2",
+    "video/mp4",
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm"
+  ];
+
+  const supportedMime = candidateTypes.find((t) => {
+    try {
+      return typeof MediaRecorder.isTypeSupported === "function" && MediaRecorder.isTypeSupported(t);
+    } catch (_) {
+      return false;
+    }
+  });
+
+  if (!supportedMime) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    let objectUrl = "";
+    let settled = false;
+
+    const finish = (resultFile) => {
+      if (settled) return;
+      settled = true;
+      try {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      } catch (_) {}
+      resolve(resultFile || file);
+    };
+
+    try {
+      objectUrl = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      video.src = objectUrl;
+      video.muted = true;
+      video.playsInline = true;
+      video.setAttribute("playsinline", "");
+      video.crossOrigin = "anonymous";
+
+      const safetyTimer = setTimeout(() => {
+        finish(file);
+      }, 25000);
+
+      video.addEventListener("loadedmetadata", () => {
+        try {
+          const srcW = video.videoWidth || 720;
+          const srcH = video.videoHeight || 1280;
+          const maxDim = 720;
+          let targetW = srcW;
+          let targetH = srcH;
+
+          if (srcW > maxDim || srcH > maxDim) {
+            if (srcW >= srcH) {
+              targetW = maxDim;
+              targetH = Math.max(2, Math.round((srcH / srcW) * maxDim));
+            } else {
+              targetH = maxDim;
+              targetW = Math.max(2, Math.round((srcW / srcH) * maxDim));
+            }
+          }
+          targetW = targetW % 2 === 0 ? targetW : targetW - 1;
+          targetH = targetH % 2 === 0 ? targetH : targetH - 1;
+
+          const canvas = document.createElement("canvas");
+          canvas.width = targetW;
+          canvas.height = targetH;
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx || typeof canvas.captureStream !== "function") {
+            clearTimeout(safetyTimer);
+            finish(file);
+            return;
+          }
+
+          const stream = canvas.captureStream(24);
+
+          try {
+            const captureAudio = video.captureStream || video.mozCaptureStream;
+            if (typeof captureAudio === "function") {
+              const mediaStream = captureAudio.call(video);
+              const audioTracks = mediaStream && mediaStream.getAudioTracks ? mediaStream.getAudioTracks() : [];
+              audioTracks.forEach((track) => stream.addTrack(track));
+            }
+          } catch (_) {}
+
+          const chunks = [];
+          const recorder = new MediaRecorder(stream, {
+            mimeType: supportedMime,
+            videoBitsPerSecond: 1200000
+          });
+
+          recorder.ondataavailable = (ev) => {
+            if (ev.data && ev.data.size > 0) {
+              chunks.push(ev.data);
+            }
+          };
+
+          recorder.onstop = () => {
+            clearTimeout(safetyTimer);
+            if (!chunks.length) {
+              finish(file);
+              return;
+            }
+            const blobType = supportedMime.split(";")[0] || "video/webm";
+            const compressedBlob = new Blob(chunks, { type: blobType });
+
+            if (compressedBlob.size > 0 && compressedBlob.size < file.size * 0.92) {
+              const ext = blobType.includes("mp4") ? "mp4" : "webm";
+              const baseName = file.name.replace(/\.[^/.]+$/, "") || "video";
+              const compressedFile = new File([compressedBlob], `${baseName}_compressed.${ext}`, {
+                type: blobType,
+                lastModified: Date.now()
+              });
+              finish(compressedFile);
+            } else {
+              finish(file);
+            }
+          };
+
+          recorder.onerror = () => {
+            clearTimeout(safetyTimer);
+            finish(file);
+          };
+
+          let rafId = null;
+          const drawFrame = () => {
+            if (video.paused || video.ended) {
+              if (recorder.state === "recording") {
+                try { recorder.stop(); } catch (_) {}
+              }
+              return;
+            }
+            try {
+              ctx.drawImage(video, 0, 0, targetW, targetH);
+            } catch (_) {}
+            rafId = requestAnimationFrame(drawFrame);
+          };
+
+          video.onplay = () => {
+            if (typeof onProgressText === "function") {
+              onProgressText("🎚️ Mengompres video agar upload lebih cepat...");
+            }
+            drawFrame();
+          };
+
+          video.onended = () => {
+            if (rafId) cancelAnimationFrame(rafId);
+            if (recorder.state === "recording") {
+              try { recorder.stop(); } catch (_) {}
+            }
+          };
+
+          recorder.start(250);
+          video.play().catch(() => {
+            clearTimeout(safetyTimer);
+            finish(file);
+          });
+        } catch (_) {
+          clearTimeout(safetyTimer);
+          finish(file);
+        }
+      }, { once: true });
+
+      video.addEventListener("error", () => {
+        clearTimeout(safetyTimer);
+        finish(file);
+      }, { once: true });
+    } catch (_) {
+      finish(file);
+    }
+  });
+}
+
 async function uploadProposalVideoToStorage(fallbackYoutubeUrl = "") {
   const videoInput = $("#inputPropFileVideo");
-  const file = videoInput && videoInput.files ? videoInput.files[0] : null;
+  const rawFile = videoInput && videoInput.files ? videoInput.files[0] : null;
   const statusSpan = $("#videoFileStatus");
 
-  if (!file) {
+  if (!rawFile) {
     return fallbackYoutubeUrl ? ensureHttps(fallbackYoutubeUrl) : "";
   }
 
@@ -1574,43 +1759,81 @@ async function uploadProposalVideoToStorage(fallbackYoutubeUrl = "") {
     throw new Error("Supabase Client belum terhubung untuk upload video.");
   }
 
-  const maxBytes = 30 * 1024 * 1024;
-  if (file.size > maxBytes) {
-    throw new Error("Ukuran video melebihi batas 30 MB. Silakan pilih video yang lebih pendek.");
+  const origSizeMb = (rawFile.size / (1024 * 1024)).toFixed(2);
+  if (statusSpan) {
+    statusSpan.textContent = `⏳ Memproses video (${origSizeMb} MB)...`;
   }
 
-  if (statusSpan) statusSpan.textContent = "⏳ Mengunggah video ke Supabase Storage...";
+  const fileToUpload = await compressVideoIfSupported(rawFile, (msg) => {
+    if (statusSpan) statusSpan.textContent = msg;
+  });
 
-  const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const cleanBaseName = file.name
+  const maxBytes = 20 * 1024 * 1024;
+  if (fileToUpload.size > maxBytes) {
+    throw new Error("Ukuran video masih melebihi 20 MB setelah proses. Silakan pilih video yang lebih pendek.");
+  }
+
+  const finalSizeMb = (fileToUpload.size / (1024 * 1024)).toFixed(2);
+  if (statusSpan) {
+    statusSpan.textContent = `⏳ Mengunggah video (${finalSizeMb} MB) ke Supabase Storage...`;
+  }
+
+  const rawExt = (fileToUpload.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const ext = rawExt || "mp4";
+  const cleanBaseName = fileToUpload.name
     .replace(/\.[^/.]+$/, "")
     .replace(/[^a-zA-Z0-9_-]/g, "_")
-    .substring(0, 40);
-  const storagePath = `proposal-videos/${Date.now()}_${cleanBaseName}.${ext || "mp4"}`;
+    .substring(0, 35) || "video";
+  const storagePath = `proposal-videos/${Date.now()}_${cleanBaseName}.${ext}`;
+  const mimeType = fileToUpload.type && fileToUpload.type.startsWith("video/")
+    ? fileToUpload.type
+    : (ext === "webm" ? "video/webm" : ext === "mov" ? "video/quicktime" : "video/mp4");
 
-  const { error: uploadError } = await supabaseClient.storage
-    .from("proposal-media")
-    .upload(storagePath, file, {
-      contentType: file.type || "video/mp4",
-      upsert: false
-    });
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      if (attempt > 1 && statusSpan) {
+        statusSpan.textContent = `⏳ Mencoba ulang upload video (${finalSizeMb} MB)...`;
+      }
 
-  if (uploadError) {
-    if (statusSpan) statusSpan.textContent = "❌ Gagal upload video.";
-    throw new Error(`Gagal upload video ke Storage: ${uploadError.message}`);
+      const { error: uploadError } = await supabaseClient.storage
+        .from("proposal-media")
+        .upload(storagePath, fileToUpload, {
+          contentType: mimeType,
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message || "Upload Storage ditolak");
+      }
+
+      const { data: pubData } = supabaseClient.storage
+        .from("proposal-media")
+        .getPublicUrl(storagePath);
+
+      const publicVideoUrl = pubData && pubData.publicUrl ? pubData.publicUrl : "";
+      if (!publicVideoUrl) {
+        throw new Error("URL publik video tidak berhasil dibuat.");
+      }
+
+      if (statusSpan) {
+        statusSpan.textContent = `✅ Video (${finalSizeMb} MB) berhasil diunggah ke Storage.`;
+      }
+      return publicVideoUrl;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+    }
   }
 
-  const { data: pubData } = supabaseClient.storage
-    .from("proposal-media")
-    .getPublicUrl(storagePath);
-
-  const publicVideoUrl = pubData && pubData.publicUrl ? pubData.publicUrl : "";
-  if (!publicVideoUrl) {
-    throw new Error("URL publik video tidak berhasil dibuat.");
+  if (statusSpan) {
+    statusSpan.textContent = "❌ Gagal upload video.";
   }
 
-  if (statusSpan) statusSpan.textContent = "✅ Video berhasil diunggah ke Storage.";
-  return publicVideoUrl;
+  const detailMsg = lastErr && lastErr.message ? lastErr.message : "Failed to fetch";
+  throw new Error(`Gagal upload video ke Storage (${detailMsg}). Pastikan koneksi stabil dan bucket 'proposal-media' sudah Public.`);
 }
 
 async function publishNewProposal(e) {
