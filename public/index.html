@@ -602,14 +602,23 @@
             Governance rules, wallet usage, incentive terms, and finality / limitation of liability. / Aturan tata kelola, penggunaan wallet, dan batasan tanggung jawab.
           </p>
         </div>
-        <button
-          type="button"
-          id="btnToggleTermsUse"
-          onclick="(function(){const b=document.getElementById('termsUseBody');const btn=document.getElementById('btnToggleTermsUse');if(!b)return;const isHidden=b.classList.contains('hidden');b.classList.toggle('hidden',!isHidden);if(btn)btn.textContent=isHidden?'Hide Terms (Tutup)':'Read Terms (Baca)';})()"
-          class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
-        >
-          Read Terms (Baca)
-        </button>
+       <div class="flex items-center gap-1.5">
+       <button
+         type="button"
+         onclick="(function(){const b=document.getElementById('termsUseBody');if(!b)return;b.classList.remove('hidden');b.classList.toggle('fixed');b.classList.toggle('inset-3');b.classList.toggle('z-50');b.classList.toggle('overflow-y-auto');b.classList.toggle('bg-slate-950');b.classList.toggle('p-5');b.classList.toggle('rounded-2xl');})()"
+         class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition"
+       >
+         ⛶ Full View
+       </button>
+       <button
+         type="button"
+         id="btnToggleTermsUse"
+         onclick="(function(){const b=document.getElementById('termsUseBody');const btn=document.getElementById('btnToggleTermsUse');if(!b)return;const isHidden=b.classList.contains('hidden');b.classList.toggle('hidden',!isHidden);if(btn)btn.textContent=isHidden?'Hide Terms (Tutup)':'Read Terms (Baca)';})()"
+         class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+       >
+         Read Terms (Baca)
+       </button>
+     </div>
       </div>
 
       <div id="termsUseBody" class="hidden mt-3 pt-3 border-t border-slate-800 space-y-2.5 text-xs text-slate-300 leading-relaxed">
