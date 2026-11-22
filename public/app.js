@@ -1999,7 +1999,7 @@ async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   const btn = $("#btnSubmitVote");
-  const defaultBtnText = "Kirim Suara Terenkripsi & Klaim Insentif Pi";
+  const defaultBtnText = "Submit Encrypted Vote & Claim Pi Incentive (Kirim Suara & Klaim Insentif)";
 
   // Helper untuk reset status tombol jika terjadi pembatalan/error
   const resetVoteButton = (text = defaultBtnText, enabled = true) => {
@@ -2012,7 +2012,7 @@ async function handleCastVote(e) {
   };
 
   if (btn && btn.disabled) return;
-  resetVoteButton("⏳ Memeriksa Hak Suara & Status Etika...", false);
+  resetVoteButton("⏳ Verifying Voting Rights & Ethics Status...", false);
 
   try {
     const currentUsername = (activeUser.username || (currentUser && currentUser.username) || "").trim();
@@ -2020,7 +2020,7 @@ async function handleCastVote(e) {
 
     if (!currentUsername) {
       resetVoteButton(defaultBtnText, true);
-      alert("⚠️ Silakan login terlebih dahulu sebelum memberikan suara.");
+      alert("⚠️ Please sign in via Pi SDK first before casting your vote. / Silakan login terlebih dahulu sebelum memberikan suara.");
       return;
     }
 
@@ -2072,10 +2072,10 @@ async function handleCastVote(e) {
     if (isBannedBanner || isBlockedInList || isUserBanned) {
       if (btn) {
         btn.disabled = true;
-        btn.innerText = "⛔ ID / Akun Terblokir — Tidak Bisa Voting";
+        btn.innerText = "⛔ Access Denied: Account Frozen / Akun Terblokir";
         btn.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
       }
-      alert("⛔ VOTING DITOLAK!\n\nGaruda ID atau akun Anda tercatat terblokir (frozen/blacklist) sehingga tidak diizinkan ikut voting.");
+      alert("⛔ VOTING REJECTED!\n\nYour Garuda ID or account is frozen/blacklisted and not permitted to vote.\n\n(Garuda ID atau akun Anda tercatat terblokir sehingga tidak diizinkan ikut voting).");
       return;
     }
 
@@ -2083,17 +2083,17 @@ async function handleCastVote(e) {
     if (activeProposal.status !== 'ACTIVE' || !votingEndTime || new Date().getTime() > votingEndTime.getTime()) {
       if (btn) {
         btn.disabled = true;
-        btn.innerText = "⛔ Sesi Voting Ditutup (Waktu Habis / Dibatalkan)";
+        btn.innerText = "⛔ Voting Session Closed / Sesi Voting Ditutup";
         btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
       }
-      alert("⛔ PROSES VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin.");
+      alert("⛔ VOTING PROCESS REJECTED!\n\nThe voting session for this proposal has ended or been cancelled by admin.\n\n(Sesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin).");
       return;
     }
 
     // Validasi alamat wallet
     if (!currentWallet || !isValidPiWalletAddress(currentWallet)) {
       resetVoteButton(defaultBtnText, true);
-      alert("⚠️ Alamat Wallet belum diisi atau tidak valid! Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu.");
+      alert("⚠️ Wallet address is missing or invalid! Please register your Pi Wallet in the Voter Verification form first.\n\n(Alamat Wallet belum diisi atau tidak valid. Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu).");
       return;
     }
 
@@ -2109,26 +2109,26 @@ async function handleCastVote(e) {
       if (existingVotes && existingVotes.length > 0) {
         if (btn) {
           btn.disabled = true;
-          btn.innerText = "✅ Anda Sudah Mengirim Suara";
+          btn.innerText = "✅ Vote Already Submitted / Anda Sudah Mengirim Suara";
           btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
         }
-        showPayoutBanner(`ℹ️ Suara Anda (@${currentUsername}) telah terdaftar sebelumnya.`, true);
+        showPayoutBanner(`ℹ️ Your vote (@${escapeHtml(currentUsername)}) has already been recorded. / Suara Anda (@${escapeHtml(currentUsername)}) telah terdaftar sebelumnya.`, true);
         return;
       }
     }
 
-    if (btn) btn.innerText = "Memeriksa Validitas Identitas Voter...";
+    if (btn) btn.innerText = "Verifying Voter Identity & NFT Ownership...";
     const isNftValid = await verifyOnChainNftOwnership();
     if (!isNftValid) {
       resetVoteButton(defaultBtnText, true);
-      alert("⛔ AKSES VOTING DITOLAK!\n\nPersyaratan NFT / Identitas tidak lengkap pada profil Anda.");
+      alert("⛔ VOTING ACCESS REJECTED!\n\nNFT or identity requirements are incomplete on your profile.\n\n(Persyaratan NFT / Identitas tidak lengkap pada profil Anda).");
       return;
     }
 
     const selectedValue = document.querySelector('input[name="voteValue"]:checked');
     if (!selectedValue) {
       resetVoteButton(defaultBtnText, true);
-      alert("Pilih arah suara Anda (Agree / Neutral / Disagree).");
+      alert("Please select your vote direction (Agree / Neutral / Disagree). / Pilih arah suara Anda.");
       return;
     }
 
@@ -2149,8 +2149,8 @@ async function handleCastVote(e) {
 
     const activeSig = getSignatureDataUrl("sig-chairman");
 
-    if (btn) btn.innerText = "Menyimpan Suara Terenkripsi...";
-    
+    if (btn) btn.innerText = "Storing Encrypted Vote...";
+
     // Simpan suara ke Supabase & tunggu konfirmasinya
     const saveResult = await saveVoteToSupabase({
       proposal_id: activeProposal.id,
@@ -2166,7 +2166,7 @@ async function handleCastVote(e) {
 
     if (!saveResult || !saveResult.ok) {
       resetVoteButton(defaultBtnText, true);
-      alert(`⚠️ Gagal menyimpan suara ke Database: ${saveResult ? saveResult.message : "Unknown error"}`);
+      alert(`⚠️ Failed to store vote in Database: ${saveResult ? saveResult.message : "Unknown error"}`);
       return;
     }
 
@@ -2176,7 +2176,7 @@ async function handleCastVote(e) {
     const payoutRateEl = $("#payoutRate");
     const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
 
-    if (btn) btn.innerText = "Memproses Insentif Pi On-Chain...";
+    if (btn) btn.innerText = "Processing On-Chain Pi Incentive...";
 
     // Eksekusi Payout Otomatis
     try {
@@ -2195,26 +2195,45 @@ async function handleCastVote(e) {
 
       const payoutData = await payoutRes.json();
 
+      let cleanMsg = String(payoutData.message || "")
+        .replace(/\(Bounty @null dicatat di Pending Rewards\)\.?/gi, "")
+        .trim();
+      if (!cleanMsg || /berhasil on-chain/i.test(cleanMsg)) {
+        cleanMsg = `${baseReward} Pi sent to @${currentUsername} wallet.`;
+      }
+
       if (payoutRes.ok && payoutData.success) {
-        showPayoutBanner(`🎉 SUARA & PAYOUT SUCCESS!<br><strong>Tx Hash:</strong> <span class="font-mono text-xs">${escapeHtml(payoutData.txHash || "")}</span><br>${escapeHtml(payoutData.message || "")}`, true);
+        showPayoutBanner(
+          `🎉 VOTE & PAYOUT SUCCESS!<br>` +
+          `<strong>Tx Hash:</strong> <span class="font-mono text-xs">${escapeHtml(payoutData.txHash || "")}</span><br>` +
+          `<strong>Status:</strong> SENT (TERKIRIM) — ${escapeHtml(cleanMsg)}`,
+          true
+        );
       } else {
-        showPayoutBanner(`⚠️ Suara Berhasil Disimpan di Database.<br><strong>Status Payout:</strong> ${escapeHtml(payoutData.message || 'Dipending di Antrean')}`, false);
+        showPayoutBanner(
+          `⚠️ Vote Saved in Database.<br>` +
+          `<strong>Payout Status:</strong> ${escapeHtml(payoutData.message || "Queued for Retry / Dipending di Antrean")}`,
+          false
+        );
       }
     } catch (payErr) {
       console.error("Gagal klaim payout:", payErr);
-      showPayoutBanner(`✅ Suara berhasil disimpan ke Database, namun koneksi payout ke serverless mengalami waktu tunggu.`, false);
+      showPayoutBanner(
+        `✅ Vote saved in Database, but payout connection timed out. / Suara berhasil disimpan ke Database, namun koneksi payout mengalami waktu tunggu.`,
+        false
+      );
     }
 
     // Kunci tombol voting jika sudah sukses
     if (btn) {
       btn.disabled = true;
-      btn.innerText = "✅ Anda Sudah Mengirim Suara";
+      btn.innerText = "✅ Vote Already Submitted / Anda Sudah Mengirim Suara";
       btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
     }
   } catch (err) {
     console.error("Error saat kirim suara:", err);
     resetVoteButton(defaultBtnText, true);
-    alert(`⚠️ Terjadi kesalahan saat memproses suara: ${err.message || err}`);
+    alert(`⚠️ Error processing vote / Terjadi kesalahan saat memproses suara: ${err.message || err}`);
   }
 }
 
