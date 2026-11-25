@@ -364,6 +364,34 @@ function changeLanguage(lang) {
   updatePolicyModalsLanguage();
 }
 
+function openPolicyModal(modalId) {
+  updatePolicyModalsLanguage();
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closePolicyModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.add("hidden");
+}
+
+function toggleFullViewModal(cardId) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+
+  if (card.classList.contains("max-w-2xl")) {
+    card.classList.remove("max-w-2xl", "max-h-[85vh]");
+    card.classList.add("w-full", "h-full", "max-w-none", "rounded-none");
+  } else {
+    card.classList.remove("w-full", "h-full", "max-w-none", "rounded-none");
+    card.classList.add("max-w-2xl", "max-h-[85vh]");
+  }
+}
+
+window.openPolicyModal = openPolicyModal;
+window.closePolicyModal = closePolicyModal;
+window.toggleFullViewModal = toggleFullViewModal;
+
 // Global State
 let isPiSDKInitialized = false;
 let currentUser = null;
