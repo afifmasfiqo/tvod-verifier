@@ -4,6 +4,34 @@ const $ = (selector) => document.querySelector(selector);
 const TVOD_APP_WALLET = "GBBIFANYEV6J5OYXPCFF4AYXTWQFIJNSIF4YYFF26LETN3PHA3TDQ3WL";
 const AUTHORIZED_ADMINS = ["afifmasfiqo", "Nalaktak"];
 
+// =========================================================================
+// 🔒 KONSTANTA & HELPER VERIFIKASI KEAMANAN GARUDA & BAHASA
+// =========================================================================
+const OFFICIAL_GARUDA_HASH = "GAR5UWTRTYRV7YL2HG346FIZEOPRJYJHWAVQAJZWNNWF5ZQTTPVFY5GI";
+
+function getCurrentUserLang() {
+  const lang =
+    (typeof currentLanguage !== "undefined" && currentLanguage) ||
+    document.documentElement.lang ||
+    localStorage.getItem("tvod_lang") ||
+    "id";
+  return String(lang).toLowerCase().startsWith("en") ? "en" : "id";
+}
+
+function showLocalizedAlert(idMessage, enMessage) {
+  const isEn = getCurrentUserLang() === "en";
+  alert(isEn ? enMessage : idMessage);
+}
+
+function isValidOfficialGarudaHash(hashVal) {
+  if (!hashVal) return false;
+  const cleaned = String(hashVal).trim();
+  return (
+    /^GAR5[A-Z0-9]{28,}$/i.test(cleaned) &&
+    cleaned.toUpperCase() === OFFICIAL_GARUDA_HASH
+  );
+}
+
 function ensureHttps(url) {
   if (!url) return "";
   let cleanUrl = url.trim();
