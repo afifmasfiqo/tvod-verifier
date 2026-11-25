@@ -1752,8 +1752,12 @@ async function validateRestrictedGovernanceSelection(username, chapter, role, ga
 async function handleOnboarding(e) {
   e.preventDefault();
 
-  const username = currentUser && currentUser.username ? currentUser.username.trim() : "";
-  if (!username || currentUser.demo) {
+  const rawUsername = currentUser && currentUser.username
+    ? currentUser.username
+    : ($("#displayUsername") ? $("#displayUsername").textContent : "");
+  const username = String(rawUsername || "").replace(/^@+/, "").trim();
+
+  if (!username || (currentUser && currentUser.demo)) {
     showLocalizedAlert(
       "⚠️ Silakan login resmi via Pi SDK terlebih dahulu.",
       "⚠️ Please sign in via official Pi SDK first."
@@ -1786,14 +1790,14 @@ async function handleOnboarding(e) {
   let gHash = null;
 
   if (category === "owner") {
-    gId = parseInt($("#garudaId").value || "0");
+    gId = parseInt($("#garudaId").value || "0", 10);
     gHash = $("#garudaHash").value.trim();
 
     if (!gId || gId < 1 || gId > 1000) {
       showLocalizedAlert("⛔ Pendaftaran Ditolak: Garuda ID tidak valid (1 - 1000).", "⛔ Registration Rejected: Invalid Garuda ID (1 - 1000).");
       return;
     }
-    
+
     // 🔐 VALIDASI KETAT HASH GARUDA RESMI
     if (!isValidOfficialGarudaHash(gHash)) {
       showLocalizedAlert(
@@ -1841,7 +1845,16 @@ async function handleOnboarding(e) {
     return;
   }
 
-  activeUser.username = username;
+  const resolvedUsername = memberCheck.member && memberCheck.member.username
+    ? memberCheck.member.username
+    : username;
+
+  currentUser = {
+    ...(currentUser || {}),
+    username: resolvedUsername
+  };
+
+  activeUser.username = resolvedUsername;
   activeUser.walletAddress = wallet;
   activeUser.category = category;
   activeUser.role = role;
@@ -1853,7 +1866,7 @@ async function handleOnboarding(e) {
   }
 
   const savedSuccess = await saveVoterToSupabase({
-    username: username,
+    username: resolvedUsername,
     wallet_address: wallet,
     category: category,
     chapter: activeUser.chapter,
@@ -1868,8 +1881,8 @@ async function handleOnboarding(e) {
   if (savedSuccess) {
     checkAppWalletBalance();
     showLocalizedAlert(
-      `✅ Registrasi & Binding Wallet Berhasil!\n\nUsername: @${username}\nWallet: ${wallet.substring(0, 8)}...${wallet.substring(48)}\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${activeUser.chapter}`,
-      `✅ Registration & Wallet Binding Successful!\n\nUsername: @${username}\nWallet: ${wallet.substring(0, 8)}...${wallet.substring(48)}\nStatus: ${category.toUpperCase()}\nRole: ${role}\nChapter: ${activeUser.chapter}`
+      `✅ Registrasi & Binding Wallet Berhasil!\n\nUsername: @${resolvedUsername}\nWallet: ${wallet.substring(0, 8)}...${wallet.substring(48)}\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${activeUser.chapter}`,
+      `✅ Registration & Wallet Binding Successful!\n\nUsername: @${resolvedUsername}\nWallet: ${wallet.substring(0, 8)}...${wallet.substring(48)}\nStatus: ${category.toUpperCase()}\nRole: ${role}\nChapter: ${activeUser.chapter}`
     );
   }
 }
