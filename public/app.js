@@ -287,6 +287,22 @@ function syncRestrictedDropdownOptions() {
   }
 }
 
+function updatePolicyModalsLanguage() {
+  const isEn = getCurrentUserLang() === "en";
+  const dict = i18nDictionary[isEn ? "en" : "id"];
+  if (!dict) return;
+
+  const privacyTitleEl = document.getElementById("privacyModalTitle");
+  const privacyBodyEl = document.getElementById("privacyModalBody");
+  const termsTitleEl = document.getElementById("termsModalTitle");
+  const termsBodyEl = document.getElementById("termsModalBody");
+
+  if (privacyTitleEl) privacyTitleEl.textContent = dict.privacy_title;
+  if (privacyBodyEl) privacyBodyEl.textContent = dict.privacy_body;
+  if (termsTitleEl) termsTitleEl.textContent = dict.terms_title;
+  if (termsBodyEl) termsBodyEl.textContent = dict.terms_body;
+}
+
 function changeLanguage(lang) {
   if (!lang) return;
   const targetLang = lang.toLowerCase().substring(0, 2);
@@ -344,6 +360,8 @@ function changeLanguage(lang) {
     const videoPlaceholder = document.querySelector("#videoPlaceholder");
     if (videoPlaceholder && dict.prop_no_video) videoPlaceholder.textContent = dict.prop_no_video;
   }
+
+  updatePolicyModalsLanguage();
 }
 
 // Global State
