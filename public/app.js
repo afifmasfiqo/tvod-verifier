@@ -109,7 +109,11 @@ const i18nDictionary = {
     btn_print_pdf: "📥 Download PDF Directly (1-Klik)",
     btn_share_chrome: "🌐 Salin Link Chrome",
     btn_copy_text: "📋 Salin Teks",
-    btn_close_modal: "Tutup"
+    btn_close_modal: "Tutup",
+    privacy_title: "Kebijakan Privasi (Privacy Policy)",
+privacy_body: "1. Pengumpulan Data: TVOD dApp hanya memproses username Pi Network, alamat wallet publik, dan Hash NFT untuk verifikasi hak pilih On-Chain.\n2. Keamanan Data: Seluruh data verifikasi dan catatan suara disimpan dengan aman pada database Supabase dengan kontrol enkripsi.\n3. Hak Pengguna: Data Anda tidak akan pernah dijual atau dibagikan kepada pihak ketiga di luar ekosistem tata kelola DAO.",
+terms_title: "Syarat & Ketentuan Penggunaan (Terms of Use)",
+terms_body: "1. Kelayakan Pemilih: Hanya pemilik NFT Garuda resmi atau delegator ICP2E yang terverifikasi yang diizinkan memberikan suara.\n2. Kode Etik: Pembekuan akun (Blacklist/Frozen) akan diberlakukan secara otomatis jika ditemukan pelanggaran tata kelola atau manipulasi data.\n3. Keputusan Final: Hasil perolehan suara terbobot yang diterbitkan dalam Official Minutes bersifat final dan mengikat ekosistem.",
   },
   en: {
     app_title: "THE VOICE OF DAO",
@@ -153,7 +157,11 @@ const i18nDictionary = {
     btn_print_pdf: "📥 Download PDF Directly (1-Click)",
     btn_share_chrome: "🌐 Copy Chrome Link",
     btn_copy_text: "📋 Copy Document Text",
-    btn_close_modal: "Close"
+    btn_close_modal: "Close",
+    privacy_title: "Privacy Policy",
+privacy_body: "1. Data Collection: TVOD dApp only processes Pi Network username, public wallet address, and NFT Hash for On-Chain voting verification.\n2. Data Security: All verification records and vote logs are securely stored on Supabase database with cryptographic controls.\n3. User Rights: Your data will never be sold or shared with third parties outside the DAO governance ecosystem.",
+terms_title: "Terms of Use",
+terms_body: "1. Voter Eligibility: Only verified official Garuda NFT owners or ICP2E delegates are permitted to cast votes.\n2. Code of Conduct: Account freezing (Blacklist/Frozen) applies automatically upon any governance violation or data manipulation.\n3. Final Verdict: Weighted vote results published in Official Minutes are final and binding across the ecosystem.",
   },
   ar: {
     app_title: "صوت منظمة DAO",
