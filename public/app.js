@@ -546,6 +546,100 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   return false;
 }
 
+// =========================================================================
+// 🛡️ VERIFIKASI KEANGGOTAAN ICP2E & STATUS BLACKLIST (SUPABASE)
+// =========================================================================
+async function verifyIcp2eMemberStatus(username, garudaId = null) {
+  const cleanUser = String(username || "").trim().toLowerCase();
+  if (!cleanUser || !supabaseClient) {
+    return {
+      valid: false,
+      status: "UNREGISTERED",
+      message: {
+        id: "⛔ Data verifikasi tidak lengkap atau database belum terhubung.",
+        en: "⛔ Incomplete verification data or database disconnected."
+      }
+    };
+  }
+
+  try {
+    // 1. CEK DULU TABEL garuda_blacklist (PEMBEKUAN / BLACKLIST UTAMA)
+    let blacklistQuery = supabaseClient
+      .from("garuda_blacklist")
+      .select("*")
+      .ilike("username", cleanUser);
+
+    const { data: blacklistedRows } = await blacklistQuery;
+    const isBlacklistedByUser = Array.isArray(blacklistedRows) && blacklistedRows.length > 0;
+
+    let isBlacklistedById = false;
+    if (garudaId !== null && garudaId !== undefined && String(garudaId).trim() !== "") {
+      const { data: idRows } = await supabaseClient
+        .from("garuda_blacklist")
+        .select("*")
+        .eq("garuda_id", Number(garudaId));
+      isBlacklistedById = Array.isArray(idRows) && idRows.length > 0;
+    }
+
+    if (isBlacklistedByUser || isBlacklistedById) {
+      return {
+        valid: false,
+        status: "BLACKLIST",
+        message: {
+          id: `⛔ AKUN TERBLOKIR (DIBEKUKAN)! Username @${cleanUser} / Garuda ID #${garudaId || "N/A"} ada di daftar blacklist dan tidak diizinkan ikut voting.`,
+          en: `⛔ ACCOUNT BLACKLISTED (FROZEN)! Username @${cleanUser} / Garuda ID #${garudaId || "N/A"} is blacklisted and not allowed to vote.`
+        }
+      };
+    }
+
+    // 2. CEK TABEL icp2e_members (CASE-INSENSITIVE WHITELIST ANGGOTA RESMI)
+    const { data: member, error } = await supabaseClient
+      .from("icp2e_members")
+      .select("*")
+      .ilike("username", cleanUser)
+      .maybeSingle();
+
+    if (error || !member) {
+      return {
+        valid: false,
+        status: "UNREGISTERED",
+        message: {
+          id: `⛔ BELUM TERDAFTAR! Username @${cleanUser} tidak terdaftar sebagai anggota resmi ICP2E di wilayah mana pun. Akses ditolak.`,
+          en: `⛔ NOT REGISTERED! Username @${cleanUser} is not listed as an official ICP2E member in any chapter. Access denied.`
+        }
+      };
+    }
+
+    // Double check status freeze internal pada tabel members
+    if (member.is_blacklisted) {
+      return {
+        valid: false,
+        status: "BLACKLIST",
+        message: {
+          id: `⛔ AKUN DIBEKUKAN! Garuda ID #${member.garuda_id} (${member.chapter}) dalam status DIBEKUKAN (Frozen).`,
+          en: `⛔ ACCOUNT FROZEN! Garuda ID #${member.garuda_id} (${member.chapter}) is currently FROZEN.`
+        }
+      };
+    }
+
+    return {
+      valid: true,
+      status: "APPROVED",
+      garudaId: member.garuda_id,
+      garudaHash: member.garuda_hash,
+      chapter: member.chapter,
+      memberType: member.member_type
+    };
+  } catch (err) {
+    console.error("Error verifyIcp2eMemberStatus:", err);
+    return {
+      valid: false,
+      status: "ERROR",
+      message: { id: `⚠️ Error database: ${err.message}`, en: `⚠️ Database error: ${err.message}` }
+    };
+  }
+}
+
 // ⚡ INISIALISASI PI SDK
 async function initPiSDK() {
   if (isPiSDKInitialized) return true;
