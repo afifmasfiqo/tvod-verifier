@@ -1530,7 +1530,10 @@ async function handleOnboarding(e) {
 
   const username = currentUser && currentUser.username ? currentUser.username.trim() : "";
   if (!username || currentUser.demo) {
-    alert("⚠️ Silakan login resmi via Pi SDK terlebih dahulu.");
+    showLocalizedAlert(
+      "⚠️ Silakan login resmi via Pi SDK terlebih dahulu.",
+      "⚠️ Please sign in via official Pi SDK first."
+    );
     return;
   }
 
@@ -1540,12 +1543,18 @@ async function handleOnboarding(e) {
   const chapter = $("#communityChapter") ? $("#communityChapter").value.trim() : "";
 
   if (!category || !role || !chapter || !wallet) {
-    alert("⚠️ LENGKAPI SEMUA DATA!\n\nPastikan Pi Wallet, Kategori Pemilih, Wilayah (Chapter), dan Peran (Role) terisi lengkap sebelum mendaftar.");
+    showLocalizedAlert(
+      "⚠️ LENGKAPI SEMUA DATA!\n\nPastikan Pi Wallet, Kategori Pemilih, Wilayah (Chapter), dan Peran (Role) terisi lengkap.",
+      "⚠️ COMPLETE ALL FIELDS!\n\nPlease make sure Pi Wallet, Voter Category, Chapter, and Role are completely filled."
+    );
     return;
   }
 
   if (!isValidPiWalletAddress(wallet)) {
-    alert("⛔ ALAMAT WALLET TIDAK VALID!\n\nPastikan Anda memasukkan Public Key Alamat Wallet Pi yang sah (Pi Browser, PiPet, atau PiBox).\n\nCiri wallet sah:\n- Diawali huruf kapital 'G' atau 'M'\n- Memiliki panjang tepat 56 karakter");
+    showLocalizedAlert(
+      "⛔ ALAMAT WALLET TIDAK VALID!\n\nPastikan memasukkan Public Key Wallet Pi yang sah (Awalan G/M, 56 Karakter).",
+      "⛔ INVALID WALLET ADDRESS!\n\nPlease enter a valid Pi Wallet Public Key (Prefix G/M, exactly 56 characters)."
+    );
     return;
   }
 
@@ -1557,16 +1566,21 @@ async function handleOnboarding(e) {
     gHash = $("#garudaHash").value.trim();
 
     if (!gId || gId < 1 || gId > 1000) {
-      alert("Pendaftaran Ditolak: Garuda ID tidak valid.");
+      showLocalizedAlert("⛔ Pendaftaran Ditolak: Garuda ID tidak valid (1 - 1000).", "⛔ Registration Rejected: Invalid Garuda ID (1 - 1000).");
       return;
     }
-    if (!gHash) {
-      alert("Pendaftaran Ditolak: Hash / Token ID NFT Garuda wajib diisi.");
+    
+    // 🔐 VALIDASI KETAT HASH GARUDA RESMI
+    if (!isValidOfficialGarudaHash(gHash)) {
+      showLocalizedAlert(
+        "⛔ HASH GARUDA TIDAK VALID!\n\nHash NFT Garuda tidak sesuai atau belum terdaftar. Pastikan diawali 'GAR5...' dan berupa Hash resmi, bukan nomor ID atau teks biasa.",
+        "⛔ INVALID GARUDA HASH!\n\nGaruda NFT Hash is invalid. Ensure it starts with 'GAR5...' and is a valid official Hash, not an ID number or plain text."
+      );
       return;
     }
 
     if (role === "Founder" && gId !== 999) {
-      alert("SECURITY REJECTION: Peran Founder HANYA VALID untuk pemilik Garuda ID #999.");
+      showLocalizedAlert("⛔ REKAYASA KEAMANAN: Peran Founder HANYA VALID untuk pemilik Garuda ID #999.", "⛔ SECURITY REJECTION: Founder Role is ONLY VALID for Garuda ID #999 owner.");
       return;
     }
 
@@ -1579,15 +1593,15 @@ async function handleOnboarding(e) {
     const hashList = rawHashes.split(",").map((h) => h.trim()).filter((h) => h.length > 0);
 
     if (!ownerUsername) {
-      alert("Pendaftaran Ditolak: Username pemilik asli Garuda wajib diisi.");
+      showLocalizedAlert("⛔ Username pemilik asli Garuda wajib diisi.", "⛔ Original Garuda owner username is required.");
       return;
     }
     if (nftType === "halloween" && hashList.length !== 1) {
-      alert("Pendaftaran Ditolak: NFT Halloween membutuhkan tepat 1 Hash NFT.");
+      showLocalizedAlert("⛔ NFT Halloween membutuhkan tepat 1 Hash NFT.", "⛔ Halloween NFT requires exactly 1 NFT Hash.");
       return;
     }
     if (nftType === "piday" && hashList.length !== 3) {
-      alert("Pendaftaran Ditolak: NFT PiDay2026 membutuhkan tepat 3 Hash NFT (dipisahkan koma).");
+      showLocalizedAlert("⛔ NFT PiDay2026 membutuhkan tepat 3 Hash NFT (dipisahkan koma).", "⛔ PiDay2026 NFT requires exactly 3 NFT Hashes (comma separated).");
       return;
     }
 
@@ -1596,9 +1610,10 @@ async function handleOnboarding(e) {
     activeUser.delegatedHashes = hashList;
   }
 
-  const banned = await checkGarudaBlacklistStatus(gId, username);
-  if (banned) {
-    alert("Access denied: Your Garuda ID is temporarily frozen by Founder's directive. Voting and login are restricted.");
+  // 🛡️ VERIFIKASI ANGGOTA ICP2E & STATUS BLACKLIST
+  const memberCheck = await verifyIcp2eMemberStatus(username, gId);
+  if (!memberCheck.valid) {
+    showLocalizedAlert(memberCheck.message.id, memberCheck.message.en);
     return;
   }
 
@@ -1606,7 +1621,7 @@ async function handleOnboarding(e) {
   activeUser.walletAddress = wallet;
   activeUser.category = category;
   activeUser.role = role;
-  activeUser.chapter = chapter;
+  activeUser.chapter = memberCheck.chapter || chapter;
 
   const displayGaruda = $("#displayGaruda");
   if (displayGaruda) {
@@ -1617,7 +1632,7 @@ async function handleOnboarding(e) {
     username: username,
     wallet_address: wallet,
     category: category,
-    chapter: chapter,
+    chapter: activeUser.chapter,
     role: role,
     garuda_id: activeUser.garudaId,
     garuda_hash: activeUser.garudaHash,
@@ -1628,7 +1643,10 @@ async function handleOnboarding(e) {
 
   if (savedSuccess) {
     checkAppWalletBalance();
-    alert(`✅ Registrasi & Binding Wallet Berhasil!\n\nUsername: @${username}\nWallet: ${wallet.substring(0, 8)}...${wallet.substring(48)}\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${chapter}`);
+    showLocalizedAlert(
+      `✅ Registrasi & Binding Wallet Berhasil!\n\nUsername: @${username}\nWallet: ${wallet.substring(0, 8)}...${wallet.substring(48)}\nStatus: ${category.toUpperCase()}\nRole: ${role}\nWilayah: ${activeUser.chapter}`,
+      `✅ Registration & Wallet Binding Successful!\n\nUsername: @${username}\nWallet: ${wallet.substring(0, 8)}...${wallet.substring(48)}\nStatus: ${category.toUpperCase()}\nRole: ${role}\nChapter: ${activeUser.chapter}`
+    );
   }
 }
 
