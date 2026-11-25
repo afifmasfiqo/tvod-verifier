@@ -736,79 +736,110 @@ async function verifyIcp2eMemberStatus(username, garudaId = null) {
   }
 
   try {
-    // 1. CEK DULU TABEL garuda_blacklist (PEMBEKUAN / BLACKLIST UTAMA)
-    let blacklistQuery = supabaseClient
+    // 1. CEK TABEL garuda_blacklist (PEMBEKUAN UTAMA)
+    const { data: blacklistedUser, error: blError } = await supabaseClient
       .from("garuda_blacklist")
-      .select("*")
-      .ilike("username", cleanUser);
+      .select("username, garuda_id, reason")
+      .ilike("username", cleanUser)
+      .maybeSingle();
 
-    const { data: blacklistedRows } = await blacklistQuery;
-    const isBlacklistedByUser = Array.isArray(blacklistedRows) && blacklistedRows.length > 0;
-
-    let isBlacklistedById = false;
-    if (garudaId !== null && garudaId !== undefined && String(garudaId).trim() !== "") {
-      const { data: idRows } = await supabaseClient
-        .from("garuda_blacklist")
-        .select("*")
-        .eq("garuda_id", Number(garudaId));
-      isBlacklistedById = Array.isArray(idRows) && idRows.length > 0;
+    if (blError) {
+      console.warn("⚠️ Garuda blacklist check error:", blError.message);
     }
 
-    if (isBlacklistedByUser || isBlacklistedById) {
+    if (blacklistedUser) {
       return {
         valid: false,
-        status: "BLACKLIST",
+        status: "FROZEN",
+        garuda_id: blacklistedUser.garuda_id || garudaId,
+        reason: blacklistedUser.reason || "Pelanggaran Kode Etik / Garuda ID Dibekukan",
         message: {
-          id: `⛔ AKUN TERBLOKIR (DIBEKUKAN)! Username @${cleanUser} / Garuda ID #${garudaId || "N/A"} ada di daftar blacklist dan tidak diizinkan ikut voting.`,
-          en: `⛔ ACCOUNT BLACKLISTED (FROZEN)! Username @${cleanUser} / Garuda ID #${garudaId || "N/A"} is blacklisted and not allowed to vote.`
+          id: `⚠️ Akses akun @${cleanUser} dibatasi karena Pelanggaran Kode Etik / Garuda ID Dibekukan. Proses voting ditolak.`,
+          en: `⚠️ Account @${cleanUser} access restricted due to Code of Conduct violation / Frozen Garuda ID. Voting denied.`
         }
       };
     }
 
-    // 2. CEK TABEL icp2e_members (CASE-INSENSITIVE WHITELIST ANGGOTA RESMI)
-    const { data: member, error } = await supabaseClient
+    // 2. CEK TABEL icp2e_members (KEANGGOTAAN RESMI)
+    const { data: memberRow, error: memberError } = await supabaseClient
       .from("icp2e_members")
-      .select("*")
+      .select("username, garuda_id, chapter, member_type, is_blacklisted, garuda_hash, notes")
       .ilike("username", cleanUser)
       .maybeSingle();
 
-    if (error || !member) {
+    if (memberError) {
+      console.error("❌ Error fetching icp2e_members:", memberError.message);
+      return {
+        valid: false,
+        status: "DB_ERROR",
+        message: {
+          id: "⛔ Gagal memverifikasi data keanggotaan ke database Supabase.",
+          en: "⛔ Failed to verify membership data with Supabase database."
+        }
+      };
+    }
+
+    if (!memberRow) {
       return {
         valid: false,
         status: "UNREGISTERED",
         message: {
-          id: `⛔ BELUM TERDAFTAR! Username @${cleanUser} tidak terdaftar sebagai anggota resmi ICP2E di wilayah mana pun. Akses ditolak.`,
+          id: `⛔ TIDAK TERDAFTAR! Username @${cleanUser} tidak tercatat sebagai anggota resmi ICP2E di wilayah manapun. Akses ditolak.`,
           en: `⛔ NOT REGISTERED! Username @${cleanUser} is not listed as an official ICP2E member in any chapter. Access denied.`
         }
       };
     }
 
-    // Double check status freeze internal pada tabel members
-    if (member.is_blacklisted) {
+    // 3. CEK STATUS PEMBEKUAN DI TABEL ANGOTA
+    if (memberRow.is_blacklisted) {
       return {
         valid: false,
-        status: "BLACKLIST",
+        status: "FROZEN",
+        garuda_id: memberRow.garuda_id || garudaId,
+        reason: memberRow.notes || "Akun Dibekukan di Tabel Keanggotaan",
         message: {
-          id: `⛔ AKUN DIBEKUKAN! Garuda ID #${member.garuda_id} (${member.chapter}) dalam status DIBEKUKAN (Frozen).`,
-          en: `⛔ ACCOUNT FROZEN! Garuda ID #${member.garuda_id} (${member.chapter}) is currently FROZEN.`
+          id: `⚠️ Akun @${cleanUser} terdeteksi dibekukan (Blacklist/Frozen) oleh Pengurus. Akses ditolak.`,
+          en: `⚠️ Account @${cleanUser} is frozen (Blacklist/Frozen) by Management. Access denied.`
         }
       };
     }
 
+    // 4. CEK KESESUAIAN WILAYAH (CHAPTER)
+    const selectedChapterEl = document.querySelector("#communityChapter");
+    const selectedChapter = selectedChapterEl ? selectedChapterEl.value : "";
+
+    if (selectedChapter && memberRow.chapter && !isChapterCompatible(memberRow.chapter, selectedChapter)) {
+      return {
+        valid: false,
+        status: "CHAPTER_MISMATCH",
+        chapter: memberRow.chapter,
+        message: {
+          id: `⛔ Wilayah tidak sesuai! Akun @${cleanUser} terdaftar di wilayah ${memberRow.chapter}, bukan ${selectedChapter}.`,
+          en: `⛔ Chapter mismatch! Account @${cleanUser} is registered under ${memberRow.chapter}, not ${selectedChapter}.`
+        }
+      };
+    }
+
+    // 5. KEANGGOTAAN TERVERIFIKASI
     return {
       valid: true,
-      status: "APPROVED",
-      garudaId: member.garuda_id,
-      garudaHash: member.garuda_hash,
-      chapter: member.chapter,
-      memberType: member.member_type
+      status: "ACTIVE",
+      member: memberRow,
+      garuda_id: memberRow.garuda_id,
+      chapter: memberRow.chapter,
+      member_type: memberRow.member_type || "owner",
+      garuda_hash: memberRow.garuda_hash
     };
+
   } catch (err) {
-    console.error("Error verifyIcp2eMemberStatus:", err);
+    console.error("❌ Exception during member status verification:", err);
     return {
       valid: false,
-      status: "ERROR",
-      message: { id: `⚠️ Error database: ${err.message}`, en: `⚠️ Database error: ${err.message}` }
+      status: "SYSTEM_ERROR",
+      message: {
+        id: "⛔ Terjadi kesalahan sistem saat memproses verifikasi keanggotaan.",
+        en: "⛔ A system error occurred during membership verification process."
+      }
     };
   }
 }
