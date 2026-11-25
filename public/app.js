@@ -2139,7 +2139,9 @@ async function handleCastVote(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   const btn = $("#btnSubmitVote");
-  const defaultBtnText = "Submit Encrypted Vote & Claim Pi Incentive (Kirim Suara & Klaim Insentif)";
+  const defaultBtnText = getCurrentUserLang() === "en"
+    ? "Submit Encrypted Vote & Claim Pi Incentive"
+    : "Kirim Suara Terenkripsi & Klaim Insentif Pi";
 
   // Helper untuk reset status tombol jika terjadi pembatalan/error
   const resetVoteButton = (text = defaultBtnText, enabled = true) => {
@@ -2152,7 +2154,10 @@ async function handleCastVote(e) {
   };
 
   if (btn && btn.disabled) return;
-  resetVoteButton("⏳ Verifying Voting Rights & Ethics Status...", false);
+  resetVoteButton(
+    getCurrentUserLang() === "en" ? "⏳ Verifying Voter Eligibility..." : "⏳ Memverifikasi Kelayakan Pemilih...",
+    false
+  );
 
   try {
     const currentUsername = (activeUser.username || (currentUser && currentUser.username) || "").trim();
@@ -2160,25 +2165,56 @@ async function handleCastVote(e) {
 
     if (!currentUsername) {
       resetVoteButton(defaultBtnText, true);
-      alert("⚠️ Please sign in via Pi SDK first before casting your vote. / Silakan login terlebih dahulu sebelum memberikan suara.");
+      showLocalizedAlert(
+        "⚠️ Silakan login via Pi SDK terlebih dahulu sebelum memberikan suara.",
+        "⚠️ Please sign in via Pi SDK first before casting your vote."
+      );
       return;
     }
 
     let effectiveGarudaId = activeUser.garudaId;
-    if (supabaseClient && !effectiveGarudaId) {
+    let effectiveGarudaHash = activeUser.garudaHash;
+
+    if (supabaseClient && (!effectiveGarudaId || !effectiveGarudaHash)) {
       try {
         const { data: profRow } = await supabaseClient
           .from("voters")
-          .select("garuda_id")
+          .select("garuda_id, garuda_hash")
           .eq("username", currentUsername)
           .maybeSingle();
-        if (profRow && profRow.garuda_id) {
+        if (profRow) {
           effectiveGarudaId = profRow.garuda_id;
+          effectiveGarudaHash = profRow.garuda_hash;
           activeUser.garudaId = profRow.garuda_id;
+          activeUser.garudaHash = profRow.garuda_hash;
         }
       } catch (err) {
-        console.warn("Gagal mengambil garuda_id profil saat cek blokir:", err);
+        console.warn("Gagal mengambil profil voter saat voting:", err);
       }
+    }
+
+    // 🛡️ 1. CEK BLACKLIST SUPABASE & KEANGGOTAAN RESMI ICP2E
+    const memberCheck = await verifyIcp2eMemberStatus(currentUsername, effectiveGarudaId);
+    if (!memberCheck.valid) {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = memberCheck.status === "BLACKLIST"
+          ? (getCurrentUserLang() === "en" ? "⛔ Access Denied: Account Frozen" : "⛔ Akses Ditolak: Akun Dibekukan")
+          : (getCurrentUserLang() === "en" ? "⛔ UNREGISTERED / BELUM TERDAFTAR" : "⛔ BELUM TERDAFTAR");
+        btn.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
+      }
+      showLocalizedAlert(memberCheck.message.id, memberCheck.message.en);
+      return;
+    }
+
+    // 🔐 2. CEK KETAT HASH GARUDA JIKA KATEGORI OWNER
+    if (activeUser.category === "owner" && !isValidOfficialGarudaHash(effectiveGarudaHash)) {
+      resetVoteButton(defaultBtnText, true);
+      showLocalizedAlert(
+        "⛔ VOTING DITOLAK — HASH GARUDA TIDAK VALID!\n\nHash NFT Garuda Anda tidak sesuai format resmi GAR5... Silakan perbarui data profil Anda terlebih dahulu.",
+        "⛔ VOTING REJECTED — INVALID GARUDA HASH!\n\nYour Garuda NFT Hash does not match the official GAR5... format. Please update your voter profile first."
+      );
+      return;
     }
 
     let effectiveRole = activeUser.role || "Member";
@@ -2190,7 +2226,7 @@ async function handleCastVote(e) {
       effectiveRole = "Member";
     }
 
-    const effectiveChapter = activeUser.chapter || "GLOBAL";
+    const effectiveChapter = memberCheck.chapter || activeUser.chapter || "GLOBAL";
 
     // Validasi tata kelola restricted (Menggunakan effectiveChapter & effectiveRole)
     const governanceCheck = await validateRestrictedGovernanceSelection(
@@ -2205,17 +2241,20 @@ async function handleCastVote(e) {
       return;
     }
 
-    // Cek pembekuan akun (Blacklist)
+    // Cek pembekuan akun (Blacklist / Frozen)
     const isBannedBanner = await checkGarudaBlacklistStatus(effectiveGarudaId, currentUsername);
     const isBlockedInList = await isVoterBlockedForVoting(effectiveGarudaId, currentUsername);
 
     if (isBannedBanner || isBlockedInList || isUserBanned) {
       if (btn) {
         btn.disabled = true;
-        btn.innerText = "⛔ Access Denied: Account Frozen / Akun Terblokir";
+        btn.innerText = getCurrentUserLang() === "en" ? "⛔ Access Denied: Account Frozen" : "⛔ Akses Ditolak: Akun Dibekukan";
         btn.className = "w-full bg-red-950 text-red-400 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed border border-red-700";
       }
-      alert("⛔ VOTING REJECTED!\n\nYour Garuda ID or account is frozen/blacklisted and not permitted to vote.\n\n(Garuda ID atau akun Anda tercatat terblokir sehingga tidak diizinkan ikut voting).");
+      showLocalizedAlert(
+        "⛔ VOTING DITOLAK!\n\nGaruda ID atau akun Anda tercatat terblokir sehingga tidak diizinkan ikut voting.",
+        "⛔ VOTING REJECTED!\n\nYour Garuda ID or account is frozen/blacklisted and not permitted to vote."
+      );
       return;
     }
 
@@ -2223,17 +2262,23 @@ async function handleCastVote(e) {
     if (activeProposal.status !== 'ACTIVE' || !votingEndTime || new Date().getTime() > votingEndTime.getTime()) {
       if (btn) {
         btn.disabled = true;
-        btn.innerText = "⛔ Voting Session Closed / Sesi Voting Ditutup";
+        btn.innerText = getCurrentUserLang() === "en" ? "⛔ Voting Session Closed" : "⛔ Sesi Voting Ditutup";
         btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-xl text-sm cursor-not-allowed";
       }
-      alert("⛔ VOTING PROCESS REJECTED!\n\nThe voting session for this proposal has ended or been cancelled by admin.\n\n(Sesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin).");
+      showLocalizedAlert(
+        "⛔ VOTING DITOLAK!\n\nSesi waktu voting untuk proposal ini telah berakhir atau dibatalkan admin.",
+        "⛔ VOTING REJECTED!\n\nThe voting session for this proposal has ended or been cancelled by admin."
+      );
       return;
     }
 
     // Validasi alamat wallet
     if (!currentWallet || !isValidPiWalletAddress(currentWallet)) {
       resetVoteButton(defaultBtnText, true);
-      alert("⚠️ Wallet address is missing or invalid! Please register your Pi Wallet in the Voter Verification form first.\n\n(Alamat Wallet belum diisi atau tidak valid. Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu).");
+      showLocalizedAlert(
+        "⚠️ Alamat Wallet belum diisi atau tidak valid! Silakan daftarkan wallet Anda pada form Verifikasi Voter terlebih dahulu.",
+        "⚠️ Wallet address is missing or invalid! Please register your Pi Wallet in the Voter Verification form first."
+      );
       return;
     }
 
@@ -2249,26 +2294,41 @@ async function handleCastVote(e) {
       if (existingVotes && existingVotes.length > 0) {
         if (btn) {
           btn.disabled = true;
-          btn.innerText = "✅ Vote Already Submitted / Anda Sudah Mengirim Suara";
+          btn.innerText = getCurrentUserLang() === "en" ? "✅ Vote Already Submitted" : "✅ Anda Sudah Mengirim Suara";
           btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
         }
-        showPayoutBanner(`ℹ️ Your vote (@${escapeHtml(currentUsername)}) has already been recorded. / Suara Anda (@${escapeHtml(currentUsername)}) telah terdaftar sebelumnya.`, true);
+        showPayoutBanner(
+          getCurrentUserLang() === "en"
+            ? `ℹ️ Your vote (@${escapeHtml(currentUsername)}) has already been recorded.`
+            : `ℹ️ Suara Anda (@${escapeHtml(currentUsername)}) telah terdaftar sebelumnya.`,
+          true
+        );
         return;
       }
     }
 
-    if (btn) btn.innerText = "Verifying Voter Identity & NFT Ownership...";
+    if (btn) {
+      btn.innerText = getCurrentUserLang() === "en"
+        ? "Verifying Voter Identity & NFT Ownership..."
+        : "Memverifikasi Identitas Pemilih & Kepemilikan NFT...";
+    }
     const isNftValid = await verifyOnChainNftOwnership();
     if (!isNftValid) {
       resetVoteButton(defaultBtnText, true);
-      alert("⛔ VOTING ACCESS REJECTED!\n\nNFT or identity requirements are incomplete on your profile.\n\n(Persyaratan NFT / Identitas tidak lengkap pada profil Anda).");
+      showLocalizedAlert(
+        "⛔ AKSES VOTING DITOLAK!\n\nPersyaratan NFT atau identitas tidak lengkap pada profil Anda.",
+        "⛔ VOTING ACCESS REJECTED!\n\nNFT or identity requirements are incomplete on your profile."
+      );
       return;
     }
 
     const selectedValue = document.querySelector('input[name="voteValue"]:checked');
     if (!selectedValue) {
       resetVoteButton(defaultBtnText, true);
-      alert("Please select your vote direction (Agree / Neutral / Disagree). / Pilih arah suara Anda.");
+      showLocalizedAlert(
+        "Silakan pilih arah suara Anda (Agree / Neutral / Disagree).",
+        "Please select your vote direction (Agree / Neutral / Disagree)."
+      );
       return;
     }
 
@@ -2289,7 +2349,11 @@ async function handleCastVote(e) {
 
     const activeSig = getSignatureDataUrl("sig-chairman");
 
-    if (btn) btn.innerText = "Storing Encrypted Vote...";
+    if (btn) {
+      btn.innerText = getCurrentUserLang() === "en"
+        ? "Storing Encrypted Vote..."
+        : "Menyimpan Suara Terenkripsi...";
+    }
 
     // Simpan suara ke Supabase & tunggu konfirmasinya
     const saveResult = await saveVoteToSupabase({
@@ -2306,7 +2370,10 @@ async function handleCastVote(e) {
 
     if (!saveResult || !saveResult.ok) {
       resetVoteButton(defaultBtnText, true);
-      alert(`⚠️ Failed to store vote in Database: ${saveResult ? saveResult.message : "Unknown error"}`);
+      showLocalizedAlert(
+        `⚠️ Gagal menyimpan suara ke Database: ${saveResult ? saveResult.message : "Unknown error"}`,
+        `⚠️ Failed to store vote in Database: ${saveResult ? saveResult.message : "Unknown error"}`
+      );
       return;
     }
 
@@ -2316,7 +2383,11 @@ async function handleCastVote(e) {
     const payoutRateEl = $("#payoutRate");
     const baseReward = payoutRateEl ? parseFloat(payoutRateEl.value) || 1.0 : 1.0;
 
-    if (btn) btn.innerText = "Processing On-Chain Pi Incentive...";
+    if (btn) {
+      btn.innerText = getCurrentUserLang() === "en"
+        ? "Processing On-Chain Pi Incentive..."
+        : "Memproses Insentif Pi On-Chain...";
+    }
 
     // Eksekusi Payout Otomatis
     try {
@@ -2359,7 +2430,9 @@ async function handleCastVote(e) {
     } catch (payErr) {
       console.error("Gagal klaim payout:", payErr);
       showPayoutBanner(
-        `✅ Vote saved in Database, but payout connection timed out. / Suara berhasil disimpan ke Database, namun koneksi payout mengalami waktu tunggu.`,
+        getCurrentUserLang() === "en"
+          ? `✅ Vote saved in Database, but payout connection timed out.`
+          : `✅ Suara berhasil disimpan ke Database, namun koneksi payout mengalami waktu tunggu.`,
         false
       );
     }
@@ -2367,13 +2440,16 @@ async function handleCastVote(e) {
     // Kunci tombol voting jika sudah sukses
     if (btn) {
       btn.disabled = true;
-      btn.innerText = "✅ Vote Already Submitted / Anda Sudah Mengirim Suara";
+      btn.innerText = getCurrentUserLang() === "en" ? "✅ Vote Already Submitted" : "✅ Anda Sudah Mengirim Suara";
       btn.className = "w-full bg-slate-800 text-amber-400 font-bold py-3.5 rounded-xl text-sm border border-amber-500/30 cursor-not-allowed";
     }
   } catch (err) {
     console.error("Error saat kirim suara:", err);
     resetVoteButton(defaultBtnText, true);
-    alert(`⚠️ Error processing vote / Terjadi kesalahan saat memproses suara: ${err.message || err}`);
+    showLocalizedAlert(
+      `⚠️ Terjadi kesalahan saat memproses suara: ${err.message || err}`,
+      `⚠️ Error processing vote: ${err.message || err}`
+    );
   }
 }
 
