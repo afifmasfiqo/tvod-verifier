@@ -293,15 +293,105 @@ function updatePolicyModalsLanguage() {
   if (!dict) return;
 
   const privacyTitleEl = document.getElementById("privacyModalTitle");
-  const privacyBodyEl = document.getElementById("privacyModalBody");
+  const privacyFullBarTitleEl = document.getElementById("privacyFullBarTitle");
+  const privacyShortDescEl = document.getElementById("privacyShortDesc");
+  const privacyContentEl = document.getElementById("privacyPolicyContent");
+
   const termsTitleEl = document.getElementById("termsModalTitle");
-  const termsBodyEl = document.getElementById("termsModalBody");
+  const termsFullBarTitleEl = document.getElementById("termsFullBarTitle");
+  const termsShortDescEl = document.getElementById("termsShortDesc");
+  const termsContentEl = document.getElementById("termsUseContent");
 
   if (privacyTitleEl) privacyTitleEl.textContent = dict.privacy_title;
-  if (privacyBodyEl) privacyBodyEl.textContent = dict.privacy_body;
+  if (privacyFullBarTitleEl) privacyFullBarTitleEl.textContent = dict.privacy_title;
+  if (privacyShortDescEl) {
+    privacyShortDescEl.textContent = isEn
+      ? "We do not collect user phone numbers or email addresses."
+      : "Kami tidak mengumpulkan nomor telepon atau alamat email pengguna.";
+  }
+  if (privacyContentEl) privacyContentEl.textContent = dict.privacy_body;
+
   if (termsTitleEl) termsTitleEl.textContent = dict.terms_title;
-  if (termsBodyEl) termsBodyEl.textContent = dict.terms_body;
+  if (termsFullBarTitleEl) termsFullBarTitleEl.textContent = dict.terms_title;
+  if (termsShortDescEl) {
+    termsShortDescEl.textContent = isEn
+      ? "Governance rules, wallet usage, incentive terms, and finality / limitation of liability."
+      : "Aturan tata kelola, penggunaan wallet, insentif, dan batasan tanggung jawab.";
+  }
+  if (termsContentEl) termsContentEl.textContent = dict.terms_body;
+
+  const privBody = document.getElementById("privacyPolicyBody");
+  const privBtn = document.getElementById("btnTogglePrivacyPolicy");
+  if (privBody && privBtn) {
+    const isHidden = privBody.classList.contains("hidden");
+    privBtn.textContent = isEn
+      ? (isHidden ? "Read Policy" : "Hide Policy")
+      : (isHidden ? "Baca Kebijakan" : "Tutup Kebijakan");
+  }
+
+  const termsBody = document.getElementById("termsUseBody");
+  const termsBtn = document.getElementById("btnToggleTermsUse");
+  if (termsBody && termsBtn) {
+    const isHidden = termsBody.classList.contains("hidden");
+    termsBtn.textContent = isEn
+      ? (isHidden ? "Read Terms" : "Hide Terms")
+      : (isHidden ? "Baca Ketentuan" : "Tutup Ketentuan");
+  }
 }
+
+function toggleLegalAccordion(type) {
+  updatePolicyModalsLanguage();
+  const isPrivacy = type === "privacy";
+  const body = document.getElementById(isPrivacy ? "privacyPolicyBody" : "termsUseBody");
+  if (!body) return;
+  const isHidden = body.classList.contains("hidden");
+  body.classList.toggle("hidden", !isHidden);
+  if (isHidden) {
+    body.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  updatePolicyModalsLanguage();
+}
+
+function setLegalFullState(type, enableFull) {
+  const isPrivacy = type === "privacy";
+  const body = document.getElementById(isPrivacy ? "privacyPolicyBody" : "termsUseBody");
+  const fullBar = document.getElementById(isPrivacy ? "privacyFullBar" : "termsFullBar");
+  if (!body) return;
+
+  const fullClasses = ["fixed", "inset-3", "z-50", "overflow-y-auto", "bg-slate-950", "p-5", "rounded-2xl", "border", "border-amber-500/40", "shadow-2xl", "mt-0", "pt-4"];
+
+  if (enableFull) {
+    updatePolicyModalsLanguage();
+    body.classList.remove("hidden", "mt-3", "pt-3");
+    body.classList.add(...fullClasses);
+    if (fullBar) fullBar.classList.remove("hidden");
+  } else {
+    body.classList.remove(...fullClasses);
+    body.classList.add("mt-3", "pt-3");
+    if (fullBar) fullBar.classList.add("hidden");
+  }
+  updatePolicyModalsLanguage();
+}
+
+function toggleLegalFullView(type) {
+  const isPrivacy = type === "privacy";
+  const body = document.getElementById(isPrivacy ? "privacyPolicyBody" : "termsUseBody");
+  if (!body) return;
+  const isCurrentlyFull = body.classList.contains("fixed");
+  setLegalFullState(type, !isCurrentlyFull);
+}
+
+function closeLegalPanel(type) {
+  const isPrivacy = type === "privacy";
+  const body = document.getElementById(isPrivacy ? "privacyPolicyBody" : "termsUseBody");
+  setLegalFullState(type, false);
+  if (body) body.classList.add("hidden");
+  updatePolicyModalsLanguage();
+}
+
+window.toggleLegalAccordion = toggleLegalAccordion;
+window.toggleLegalFullView = toggleLegalFullView;
+window.closeLegalPanel = closeLegalPanel;
 
 function changeLanguage(lang) {
   if (!lang) return;
