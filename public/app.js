@@ -690,6 +690,35 @@ async function checkGarudaBlacklistStatus(garudaId, username) {
   return false;
 }
 
+function normalizeChapterName(ch) {
+  const raw = String(ch || "")
+    .trim()
+    .toUpperCase()
+    .replace(/^ICP2E\s+/, "")
+    .replace(/\s+/g, " ");
+
+  if (raw === "NFT GM" || raw === "NFT GLOBAL MARKET") return "NFT GLOBAL MARKET";
+  if (raw === "SOLO" || raw === "SOLO BERSERI") return "SOLO BERSERI";
+  return raw;
+}
+
+function isChapterCompatible(dbChapter, selectedChapter) {
+  const a = normalizeChapterName(dbChapter);
+  const b = normalizeChapterName(selectedChapter);
+  if (!b || b === "GLOBAL") return true;
+  if (a === b) return true;
+
+  // Pemegang / eks-ketua Blitar Raya yang naik/beroperasi di chapter TVOD tetap valid
+  if ((a === "BLITAR RAYA" && b === "TVOD") || (a === "TVOD" && b === "BLITAR RAYA")) {
+    return true;
+  }
+  // Wilayah Jatim & NFT Global Market (NFT GM)
+  if ((a === "JATIM" && b === "NFT GLOBAL MARKET") || (a === "NFT GLOBAL MARKET" && b === "JATIM")) {
+    return true;
+  }
+  return false;
+}
+
 // =========================================================================
 // 🛡️ VERIFIKASI KEANGGOTAAN ICP2E & STATUS BLACKLIST (SUPABASE)
 // =========================================================================
