@@ -723,8 +723,15 @@ function isChapterCompatible(dbChapter, selectedChapter) {
 // 🛡️ VERIFIKASI KEANGGOTAAN ICP2E & STATUS BLACKLIST (SUPABASE)
 // =========================================================================
 async function verifyIcp2eMemberStatus(username, garudaId = null) {
-  const cleanUser = String(username || "").trim().toLowerCase();
-  if (!cleanUser || !supabaseClient) {
+  // Bersihkan username dari tanda @, spasi depan/belakang, dan ubah ke huruf kecil
+  const cleanUser = String(username || "")
+    .replace(/^@+/, "")
+    .trim()
+    .toLowerCase();
+
+  const numericGarudaId = garudaId ? parseInt(garudaId, 10) : null;
+
+  if (!cleanUser && !numericGarudaId) {
     return {
       valid: false,
       status: "UNREGISTERED",
@@ -737,11 +744,14 @@ async function verifyIcp2eMemberStatus(username, garudaId = null) {
 
   try {
     // 1. CEK TABEL garuda_blacklist (PEMBEKUAN UTAMA)
-    const { data: blacklistedUser, error: blError } = await supabaseClient
-      .from("garuda_blacklist")
-      .select("username, garuda_id, reason")
-      .ilike("username", cleanUser)
-      .maybeSingle();
+    let blQuery = supabaseClient.from("garuda_blacklist").select("username, garuda_id, reason");
+    if (cleanUser) {
+      blQuery = blQuery.ilike("username", cleanUser);
+    } else if (numericGarudaId) {
+      blQuery = blQuery.eq("garuda_id", numericGarudaId);
+    }
+
+    const { data: blacklistedUser, error: blError } = await blQuery.maybeSingle();
 
     if (blError) {
       console.warn("⚠️ Garuda blacklist check error:", blError.message);
@@ -751,32 +761,42 @@ async function verifyIcp2eMemberStatus(username, garudaId = null) {
       return {
         valid: false,
         status: "FROZEN",
-        garuda_id: blacklistedUser.garuda_id || garudaId,
+        garuda_id: blacklistedUser.garuda_id || numericGarudaId,
         reason: blacklistedUser.reason || "Pelanggaran Kode Etik / Garuda ID Dibekukan",
         message: {
-          id: `⚠️ Akses akun @${cleanUser} dibatasi karena Pelanggaran Kode Etik / Garuda ID Dibekukan. Proses voting ditolak.`,
-          en: `⚠️ Account @${cleanUser} access restricted due to Code of Conduct violation / Frozen Garuda ID. Voting denied.`
+          id: `⚠️ Akses akun @${cleanUser || numericGarudaId} dibatasi karena Pelanggaran Kode Etik / Garuda ID Dibekukan. Proses voting ditolak.`,
+          en: `⚠️ Account @${cleanUser || numericGarudaId} access restricted due to Code of Conduct violation / Frozen Garuda ID. Voting denied.`
         }
       };
     }
 
     // 2. CEK TABEL icp2e_members (KEANGGOTAAN RESMI)
-    const { data: memberRow, error: memberError } = await supabaseClient
-      .from("icp2e_members")
-      .select("username, garuda_id, chapter, member_type, is_blacklisted, garuda_hash, notes")
-      .ilike("username", cleanUser)
-      .maybeSingle();
+    let memberRow = null;
 
-    if (memberError) {
-      console.error("❌ Error fetching icp2e_members:", memberError.message);
-      return {
-        valid: false,
-        status: "DB_ERROR",
-        message: {
-          id: "⛔ Gagal memverifikasi data keanggotaan ke database Supabase.",
-          en: "⛔ Failed to verify membership data with Supabase database."
-        }
-      };
+    // Cari berdasarkan Username dulu
+    if (cleanUser) {
+      const { data: mData, error: mError } = await supabaseClient
+        .from("icp2e_members")
+        .select("username, garuda_id, chapter, member_type, is_blacklisted, garuda_hash, notes")
+        .ilike("username", cleanUser)
+        .maybeSingle();
+
+      if (!mError && mData) {
+        memberRow = mData;
+      }
+    }
+
+    // Jika belum ketemu dan ada Garuda ID, cari cadangan berdasarkan garuda_id
+    if (!memberRow && numericGarudaId) {
+      const { data: gData, error: gError } = await supabaseClient
+        .from("icp2e_members")
+        .select("username, garuda_id, chapter, member_type, is_blacklisted, garuda_hash, notes")
+        .eq("garuda_id", numericGarudaId)
+        .maybeSingle();
+
+      if (!gError && gData) {
+        memberRow = gData;
+      }
     }
 
     if (!memberRow) {
@@ -790,16 +810,16 @@ async function verifyIcp2eMemberStatus(username, garudaId = null) {
       };
     }
 
-    // 3. CEK STATUS PEMBEKUAN DI TABEL ANGOTA
+    // 3. CEK STATUS PEMBEKUAN DI TABEL ANGGOTA
     if (memberRow.is_blacklisted) {
       return {
         valid: false,
         status: "FROZEN",
-        garuda_id: memberRow.garuda_id || garudaId,
+        garuda_id: memberRow.garuda_id || numericGarudaId,
         reason: memberRow.notes || "Akun Dibekukan di Tabel Keanggotaan",
         message: {
-          id: `⚠️ Akun @${cleanUser} terdeteksi dibekukan (Blacklist/Frozen) oleh Pengurus. Akses ditolak.`,
-          en: `⚠️ Account @${cleanUser} is frozen (Blacklist/Frozen) by Management. Access denied.`
+          id: `⚠️ Akun @${memberRow.username} terdeteksi dibekukan (Blacklist/Frozen) oleh Pengurus. Akses ditolak.`,
+          en: `⚠️ Account @${memberRow.username} is frozen (Blacklist/Frozen) by Management. Access denied.`
         }
       };
     }
@@ -814,8 +834,8 @@ async function verifyIcp2eMemberStatus(username, garudaId = null) {
         status: "CHAPTER_MISMATCH",
         chapter: memberRow.chapter,
         message: {
-          id: `⛔ Wilayah tidak sesuai! Akun @${cleanUser} terdaftar di wilayah ${memberRow.chapter}, bukan ${selectedChapter}.`,
-          en: `⛔ Chapter mismatch! Account @${cleanUser} is registered under ${memberRow.chapter}, not ${selectedChapter}.`
+          id: `⛔ Wilayah tidak sesuai! Akun @${memberRow.username} terdaftar di wilayah ${memberRow.chapter}, bukan ${selectedChapter}.`,
+          en: `⛔ Chapter mismatch! Account @${memberRow.username} is registered under ${memberRow.chapter}, not ${selectedChapter}.`
         }
       };
     }
